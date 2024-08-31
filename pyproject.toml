@@ -1,0 +1,20 @@
+[project]
+name = "BD_Shacketons"
+version = "0.1.0"
+description = "Default template for PDM package"
+authors = [
+    {name = "Estrella Valdés y Diego Hernández", email = "valdesestrella36@gmail.com"},
+]
+dependencies = [
+    "litestar[sqlalchemy,standard]>=2.9.1",
+    "pandas>=2.2.2",
+    "pyqt6>=6.7.1",
+    "openpyxl>=3.1.5",
+]
+requires-python = "==3.12.*"
+readme = "README.md"
+license = {text = "MIT"}
+
+
+[tool.pdm]
+distribution = false
