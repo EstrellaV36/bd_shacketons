@@ -1,6 +1,6 @@
 # app/ui.py
 from PyQt6.QtWidgets import (
-    QApplication, QMainWindow, QPushButton, QWidget, QHBoxLayout, QVBoxLayout, QSizePolicy, QFileDialog, QMessageBox, QTableView, QComboBox
+    QApplication, QMainWindow, QPushButton, QWidget, QHBoxLayout, QVBoxLayout, QSizePolicy, QFileDialog, QMessageBox, QTableView, QComboBox, QTabWidget
 )
 from PyQt6.QtCore import QAbstractTableModel, Qt
 import pandas as pd
@@ -49,32 +49,56 @@ class BasicApp(QMainWindow):
         button_layout = QHBoxLayout()
         
         # Crear botones
-        self.button_on = QPushButton("ON")
-        self.button_off = QPushButton("OFF")
         self.button_load = QPushButton("Cargar Excel")
-        
         self.button_load.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        
-        # Crear un combo box para seleccionar hojas
-        self.sheet_selector = QComboBox()
-        self.sheet_selector.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        self.sheet_selector.currentIndexChanged.connect(self.change_sheet)
-        
-        # Conectar el botón de carga al método de carga
         self.button_load.clicked.connect(self.load_excel_file)
         
         button_layout.addWidget(self.button_load)
-        button_layout.addWidget(self.sheet_selector)
         
         # Agregar el diseño de los botones al diseño principal
         main_layout.addLayout(button_layout)
 
-        # Crear y agregar una tabla para mostrar los datos
-        self.table_view = QTableView()
-        main_layout.addWidget(self.table_view)
+        # Crear un QTabWidget para las pestañas
+        self.tabs = QTabWidget()
+        main_layout.addWidget(self.tabs)
 
-        # Variable para almacenar los DataFrames de las hojas
-        self.excel_data = {}
+        # Crear widgets para cada pestaña
+        self.on_tab = QWidget()
+        self.off_tab = QWidget()
+        
+        # Agregar las pestañas al QTabWidget
+        self.tabs.addTab(self.on_tab, "ON")
+        self.tabs.addTab(self.off_tab, "OFF")
+
+        # Crear un layout para cada pestaña
+        self.on_layout = QVBoxLayout()
+        self.off_layout = QVBoxLayout()
+        
+        self.on_tab.setLayout(self.on_layout)
+        self.off_tab.setLayout(self.off_layout)
+
+        # Crear un combo box para seleccionar hojas
+        self.on_sheet_selector = QComboBox()
+        self.off_sheet_selector = QComboBox()
+
+        # Conectar la selección del combo box al método para cambiar de hoja
+        self.on_sheet_selector.currentIndexChanged.connect(self.change_on_sheet)
+        self.off_sheet_selector.currentIndexChanged.connect(self.change_off_sheet)
+
+        # Crear un QTableView para cada pestaña
+        self.on_table_view = QTableView()
+        self.off_table_view = QTableView()
+
+        # Agregar los combos y las tablas a los layouts de las pestañas
+        self.on_layout.addWidget(self.on_sheet_selector)
+        self.on_layout.addWidget(self.on_table_view)
+
+        self.off_layout.addWidget(self.off_sheet_selector)
+        self.off_layout.addWidget(self.off_table_view)
+
+        # Variables para almacenar los DataFrames de las hojas "on" y "off"
+        self.on_sheets = {}
+        self.off_sheets = {}
 
     def load_excel_file(self):
         # Abrir un cuadro de diálogo para seleccionar un archivo
@@ -93,29 +117,44 @@ class BasicApp(QMainWindow):
     def process_excel_file(self, file_path):
         try:
             # Leer todas las hojas del archivo Excel
-            self.excel_data = pd.read_excel(file_path, sheet_name=None)  # Lee todas las hojas
+            excel_data = pd.read_excel(file_path, sheet_name=None)  # Lee todas las hojas
             
-            # Poblar el combo box con los nombres de las hojas
-            self.sheet_selector.clear()
-            self.sheet_selector.addItems(self.excel_data.keys())
+            # Separar las hojas en "on" y "off"
+            self.on_sheets = {name: df for name, df in excel_data.items() if "on" in name.lower()}
+            self.off_sheets = {name: df for name, df in excel_data.items() if "off" in name.lower()}
             
-            # Mostrar la primera hoja por defecto
-            self.show_sheet(self.sheet_selector.currentText())
+            # Poblar los combo boxes con los nombres de las hojas
+            self.on_sheet_selector.clear()
+            self.on_sheet_selector.addItems(self.on_sheets.keys())
+            
+            self.off_sheet_selector.clear()
+            self.off_sheet_selector.addItems(self.off_sheets.keys())
+            
+            # Mostrar la primera hoja "on" y "off" en sus respectivas pestañas
+            if self.on_sheets:
+                self.show_sheet(self.on_sheets[self.on_sheet_selector.currentText()], self.on_table_view)
+            if self.off_sheets:
+                self.show_sheet(self.off_sheets[self.off_sheet_selector.currentText()], self.off_table_view)
         
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Error al procesar el archivo: {e}")
 
-    def show_sheet(self, sheet_name):
-        # Mostrar los datos de la hoja seleccionada
-        df = self.excel_data[sheet_name]
+    def show_sheet(self, df, table_view):
+        # Mostrar los datos del DataFrame en la QTableView correspondiente
         model = PandasModel(df)
-        self.table_view.setModel(model)
+        table_view.setModel(model)
 
-    def change_sheet(self):
-        # Cambiar a la hoja seleccionada
-        sheet_name = self.sheet_selector.currentText()
+    def change_on_sheet(self):
+        # Cambiar la hoja mostrada en la pestaña "ON"
+        sheet_name = self.on_sheet_selector.currentText()
         if sheet_name:
-            self.show_sheet(sheet_name)
+            self.show_sheet(self.on_sheets[sheet_name], self.on_table_view)
+
+    def change_off_sheet(self):
+        # Cambiar la hoja mostrada en la pestaña "OFF"
+        sheet_name = self.off_sheet_selector.currentText()
+        if sheet_name:
+            self.show_sheet(self.off_sheets[sheet_name], self.off_table_view)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
