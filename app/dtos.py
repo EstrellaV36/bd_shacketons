@@ -1,6 +1,6 @@
 from advanced_alchemy.extensions.litestar import SQLAlchemyDTO, SQLAlchemyDTOConfig
 
-from app.models import Tripulante, Buque, Vuelo, Hotel, Restaurante, Transporte, Viaje
+from models import Tripulante, Buque, Vuelo, Hotel, Restaurante, Transporte, Viaje
 
 # DTOs para Tripulante
 class TripulanteReadDTO(SQLAlchemyDTO[Tripulante]):

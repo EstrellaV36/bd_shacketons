@@ -1,3 +1,4 @@
+
 from datetime import datetime, date
 from typing import Optional
 from sqlalchemy import ForeignKey, String, DateTime, Date, Integer, Boolean
@@ -24,7 +25,7 @@ class Tripulante(Base):
     buque_id: Mapped[Optional[int]] = mapped_column(ForeignKey("buques.buque_id"))
     tipo: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
     eta: Mapped[date] = mapped_column(Date, nullable=True) ##Eta no debe ser nulo, esto es solo prueba
-
+    estado: Mapped[str] = mapped_column(String, nullable=False)  # Añadido para diferenciar ON/OFF
 
     buque: Mapped["Buque"] = relationship(back_populates="tripulantes")
     vuelos: Mapped[list["Vuelo"]] = relationship(back_populates="tripulante")

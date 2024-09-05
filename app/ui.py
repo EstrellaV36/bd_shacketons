@@ -5,6 +5,11 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import QAbstractTableModel, Qt, QRect, QPropertyAnimation, QEasingCurve, QEvent
 import pandas as pd
 import sys
+from database import SessionLocal, engine  # Importar el motor de base de datos
+from models import Buque, Tripulante, Base  # Importar tus modelos y la clase Base
+
+# Crear las tablas si no existen
+Base.metadata.create_all(engine)
 
 class PandasModel(QAbstractTableModel):
     def __init__(self, df):
@@ -252,9 +257,68 @@ class BasicApp(QMainWindow):
                 self.show_sheet(self.on_sheets[self.on_sheet_selector.currentText()], self.on_table_view)
             if self.off_sheets:
                 self.show_sheet(self.off_sheets[self.off_sheet_selector.currentText()], self.off_table_view)
+
+            self.save_tripulantes_to_db()
         
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Error al procesar el archivo: {e}")
+
+    def save_tripulantes_to_db(self):
+        # Inicia una sesión de la base de datos
+        session = SessionLocal()
+        try:
+            # Procesar las hojas ON y OFF
+            for sheet_name, df in self.on_sheets.items():
+                if sheet_name == 'Pasajeros y Pasaportes ON':
+                    # Procesar datos de Pasajeros y Pasaportes ON
+                    for _, row in df.iterrows():
+                        if pd.isna(row['Vessel']) or pd.isna(row['First name']) or pd.isna(row['Last name']):
+                            # Si falta algún dato clave, se omite este registro
+                            continue
+
+                        # Buscar la nave en la base de datos
+                        nave = session.query(Buque).filter_by(nombre=row['Vessel']).first()
+
+                        # Si la nave no existe, crearla
+                        if not nave:
+                            print(f"Nave {row['Vessel']} no encontrada. Creando la nave...")
+                            nave = Buque(
+                                nombre=row['Vessel'],
+                                compañia="Compañía Desconocida"  # Puedes ajustar este valor si tienes la compañía en el Excel
+                            )
+                            session.add(nave)
+                            session.commit()  # Confirmar la creación de la nueva nave para obtener su ID
+                            print(f"Nave {nave.nombre} creada correctamente.")
+
+                        # Crear un nuevo tripulante
+                        try:
+                            tripulante = Tripulante(
+                                nombre=row['First name'],
+                                apellido=row['Last name'],
+                                sexo=row['Gender'] if not pd.isna(row['Gender']) else None,
+                                nacionalidad=row['Nationality'] if not pd.isna(row['Nationality']) else None,
+                                pasaporte=row['Passport number'] if not pd.isna(row['Passport number']) else None,
+                                fecha_nacimiento=pd.to_datetime(row['Date of birth']).date() if not pd.isna(row['Date of birth']) else None,
+                                buque_id=nave.buque_id,
+                                estado='ON'  # Marca el tripulante como ON
+                            )
+                            session.add(tripulante)
+                            print(f"Tripulante añadido: {tripulante.nombre} {tripulante.apellido}, Buque: {nave.nombre}")
+                        except Exception as e:
+                            print(f"Error al crear el tripulante: {e}")
+                            continue  # Opción de continuar con el siguiente registro si hay un error en uno
+
+            # Confirmar los cambios
+            print("Comitiendo la transacción...")
+            session.commit()
+            print("Datos guardados correctamente en la base de datos.")
+        except Exception as e:
+            session.rollback()
+            print(f"Error al guardar en la base de datos: {e}")
+        finally:
+            session.close()  # Asegurarse de que la sesión siempre se cierra
+
+
 
     def show_sheet(self, df, table_view):
         # Mostrar los datos del DataFrame en la QTableView correspondiente
