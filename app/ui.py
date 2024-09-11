@@ -267,10 +267,10 @@ class BasicApp(QMainWindow):
         # Inicia una sesión de la base de datos
         session = SessionLocal()
         try:
-            # Procesar las hojas ON y OFF
-            for sheet_name, df in self.on_sheets.items():
-                if sheet_name == 'Pasajeros y Pasaportes ON':
-                    # Procesar datos de Pasajeros y Pasaportes ON
+            # Procesar las hojas que empiezan con "Pasajeros y Pasaportes"
+            for sheet_name, df in {**self.on_sheets, **self.off_sheets}.items():
+                if sheet_name.startswith('Pasajeros y Pasaportes'):
+                    print(f"Procesando hoja: {sheet_name}")  # Para verificar qué hoja se está procesando
                     for _, row in df.iterrows():
                         if pd.isna(row['Vessel']) or pd.isna(row['First name']) or pd.isna(row['Last name']):
                             # Si falta algún dato clave, se omite este registro
@@ -300,7 +300,7 @@ class BasicApp(QMainWindow):
                                 pasaporte=row['Passport number'] if not pd.isna(row['Passport number']) else None,
                                 fecha_nacimiento=pd.to_datetime(row['Date of birth']).date() if not pd.isna(row['Date of birth']) else None,
                                 buque_id=nave.buque_id,
-                                estado='ON'  # Marca el tripulante como ON
+                                estado='ON' if 'ON' in sheet_name else 'OFF'  # Estado según el nombre de la hoja
                             )
                             session.add(tripulante)
                             print(f"Tripulante añadido: {tripulante.nombre} {tripulante.apellido}, Buque: {nave.nombre}")
