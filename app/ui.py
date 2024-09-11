@@ -6,7 +6,7 @@ from PyQt6.QtCore import QAbstractTableModel, Qt, QRect, QPropertyAnimation, QEa
 import pandas as pd
 import sys
 from database import SessionLocal, engine  # Importar el motor de base de datos
-from models import Buque, Tripulante, Base  # Importar tus modelos y la clase Base
+from models import Buque, Tripulante, Base, Vuelo  # Importar tus modelos y la clase Base
 
 # Crear las tablas si no existen
 Base.metadata.create_all(engine)
@@ -211,8 +211,6 @@ class BasicApp(QMainWindow):
                 return True
         return super().eventFilter(source, event)
 
-
-
     def change_tab(self, index):
         # Cambiar la pantalla según la selección del menú
         self.stacked_widget.setCurrentIndex(index)
@@ -246,6 +244,10 @@ class BasicApp(QMainWindow):
                 if re.search(r'\bOFF\b$', name, re.IGNORECASE)
             }
             
+            # Filtrar las hojas de vuelos
+            self.on_flights = excel_data.get('Itinerarios de Vuelo ON', None)
+            self.off_flights = excel_data.get('Itinerarios de Vuelo OFF', None)
+            
             # Poblar los combo boxes con los nombres de las hojas
             self.on_sheet_selector.clear()
             self.on_sheet_selector.addItems(self.on_sheets.keys())
@@ -259,10 +261,75 @@ class BasicApp(QMainWindow):
             if self.off_sheets:
                 self.show_sheet(self.off_sheets[self.off_sheet_selector.currentText()], self.off_table_view)
 
+            # Guardar tripulantes en la base de datos
             self.save_tripulantes_to_db()
+
+            # Asignar vuelos a los tripulantes
+            self.assign_flights_to_tripulantes()
         
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Error al procesar el archivo: {e}")
+
+    def assign_flights_to_tripulantes(self):
+        session = SessionLocal()
+        try:
+            # Procesar los vuelos ON
+            if self.on_flights is not None:
+                for _, row in self.on_flights.iterrows():
+                    print(f"Procesando vuelo ON para pasaporte: {row['Passport']}")
+                    # Buscar el tripulante por pasaporte
+                    tripulante = session.query(Tripulante).filter_by(pasaporte=row['Passport'].strip()).first()
+
+                    if tripulante:
+                        print(f"Tripulante encontrado: {tripulante.nombre} {tripulante.apellido}")
+                        # Asignar el vuelo ON al tripulante
+                        vuelo = Vuelo(
+                            codigo=row['Flight'],  # Cambiado de numero_vuelo a codigo
+                            aeropuerto_salida=row['Departure airport'],
+                            hora_salida=pd.to_datetime(f"{row['Departure date']} {row['Departure time']}"),  # Combina fecha y hora
+                            aeropuerto_llegada=row['Arrival airport'],
+                            hora_llegada=pd.to_datetime(f"{row['Arrival date']} {row['Arrival time']}"),  # Combina fecha y hora
+                            tripulante_id=tripulante.tripulante_id,  # Asocia el vuelo con el tripulante
+                            tipo='Nacional' if row['Flight'][:2] == 'ON' else 'Internacional'  # Ejemplo de asignación de tipo
+                        )
+                        session.add(vuelo)
+                        print(f"Vuelo ON asignado: {vuelo.codigo}, tripulante: {tripulante.pasaporte}")
+                    else:
+                        print(f"No se encontró tripulante para el pasaporte: {row['Passport']}")
+
+            # Procesar los vuelos OFF
+            if self.off_flights is not None:
+                for _, row in self.off_flights.iterrows():
+                    print(f"Procesando vuelo OFF para pasaporte: {row['Passport']}")
+                    # Buscar el tripulante por pasaporte
+                    tripulante = session.query(Tripulante).filter_by(pasaporte=row['Passport'].strip()).first()
+
+                    if tripulante:
+                        print(f"Tripulante encontrado: {tripulante.nombre} {tripulante.apellido}")
+                        # Asignar el vuelo OFF al tripulante
+                        vuelo = Vuelo(
+                            codigo=row['Flight'],  # Cambiado de numero_vuelo a codigo
+                            aeropuerto_salida=row['Departure airport'],
+                            hora_salida=pd.to_datetime(f"{row['Departure date']} {row['Departure time']}"),
+                            aeropuerto_llegada=row['Arrival airport'],
+                            hora_llegada=pd.to_datetime(f"{row['Arrival date']} {row['Arrival time']}"),
+                            tripulante_id=tripulante.tripulante_id,  # Asocia el vuelo con el tripulante
+                            tipo='Nacional' if row['Flight'][:2] == 'ON' else 'Internacional'  # Ejemplo de asignación de tipo
+                        )
+                        session.add(vuelo)
+                        print(f"Vuelo OFF asignado: {vuelo.codigo}, tripulante: {tripulante.pasaporte}")
+                    else:
+                        print(f"No se encontró tripulante para el pasaporte: {row['Passport']}")
+
+            # Confirmar los cambios en la base de datos
+            session.commit()
+
+        except Exception as e:
+            print(f"Error al asignar vuelos a los tripulantes: {e}")
+            session.rollback()
+
+        finally:
+            session.close()
 
     def load_existing_data(self):
         session = SessionLocal()
@@ -278,7 +345,9 @@ class BasicApp(QMainWindow):
                 'Passport number': trip.pasaporte,
                 'Date of birth': trip.fecha_nacimiento
             } for trip in tripulantes_on])
-            
+
+            print(f"Tripulantes ON cargados: {df_on.shape[0]}")  # Imprimir número de tripulantes ON
+
             if not df_on.empty:
                 self.show_sheet(df_on, self.on_table_view)
 
@@ -293,6 +362,8 @@ class BasicApp(QMainWindow):
                 'Passport number': trip.pasaporte,
                 'Date of birth': trip.fecha_nacimiento
             } for trip in tripulantes_off])
+
+            print(f"Tripulantes OFF cargados: {df_off.shape[0]}")  # Imprimir número de tripulantes OFF
 
             if not df_off.empty:
                 self.show_sheet(df_off, self.off_table_view)
