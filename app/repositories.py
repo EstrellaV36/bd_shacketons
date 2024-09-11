@@ -6,6 +6,7 @@ from app.models import Tripulante, Buque, Vuelo, Hotel, Restaurante, Transporte,
 # Repositorio para Tripulante
 class TripulanteRepository(SQLAlchemySyncRepository[Tripulante]):  # type: ignore
     model_type = Tripulante
+    id_attribute = "tripulante_id"  
 
 async def provide_tripulante_repo(db_session: Session) -> TripulanteRepository:
     return TripulanteRepository(session=db_session, auto_commit=True)

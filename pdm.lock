@@ -5,7 +5,7 @@
 groups = ["default"]
 strategy = ["cross_platform", "inherit_metadata"]
 lock_version = "4.4.1"
-content_hash = "sha256:69b2e0041d06c2176d3d02723eb7294eadaa32a537b81b5968f11921da713931"
+content_hash = "sha256:2c2150d241f0e293d0df64b4f3a42442e4fb69296565b5a019ced46e099398bd"
 
 [[package]]
 name = "advanced-alchemy"
