@@ -1,3 +1,5 @@
+# rama diego2
+
 import re
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QPushButton, QTabWidget, QWidget, QHBoxLayout, QVBoxLayout, QSizePolicy, QFileDialog, QMessageBox, QTableView, QComboBox, QStackedWidget, QListWidget, QLabel
