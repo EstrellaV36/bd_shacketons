@@ -1,5 +1,6 @@
 # app/database.py
 
+#HOLA PROBANDO
 from litestar.contrib.sqlalchemy.plugins import SQLAlchemySyncConfig, SQLAlchemyPlugin
 from models import Base 
 #from app.models import Base 
