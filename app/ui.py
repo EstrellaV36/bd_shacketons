@@ -6,7 +6,7 @@ from PyQt6.QtCore import QAbstractTableModel, Qt, QRect, QPropertyAnimation, QEa
 import pandas as pd
 import sys
 from database import SessionLocal, engine  # Importar el motor de base de datos
-from models import Buque, Tripulante, Base, Vuelo  # Importar tus modelos y la clase Base
+from models import Buque, Tripulante, Base, Vuelo, EtaCiudad  # Importar modelos y la clase Base
 
 # Crear las tablas si no existen
 Base.metadata.create_all(engine)
@@ -59,8 +59,15 @@ class BasicApp(QMainWindow):
         self.button_toggle_menu.clicked.connect(self.toggle_menu)
 
         button_layout.addWidget(self.button_toggle_menu)
+
+        # Crear un QComboBox para elegir la ciudad
+        self.city_combo_box = QComboBox()
+        self.city_combo_box.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.city_combo_box.addItems(["Punta Arenas", "Santiago", "Puerto Montt", "Valparaíso"])  # Añadir ciudades aquí
+        self.city_combo_box.currentIndexChanged.connect(self.city_selected)  # Evento al cambiar la selección
+        button_layout.addWidget(self.city_combo_box)
         
-        # Agregar el diseño de los botones al diseño principal
+        # Agregar el diseño de los botones y combo box al diseño principal
         main_layout.addLayout(button_layout)
 
         # Crear un QStackedWidget para cambiar entre las pantallas
@@ -79,6 +86,27 @@ class BasicApp(QMainWindow):
         # Instalar un filtro de eventos para capturar clics fuera del menú
         self.installEventFilter(self)
         self.load_existing_data()  # Aquí se cargan los tripulantes de la BD al iniciar la app
+
+    # Método para manejar la selección de la ciudad
+    def city_selected(self, index):
+        city = self.city_combo_box.itemText(index)
+        print(f"Ciudad seleccionada: {city}")
+
+        session = SessionLocal()
+        try:
+            # Filtrar tripulantes con vuelos hacia la ciudad seleccionada
+            tripulantes = session.query(Tripulante).join(Vuelo).filter(Vuelo.aeropuerto_llegada == city).all()
+
+            for tripulante in tripulantes:
+                print(f"Tripulante {tripulante.nombre} {tripulante.apellido} tiene ETA {tripulante.eta}")
+
+                # Actualizar la interfaz gráfica o lista de tripulantes con la información del ETA
+                # por ejemplo, mostrar en un QLabel o una tabla.
+                
+        except Exception as e:
+            print(f"Error al mostrar tripulantes con ETA: {e}")
+        finally:
+            session.close()
 
     def create_pasajeros_screen(self):
         # Crear la pantalla "Pasajeros"
@@ -286,14 +314,22 @@ class BasicApp(QMainWindow):
                         vuelo = Vuelo(
                             codigo=row['Flight'],  # Cambiado de numero_vuelo a codigo
                             aeropuerto_salida=row['Departure airport'],
-                            hora_salida=pd.to_datetime(f"{row['Departure date']} {row['Departure time']}"),  # Combina fecha y hora
+                            hora_salida=pd.to_datetime(f"{row['Departure date']} {row['Departure time']}"),
                             aeropuerto_llegada=row['Arrival airport'],
-                            hora_llegada=pd.to_datetime(f"{row['Arrival date']} {row['Arrival time']}"),  # Combina fecha y hora
-                            tripulante_id=tripulante.tripulante_id,  # Asocia el vuelo con el tripulante
-                            tipo='Nacional' if row['Flight'][:2] == 'ON' else 'Internacional'  # Ejemplo de asignación de tipo
+                            hora_llegada=pd.to_datetime(f"{row['Arrival date']} {row['Arrival time']}"),
+                            tripulante_id=tripulante.tripulante_id,
                         )
                         session.add(vuelo)
-                        print(f"Vuelo ON asignado: {vuelo.codigo}, tripulante: {tripulante.pasaporte}")
+
+                        # Siempre crear un nuevo registro de EtaCiudad para cualquier ciudad de llegada
+                        eta_ciudad = EtaCiudad(
+                            tripulante_id=tripulante.tripulante_id,
+                            ciudad=row['Arrival airport'],
+                            eta=pd.to_datetime(f"{row['Arrival date']} {row['Arrival time']}")
+                        )
+                        session.add(eta_ciudad)
+                        print(f"ETA asignado: {eta_ciudad.eta} para {tripulante.nombre} en {eta_ciudad.ciudad}")
+
                     else:
                         print(f"No se encontró tripulante para el pasaporte: {row['Passport']}")
 
@@ -301,35 +337,40 @@ class BasicApp(QMainWindow):
             if self.off_flights is not None:
                 for _, row in self.off_flights.iterrows():
                     print(f"Procesando vuelo OFF para pasaporte: {row['Passport']}")
-                    # Buscar el tripulante por pasaporte
                     tripulante = session.query(Tripulante).filter_by(pasaporte=row['Passport'].strip()).first()
 
                     if tripulante:
                         print(f"Tripulante encontrado: {tripulante.nombre} {tripulante.apellido}")
-                        # Asignar el vuelo OFF al tripulante
                         vuelo = Vuelo(
-                            codigo=row['Flight'],  # Cambiado de numero_vuelo a codigo
+                            codigo=row['Flight'],
                             aeropuerto_salida=row['Departure airport'],
                             hora_salida=pd.to_datetime(f"{row['Departure date']} {row['Departure time']}"),
                             aeropuerto_llegada=row['Arrival airport'],
                             hora_llegada=pd.to_datetime(f"{row['Arrival date']} {row['Arrival time']}"),
-                            tripulante_id=tripulante.tripulante_id,  # Asocia el vuelo con el tripulante
-                            tipo='Nacional' if row['Flight'][:2] == 'ON' else 'Internacional'  # Ejemplo de asignación de tipo
+                            tripulante_id=tripulante.tripulante_id,
                         )
                         session.add(vuelo)
-                        print(f"Vuelo OFF asignado: {vuelo.codigo}, tripulante: {tripulante.pasaporte}")
+
+                        # Siempre crear un nuevo registro de EtaCiudad para cualquier ciudad de llegada
+                        eta_ciudad = EtaCiudad(
+                            tripulante_id=tripulante.tripulante_id,
+                            ciudad=row['Arrival airport'],
+                            eta=pd.to_datetime(f"{row['Arrival date']} {row['Arrival time']}")
+                        )
+                        session.add(eta_ciudad)
+                        print(f"ETA asignado: {eta_ciudad.eta} para {tripulante.nombre} en {eta_ciudad.ciudad}")
                     else:
                         print(f"No se encontró tripulante para el pasaporte: {row['Passport']}")
 
-            # Confirmar los cambios en la base de datos
             session.commit()
 
         except Exception as e:
-            print(f"Error al asignar vuelos a los tripulantes: {e}")
+            print(f"Error al asignar vuelos: {e}")
             session.rollback()
 
         finally:
             session.close()
+
 
     def load_existing_data(self):
         session = SessionLocal()
