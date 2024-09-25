@@ -1,365 +1,176 @@
-from datetime import datetime
-from typing import Sequence
+# app/controllers.py
+import re
+import pandas as pd
+from app.database import SessionLocal
+from app.models import Buque, Tripulante, Vuelo, EtaCiudad
+from PyQt6.QtWidgets import QMessageBox
 
-from advanced_alchemy.exceptions import NotFoundError
-from advanced_alchemy.filters import CollectionFilter
-from litestar import Controller, delete, get, patch, post
-from litestar.dto import DTOData
-from litestar.exceptions import HTTPException, NotFoundException
-from sqlalchemy import select
+class Controller:
+    def __init__(self):
+        pass
 
-from app.dtos import (
-    TripulanteCreateDTO,
-    TripulanteReadDTO,
-    TripulanteReadFullDTO,
-    TripulanteUpdateDTO,
-    BuqueCreateDTO,
-    BuqueReadDTO,
-    BuqueReadFullDTO,
-    BuqueUpdateDTO,
-    VueloCreateDTO,
-    VueloReadDTO,
-    VueloReadFullDTO,
-    VueloUpdateDTO,
-    HotelCreateDTO,
-    HotelReadDTO,
-    HotelReadFullDTO,
-    HotelUpdateDTO,
-    RestauranteCreateDTO,
-    RestauranteReadDTO,
-    RestauranteReadFullDTO,
-    RestauranteUpdateDTO,
-    TransporteCreateDTO,
-    TransporteReadDTO,
-    TransporteReadFullDTO,
-    TransporteUpdateDTO,
-    ViajeCreateDTO,
-    ViajeReadDTO,
-    ViajeReadFullDTO,
-    ViajeUpdateDTO,
-)
-from app.models import Tripulante, Buque, Vuelo, Hotel, Restaurante, Transporte, Viaje
-from app.repositories import (
-    TripulanteRepository,
-    BuqueRepository,
-    VueloRepository,
-    HotelRepository,
-    RestauranteRepository,
-    TransporteRepository,
-    ViajeRepository,
-    provide_tripulante_repo,
-    provide_buque_repo,
-    provide_vuelo_repo,
-    provide_hotel_repo,
-    provide_restaurante_repo,
-    provide_transporte_repo,
-    provide_viaje_repo,
-)
+    def get_city_list(self):
+        return ["Punta Arenas", "Santiago", "Puerto Montt", "Valparaíso", "Valdivia", 'Puerto Williams']
 
-
-class TripulanteController(Controller):
-    path = "/tripulantes"
-    tags = ["tripulantes"]
-    dependencies = {"tripulante_repo": provide_tripulante_repo}
-    return_dto = TripulanteReadFullDTO
-
-    @get()
-    async def list_tripulantes(self, tripulante_repo: TripulanteRepository) -> Sequence[Tripulante]:
-        return tripulante_repo.list()
-
-    @get("/{tripulante_id:int}")
-    async def get_tripulante(self, tripulante_repo: TripulanteRepository, tripulante_id: int) -> Tripulante:
+    def process_excel_file(self, file_path):
         try:
-            return tripulante_repo.get(tripulante_id)
-        except NotFoundError as e:
-            raise NotFoundException(detail=f"Tripulante {tripulante_id} no encontrado") from e
+            excel_data = pd.read_excel(file_path, sheet_name=None)
+            # Filter sheets ending with 'ON' or 'OFF'
+            on_sheets = {
+                name: df for name, df in excel_data.items()
+                if re.search(r'\bON\b$', name, re.IGNORECASE)
+            }
+            off_sheets = {
+                name: df for name, df in excel_data.items()
+                if re.search(r'\bOFF\b$', name, re.IGNORECASE)
+            }
+            # Store flight sheets separately
+            self.on_flights = excel_data.get('Itinerarios de Vuelo ON', None)
+            self.off_flights = excel_data.get('Itinerarios de Vuelo OFF', None)
+            return on_sheets, off_sheets
+        except Exception as e:
+            raise Exception(f"Error al procesar el archivo: {e}")
 
-    @post("/", dto=TripulanteCreateDTO)
-    async def add_tripulante(self, tripulante_repo: TripulanteRepository, data: Tripulante) -> Tripulante:
-        return tripulante_repo.add(data)
-
-    @patch("/{tripulante_id:int}", dto=TripulanteUpdateDTO)
-    async def update_tripulante(
-        self,
-        tripulante_repo: TripulanteRepository,
-        tripulante_id: int,
-        data: DTOData[Tripulante],
-    ) -> Tripulante:
+    def save_tripulantes_to_db(self, on_sheets, off_sheets):
+        session = SessionLocal()
         try:
-            tripulante, _ = tripulante_repo.get_and_update(
-                id=tripulante_id, **data.as_builtins(), match_fields=["id"]
-            )
-            return tripulante
-        except NotFoundError as e:
-            raise NotFoundException(detail=f"Tripulante {tripulante_id} no encontrado") from e
+            # Process 'ON' tripulantes
+            self._process_tripulantes_sheet(session, on_sheets.get('Pasajeros y Pasaportes ON', None), 'ON')
+            # Process 'OFF' tripulantes
+            self._process_tripulantes_sheet(session, off_sheets.get('Pasajeros y Pasaportes OFF', None), 'OFF')
+            session.commit()
+        except Exception as e:
+            session.rollback()
+            raise Exception(f"Error al guardar en la base de datos: {e}")
+        finally:
+            session.close()
 
-    @delete("/{tripulante_id:int}")
-    async def delete_tripulante(self, tripulante_repo: TripulanteRepository, tripulante_id: int) -> None:
+    def _process_tripulantes_sheet(self, session, df, estado):
+        if df is not None:
+            for _, row in df.iterrows():
+                if pd.isna(row['Vessel']) or pd.isna(row['First name']) or pd.isna(row['Last name']):
+                    continue  # Skip incomplete records
+
+                # Buscar o crear 'Buque'
+                nave = session.query(Buque).filter_by(nombre=row['Vessel'].strip().upper()).first()
+                if not nave:
+                    nave = Buque(nombre=row['Vessel'].strip(), compañia="Compañía Desconocida", ciudad="Ciudad Desconocida")
+                    session.add(nave)
+                    session.commit()
+
+                # Fetch or create 'Tripulante'
+                tripulante = session.query(Tripulante).filter_by(pasaporte=row['Passport number']).first()
+                if tripulante:
+                    tripulante = self._update_tripulante(tripulante, row, nave.buque_id, estado)
+                else:
+                    tripulante = self._create_tripulante(row, nave.buque_id, estado)
+                    session.add(tripulante)
+
+    def _update_tripulante(self, tripulante, row, buque_id, estado):
+        tripulante.nombre = row['First name']
+        tripulante.apellido = row['Last name']
+        tripulante.sexo = row.get('Gender')
+        tripulante.nacionalidad = row.get('Nationality')
+        tripulante.fecha_nacimiento = pd.to_datetime(row.get('Date of birth')).date() if not pd.isna(row.get('Date of birth')) else None
+        tripulante.buque_id = buque_id
+        tripulante.estado = estado
+        print(f"Tripulante {tripulante.nombre} actualizado")
+        return tripulante
+
+    def _create_tripulante(self, row, buque_id, estado):
+        tripulante = Tripulante(
+            nombre=row['First name'],
+            apellido=row['Last name'],
+            sexo=row.get('Gender'),
+            nacionalidad=row.get('Nationality'),
+            pasaporte=row.get('Passport number'),
+            fecha_nacimiento=pd.to_datetime(row.get('Date of birth')).date() if not pd.isna(row.get('Date of birth')) else None,
+            buque_id=buque_id,
+            estado=estado
+        )
+        print(f"Tripulante {tripulante.nombre} agregado")
+
+        return tripulante
+
+    def assign_flights_to_tripulantes(self):
+        session = SessionLocal()
         try:
-            tripulante_repo.delete(tripulante_id)
-        except NotFoundError as e:
-            raise NotFoundException(detail=f"Tripulante {tripulante_id} no encontrado") from e
+            # Assign 'ON' flights
+            self._assign_flights(session, self.on_flights)
+            # Assign 'OFF' flights
+            self._assign_flights(session, self.off_flights)
+            session.commit()
+        except Exception as e:
+            session.rollback()
+            raise Exception(f"Error al asignar vuelos: {e}")
+        finally:
+            session.close()
 
+    def _assign_flights(self, session, flights_df):
+        if flights_df is not None:
+            for _, row in flights_df.iterrows():
+                tripulante = session.query(Tripulante).filter_by(pasaporte=row['Passport'].strip()).first()
+                if tripulante:
+                    print(f"Tripulante encontrado: {tripulante.nombre} {tripulante.apellido}")
+                    vuelo = Vuelo(
+                        codigo=row['Flight'],
+                        aeropuerto_salida=row['Departure airport'],
+                        hora_salida=pd.to_datetime(f"{row['Departure date']} {row['Departure time']}"),
+                        aeropuerto_llegada=row['Arrival airport'],
+                        hora_llegada=pd.to_datetime(f"{row['Arrival date']} {row['Arrival time']}"),
+                        tripulante_id=tripulante.tripulante_id,
+                    )
+                    session.add(vuelo)
+                    # Create ETA record
+                    eta_ciudad = EtaCiudad(
+                        tripulante_id=tripulante.tripulante_id,
+                        ciudad=row['Arrival airport'],
+                        eta=pd.to_datetime(f"{row['Arrival date']} {row['Arrival time']}")
+                    )
+                    print(f"ETA asignado: {eta_ciudad.eta} para {tripulante.nombre} en {eta_ciudad.ciudad}")
+                    session.add(eta_ciudad)
+                else:
+                    print(f"No se encontró tripulante para el pasaporte: {row['Passport']}")
 
-class BuqueController(Controller):
-    path = "/buques"
-    tags = ["buques"]
-    dependencies = {"buque_repo": provide_buque_repo}
-    return_dto = BuqueReadFullDTO
-
-    @get()
-    async def list_buques(self, buque_repo: BuqueRepository) -> Sequence[Buque]:
-        return buque_repo.list()
-
-    @get("/{buque_id:int}")
-    async def get_buque(self, buque_repo: BuqueRepository, buque_id: int) -> Buque:
+    def get_tripulantes_by_city(self, city):
+        session = SessionLocal()
         try:
-            return buque_repo.get(buque_id)
-        except NotFoundError as e:
-            raise NotFoundException(detail=f"Buque {buque_id} no encontrado") from e
+            tripulantes = session.query(Tripulante).join(Vuelo).filter(Vuelo.aeropuerto_llegada == city).all()
+            return tripulantes
+        except Exception as e:
+            raise Exception(f"Error al obtener tripulantes por ciudad: {e}")
+        finally:
+            session.close()
 
-    @post("/", dto=BuqueCreateDTO)
-    async def add_buque(self, buque_repo: BuqueRepository, data: Buque) -> Buque:
-        return buque_repo.add(data)
-
-    @patch("/{buque_id:int}", dto=BuqueUpdateDTO)
-    async def update_buque(
-        self,
-        buque_repo: BuqueRepository,
-        buque_id: int,
-        data: DTOData[Buque],
-    ) -> Buque:
+    def load_existing_data(self):
+        session = SessionLocal()
         try:
-            buque, _ = buque_repo.get_and_update(
-                id=buque_id, **data.as_builtins(), match_fields=["id"]
-            )
-            return buque
-        except NotFoundError as e:
-            raise NotFoundException(detail=f"Buque {buque_id} no encontrado") from e
+            # Load 'ON' tripulantes
+            tripulantes_on = session.query(Tripulante).filter_by(estado='ON').all()
+            df_on = pd.DataFrame([{
+                'Vessel': trip.buque.nombre,
+                'First name': trip.nombre,
+                'Last name': trip.apellido,
+                'Gender': trip.sexo,
+                'Nationality': trip.nacionalidad,
+                'Passport number': trip.pasaporte,
+                'Date of birth': trip.fecha_nacimiento
+            } for trip in tripulantes_on])
 
-    @delete("/{buque_id:int}")
-    async def delete_buque(self, buque_repo: BuqueRepository, buque_id: int) -> None:
-        try:
-            buque_repo.delete(buque_id)
-        except NotFoundError as e:
-            raise NotFoundException(detail=f"Buque {buque_id} no encontrado") from e
+            # Load 'OFF' tripulantes
+            tripulantes_off = session.query(Tripulante).filter_by(estado='OFF').all()
+            df_off = pd.DataFrame([{
+                'Vessel': trip.buque.nombre,
+                'First name': trip.nombre,
+                'Last name': trip.apellido,
+                'Gender': trip.sexo,
+                'Nationality': trip.nacionalidad,
+                'Passport number': trip.pasaporte,
+                'Date of birth': trip.fecha_nacimiento
+            } for trip in tripulantes_off])
 
-
-class VueloController(Controller):
-    path = "/vuelos"
-    tags = ["vuelos"]
-    dependencies = {"vuelo_repo": provide_vuelo_repo}
-    return_dto = VueloReadFullDTO
-
-    @get()
-    async def list_vuelos(self, vuelo_repo: VueloRepository) -> Sequence[Vuelo]:
-        return vuelo_repo.list()
-
-    @get("/{vuelo_id:int}")
-    async def get_vuelo(self, vuelo_repo: VueloRepository, vuelo_id: int) -> Vuelo:
-        try:
-            return vuelo_repo.get(vuelo_id)
-        except NotFoundError as e:
-            raise NotFoundException(detail=f"Vuelo {vuelo_id} no encontrado") from e
-
-    @post("/", dto=VueloCreateDTO)
-    async def add_vuelo(self, vuelo_repo: VueloRepository, data: Vuelo) -> Vuelo:
-        return vuelo_repo.add(data)
-
-    @patch("/{vuelo_id:int}", dto=VueloUpdateDTO)
-    async def update_vuelo(
-        self,
-        vuelo_repo: VueloRepository,
-        vuelo_id: int,
-        data: DTOData[Vuelo],
-    ) -> Vuelo:
-        try:
-            vuelo, _ = vuelo_repo.get_and_update(
-                id=vuelo_id, **data.as_builtins(), match_fields=["id"]
-            )
-            return vuelo
-        except NotFoundError as e:
-            raise NotFoundException(detail=f"Vuelo {vuelo_id} no encontrado") from e
-
-    @delete("/{vuelo_id:int}")
-    async def delete_vuelo(self, vuelo_repo: VueloRepository, vuelo_id: int) -> None:
-        try:
-            vuelo_repo.delete(vuelo_id)
-        except NotFoundError as e:
-            raise NotFoundException(detail=f"Vuelo {vuelo_id} no encontrado") from e
-
-
-class HotelController(Controller):
-    path = "/hoteles"
-    tags = ["hoteles"]
-    dependencies = {"hotel_repo": provide_hotel_repo}
-    return_dto = HotelReadFullDTO
-
-    @get()
-    async def list_hoteles(self, hotel_repo: HotelRepository) -> Sequence[Hotel]:
-        return hotel_repo.list()
-
-    @get("/{hotel_id:int}")
-    async def get_hotel(self, hotel_repo: HotelRepository, hotel_id: int) -> Hotel:
-        try:
-            return hotel_repo.get(hotel_id)
-        except NotFoundError as e:
-            raise NotFoundException(detail=f"Hotel {hotel_id} no encontrado") from e
-
-    @post("/", dto=HotelCreateDTO)
-    async def add_hotel(self, hotel_repo: HotelRepository, data: Hotel) -> Hotel:
-        return hotel_repo.add(data)
-
-    @patch("/{hotel_id:int}", dto=HotelUpdateDTO)
-    async def update_hotel(
-        self,
-        hotel_repo: HotelRepository,
-        hotel_id: int,
-        data: DTOData[Hotel],
-    ) -> Hotel:
-        try:
-            hotel, _ = hotel_repo.get_and_update(
-                id=hotel_id, **data.as_builtins(), match_fields=["id"]
-            )
-            return hotel
-        except NotFoundError as e:
-            raise NotFoundException(detail=f"Hotel {hotel_id} no encontrado") from e
-
-    @delete("/{hotel_id:int}")
-    async def delete_hotel(self, hotel_repo: HotelRepository, hotel_id: int) -> None:
-        try:
-            hotel_repo.delete(hotel_id)
-        except NotFoundError as e:
-            raise NotFoundException(detail=f"Hotel {hotel_id} no encontrado") from e
-
-
-class RestauranteController(Controller):
-    path = "/restaurantes"
-    tags = ["restaurantes"]
-    dependencies = {"restaurante_repo": provide_restaurante_repo}
-    return_dto = RestauranteReadFullDTO
-
-    @get()
-    async def list_restaurantes(self, restaurante_repo: RestauranteRepository) -> Sequence[Restaurante]:
-        return restaurante_repo.list()
-
-    @get("/{restaurante_id:int}")
-    async def get_restaurante(self, restaurante_repo: RestauranteRepository, restaurante_id: int) -> Restaurante:
-        try:
-            return restaurante_repo.get(restaurante_id)
-        except NotFoundError as e:
-            raise NotFoundException(detail=f"Restaurante {restaurante_id} no encontrado") from e
-
-    @post("/", dto=RestauranteCreateDTO)
-    async def add_restaurante(self, restaurante_repo: RestauranteRepository, data: Restaurante) -> Restaurante:
-        return restaurante_repo.add(data)
-
-    @patch("/{restaurante_id:int}", dto=RestauranteUpdateDTO)
-    async def update_restaurante(
-        self,
-        restaurante_repo: RestauranteRepository,
-        restaurante_id: int,
-        data: DTOData[Restaurante],
-    ) -> Restaurante:
-        try:
-            restaurante, _ = restaurante_repo.get_and_update(
-                id=restaurante_id, **data.as_builtins(), match_fields=["id"]
-            )
-            return restaurante
-        except NotFoundError as e:
-            raise NotFoundException(detail=f"Restaurante {restaurante_id} no encontrado") from e
-
-    @delete("/{restaurante_id:int}")
-    async def delete_restaurante(self, restaurante_repo: RestauranteRepository, restaurante_id: int) -> None:
-        try:
-            restaurante_repo.delete(restaurante_id)
-        except NotFoundError as e:
-            raise NotFoundException(detail=f"Restaurante {restaurante_id} no encontrado") from e
-
-
-class TransporteController(Controller):
-    path = "/transportes"
-    tags = ["transportes"]
-    dependencies = {"transporte_repo": provide_transporte_repo}
-    return_dto = TransporteReadFullDTO
-
-    @get()
-    async def list_transportes(self, transporte_repo: TransporteRepository) -> Sequence[Transporte]:
-        return transporte_repo.list()
-
-    @get("/{transporte_id:int}")
-    async def get_transporte(self, transporte_repo: TransporteRepository, transporte_id: int) -> Transporte:
-        try:
-            return transporte_repo.get(transporte_id)
-        except NotFoundError as e:
-            raise NotFoundException(detail=f"Transporte {transporte_id} no encontrado") from e
-
-    @post("/", dto=TransporteCreateDTO)
-    async def add_transporte(self, transporte_repo: TransporteRepository, data: Transporte) -> Transporte:
-        return transporte_repo.add(data)
-
-    @patch("/{transporte_id:int}", dto=TransporteUpdateDTO)
-    async def update_transporte(
-        self,
-        transporte_repo: TransporteRepository,
-        transporte_id: int,
-        data: DTOData[Transporte],
-    ) -> Transporte:
-        try:
-            transporte, _ = transporte_repo.get_and_update(
-                id=transporte_id, **data.as_builtins(), match_fields=["id"]
-            )
-            return transporte
-        except NotFoundError as e:
-            raise NotFoundException(detail=f"Transporte {transporte_id} no encontrado") from e
-
-    @delete("/{transporte_id:int}")
-    async def delete_transporte(self, transporte_repo: TransporteRepository, transporte_id: int) -> None:
-        try:
-            transporte_repo.delete(transporte_id)
-        except NotFoundError as e:
-            raise NotFoundException(detail=f"Transporte {transporte_id} no encontrado") from e
-
-
-class ViajeController(Controller):
-    path = "/viajes"
-    tags = ["viajes"]
-    dependencies = {"viaje_repo": provide_viaje_repo}
-    return_dto = ViajeReadFullDTO
-
-    @get()
-    async def list_viajes(self, viaje_repo: ViajeRepository) -> Sequence[Viaje]:
-        return viaje_repo.list()
-
-    @get("/{viaje_id:int}")
-    async def get_viaje(self, viaje_repo: ViajeRepository, viaje_id: int) -> Viaje:
-        try:
-            return viaje_repo.get(viaje_id)
-        except NotFoundError as e:
-            raise NotFoundException(detail=f"Viaje {viaje_id} no encontrado") from e
-
-    @post("/", dto=ViajeCreateDTO)
-    async def add_viaje(self, viaje_repo: ViajeRepository, data: Viaje) -> Viaje:
-        return viaje_repo.add(data)
-
-    @patch("/{viaje_id:int}", dto=ViajeUpdateDTO)
-    async def update_viaje(
-        self,
-        viaje_repo: ViajeRepository,
-        viaje_id: int,
-        data: DTOData[Viaje],
-    ) -> Viaje:
-        try:
-            viaje, _ = viaje_repo.get_and_update(
-                id=viaje_id, **data.as_builtins(), match_fields=["id"]
-            )
-            return viaje
-        except NotFoundError as e:
-            raise NotFoundException(detail=f"Viaje {viaje_id} no encontrado") from e
-
-    @delete("/{viaje_id:int}")
-    async def delete_viaje(self, viaje_repo: ViajeRepository, viaje_id: int) -> None:
-        try:
-            viaje_repo.delete(viaje_id)
-        except NotFoundError as e:
-            raise NotFoundException(detail=f"Viaje {viaje_id} no encontrado") from e
+            return df_on, df_off
+        except Exception as e:
+            raise Exception(f"Error al cargar datos existentes: {e}")
+        finally:
+            session.close()

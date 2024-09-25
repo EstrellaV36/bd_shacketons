@@ -54,6 +54,7 @@ class Buque(Base):
     nombre: Mapped[str] = mapped_column(String, nullable=False)
     compañia: Mapped[str] = mapped_column(String, nullable=False)
     cobrar_a: Mapped[str] = mapped_column(String, nullable=True) #ver donde correspondería poner a quien cobrar
+    ciudad: Mapped[str] = mapped_column(String, nullable=False)
 
     tripulantes: Mapped[list["Tripulante"]] = relationship(back_populates="buque")
     viajes: Mapped[list["Viaje"]] = relationship(back_populates="buque")
@@ -85,15 +86,15 @@ class Hotel(Base):
 
     hotel_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     nombre: Mapped[str] = mapped_column(String, nullable=False)
-    categoria: Mapped[int] = mapped_column(Integer, nullable=False)
     ciudad: Mapped[str] = mapped_column(String, nullable=False)
-    fecha_entrada: Mapped[date] = mapped_column(Date, nullable=False)
-    fecha_salida: Mapped[date] = mapped_column(Date, nullable=False)
-    tipo_habitacion: Mapped[str] = mapped_column(String, nullable=False)
-    numero_noches: Mapped[int] = mapped_column(Integer, nullable=False)
-    day_room: Mapped[bool] = mapped_column(Boolean, default=False)
+    categoria: Mapped[int] = mapped_column(Integer, nullable=True, default=None)
+    fecha_entrada: Mapped[date] = mapped_column(Date, nullable=True, default=None)
+    fecha_salida: Mapped[date] = mapped_column(Date, nullable=True, default=None)
+    tipo_habitacion: Mapped[str] = mapped_column(String, nullable=True, default=None)
+    numero_noches: Mapped[int] = mapped_column(Integer, nullable=True, default=None)
+    day_room: Mapped[bool] = mapped_column(Boolean, nullable=True, default=False)
 
-    tripulante_id: Mapped[int] = mapped_column(ForeignKey("tripulantes.tripulante_id"))
+    tripulante_id: Mapped[int] = mapped_column(ForeignKey("tripulantes.tripulante_id"), nullable=True)
 
     tripulante: Mapped["Tripulante"] = relationship(back_populates="hoteles")
 
@@ -104,12 +105,12 @@ class Restaurante(Base):
     __tablename__ = "restaurantes"
 
     restaurante_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    nombre: Mapped[str] = mapped_column(String, nullable=False)
-    direccion: Mapped[str] = mapped_column(String, nullable=False)
-    ciudad: Mapped[str] = mapped_column(String, nullable=False)
-    fecha_reserva: Mapped[datetime] = mapped_column(nullable=False)
+    nombre: Mapped[str] = mapped_column(String, nullable=False)  # Campo no nulo
+    direccion: Mapped[str] = mapped_column(String, nullable=True, default=None)  # Campo nulo permitido
+    ciudad: Mapped[str] = mapped_column(String, nullable=False)  # Campo no nulo
+    fecha_reserva: Mapped[datetime] = mapped_column(nullable=True, default=None)  # Campo nulo permitido
 
-    tripulante_id: Mapped[int] = mapped_column(ForeignKey("tripulantes.tripulante_id"))
+    tripulante_id: Mapped[int] = mapped_column(ForeignKey("tripulantes.tripulante_id"), nullable=True)
 
     tripulante: Mapped["Tripulante"] = relationship(back_populates="restaurantes")
 
@@ -120,15 +121,18 @@ class Transporte(Base):
     __tablename__ = "transportes"
 
     transporte_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    tipo: Mapped[str] = mapped_column(String, nullable=False)  # Propio o subcontratado
-    empresa: Mapped[str] = mapped_column(String, nullable=False)
-    capacidad: Mapped[int] = mapped_column(Integer, nullable=False)
-    fecha_transporte: Mapped[datetime] = mapped_column(nullable=False)
-    hora_recogida: Mapped[datetime] = mapped_column(nullable=False)
-    hora_salida: Mapped[datetime] = mapped_column(nullable=False)
-    hora_llegada: Mapped[datetime] = mapped_column(nullable=False)
+    nombre: Mapped[str] = mapped_column(String, nullable=False)
+    ciudad: Mapped[str] = mapped_column(String, nullable=False)
 
-    tripulante_id: Mapped[int] = mapped_column(ForeignKey("tripulantes.tripulante_id"))
+    tipo: Mapped[str] = mapped_column(String, nullable=True, default=None)
+    empresa: Mapped[str] = mapped_column(String, nullable=True, default=None)
+    capacidad: Mapped[int] = mapped_column(Integer, nullable=True, default=None)
+    fecha_transporte: Mapped[datetime] = mapped_column(nullable=True, default=None)
+    hora_recogida: Mapped[datetime] = mapped_column(nullable=True, default=None)
+    hora_salida: Mapped[datetime] = mapped_column(nullable=True, default=None)
+    hora_llegada: Mapped[datetime] = mapped_column(nullable=True, default=None)
+
+    tripulante_id: Mapped[int] = mapped_column(ForeignKey("tripulantes.tripulante_id"), nullable=True)
 
     tripulante: Mapped["Tripulante"] = relationship(back_populates="transportes")
 
