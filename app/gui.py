@@ -6,6 +6,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import QAbstractTableModel, Qt, QRect, QPropertyAnimation, QEasingCurve, QEvent
 from app.controllers import Controller  # Import the controller
+from app.database import get_db_session  # Importa la función para obtener la sesión
 
 class PandasModel(QAbstractTableModel):
     def __init__(self, df):
@@ -37,7 +38,8 @@ class BasicApp(QMainWindow):
         self.setWindowTitle("Gestión Crew Shacketon's Way")
         self.setGeometry(100, 100, 1000, 800)
         
-        self.controller = Controller()  # Instantiate the controller
+        db_session = get_db_session()
+        self.controller = Controller(db_session)  # Instantiate the controller
 
         # UI setup methods
         self.setup_ui()
@@ -48,7 +50,7 @@ class BasicApp(QMainWindow):
         self.create_floating_menu()
 
         self.installEventFilter(self)
-        self.load_existing_data()  # This will call a method in the controller
+        self.load_existing_data() #Para cargar datos iniciales. No es necesario
 
     def setup_ui(self):
         # Setting up the central widget and layouts
@@ -60,7 +62,7 @@ class BasicApp(QMainWindow):
         
         button_layout = QHBoxLayout()
         
-        self.button_toggle_menu = QPushButton("Mostrar/Ocultar Menú")
+        self.button_toggle_menu = QPushButton("Menú")
         self.button_toggle_menu.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.button_toggle_menu.clicked.connect(self.toggle_menu)
         button_layout.addWidget(self.button_toggle_menu)
@@ -68,9 +70,8 @@ class BasicApp(QMainWindow):
         self.city_combo_box = QComboBox()
         self.city_combo_box.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.city_combo_box.addItems(self.controller.get_city_list())
-        self.city_combo_box.currentIndexChanged.connect(self.city_selected)
+        self.city_combo_box.currentIndexChanged.connect(self.city_selected)  # Conexión a city_selected        
         button_layout.addWidget(self.city_combo_box)
-        
         main_layout.addLayout(button_layout)
         self.stacked_widget = QStackedWidget()
         main_layout.addWidget(self.stacked_widget)
@@ -114,16 +115,11 @@ class BasicApp(QMainWindow):
         self.on_sheet_selector.currentIndexChanged.connect(self.change_on_sheet)
         self.off_sheet_selector.currentIndexChanged.connect(self.change_off_sheet)
 
-        # Crear un QTableView para cada pestaña
-        self.on_table_view = QTableView()
-        self.off_table_view = QTableView()
-
-        # Agregar los combos y las tablas a los layouts de las pestañas
-        self.on_layout.addWidget(self.on_sheet_selector)
-        self.on_layout.addWidget(self.on_table_view)
-
-        self.off_layout.addWidget(self.off_sheet_selector)
-        self.off_layout.addWidget(self.off_table_view)
+        # Crear un QTableView para las ETAs (asegúrate de agregar esto)
+        self.eta_on_table_view = QTableView()
+        self.eta_off_table_view = QTableView()
+        self.on_layout.addWidget(self.eta_on_table_view)  # Agregar a la pestaña "ON"
+        self.off_layout.addWidget(self.eta_off_table_view)  # Agregar a la pestaña "OFF"
 
         # Variables para almacenar los DataFrames de las hojas "on" y "off"
         self.on_sheets = {}
@@ -269,15 +265,34 @@ class BasicApp(QMainWindow):
         if sheet_name:
             self.show_sheet(self.off_sheets[sheet_name], self.off_table_view)
 
-    def city_selected(self, index):
-        city = self.city_combo_box.itemText(index)
-        tripulantes = self.controller.get_tripulantes_by_city(city)
-        # Update the UI with tripulantes information
+    def city_selected(self):
+        print("Ciudad seleccionada: ", self.city_combo_box.currentText())  # Verifica qué ciudad se seleccionó
+        self.load_existing_data()  # Carga los datos existentes basados en la ciudad seleccionada
+
+    def clear_tripulantes_display(self):
+        # Aquí puedes limpiar la visualización anterior, por ejemplo:
+        for i in reversed(range(self.stacked_widget.count())): 
+            self.stacked_widget.itemAt(i).widget().deleteLater()
 
     def load_existing_data(self):
+        print("Cambiando ciudad")  # Verifica si este mensaje se imprime
+        selected_city = self.city_combo_box.currentText()  # Obtén la ciudad seleccionada del combo box
+
+        # Limpiar las tablas antes de cargar nuevos datos
+        self.eta_on_table_view.setModel(None)  # Limpia el modelo de la tabla "ON"
+        self.eta_off_table_view.setModel(None)  # Limpia el modelo de la tabla "OFF"
+
         # Load existing data using the controller
-        on_data, off_data = self.controller.load_existing_data()
-        if on_data is not None:
-            self.show_sheet(on_data, self.on_table_view)
-        if off_data is not None:
-            self.show_sheet(off_data, self.off_table_view)
+        eta_vuelo_df_on, eta_vuelo_df_off = self.controller.load_existing_data(selected_city)
+        
+        # Mostrar vuelos y ETAs para tripulantes 'ON'
+        if eta_vuelo_df_on is not None and not eta_vuelo_df_on.empty:
+            self.show_sheet(eta_vuelo_df_on, self.eta_on_table_view)  # Mostrar en el QTableView para ETA ON
+                
+        # Mostrar vuelos y ETAs para tripulantes 'OFF'
+        if eta_vuelo_df_off is not None and not eta_vuelo_df_off.empty:
+            self.show_sheet(eta_vuelo_df_off, self.eta_off_table_view)  # Mostrar en el QTableView para ETA OFF
+
+        # Imprimir los dataframes generados
+        print(f"DataFrame de tripulantes 'ON':\n{eta_vuelo_df_on}")
+        print(f"DataFrame de tripulantes 'OFF':\n{eta_vuelo_df_off}")
