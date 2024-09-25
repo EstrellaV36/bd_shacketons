@@ -4,30 +4,30 @@
 
 La aplicación de gestión de crew permite manejar los datos de los tripulantes y sus vuelos. Facilita la gestión de todos los servicios ofrecidos, incluyendo el transporte desde el aeropuerto a la ciudad, de la ciudad a la nave, así como opciones de restaurante y alojamiento.
 
-## Carga de Datos Inicial
+## Carga de Datos inicial
 
 Para cargar los datos inicialmente desde la terminal, se debe utilizar el siguiente comando:
 
 ```bash
-(base) esvaldes@fedora:~/bd_shacketons$ pdm run python app/carga_datos.py proveedores.xlsx
+$ pdm run python app/carga_datos.py proveedores.xlsx
 ```
 
-## Ejecución de la Aplicación
+## Ejecución de la aplicación
 
 Para ejecutar la aplicación desde la terminal, utiliza el siguiente comando:
 
 ```bash
-(base) esvaldes@fedora:~/bd_shacketons$ pdm run python main.py
+$ pdm run python main.py
 ```
 
-## Estructura del Proyecto
+## Estructura del proyecto
 
 ```plaintext
 bd_shacketons/
 │
 ├── app/
 │   ├── carga_datos.py          # Script para cargar datos iniciales de proveedores
-│   ├── controllers.py           # Controladores de la aplicación (Asignaciones)
+│   ├── controllers.py           # Controladores de la aplicación (Maneja procesamiento de datos y asignaciones)
 │   ├── database.py              # Módulo de base de datos
 │   ├── gui.py                   # Interfaz gráfica de usuario
 │   ├── models.py                # Modelos de datos
@@ -39,5 +39,6 @@ bd_shacketons/
 ├── pdm.lock                     # Bloqueo de dependencias
 ├── pyproject.toml               # Configuración del proyecto
 ├── README.md                    # Documentación del proyecto
-└── shacketons_db.sqlite3        # Base de datos SQLite
+├── shacketons_db.sqlite3        # Base de datos SQLite
+└── proveedores.xlsx             # Excel con datos iniciales de clientes y proveedores       
 ```
