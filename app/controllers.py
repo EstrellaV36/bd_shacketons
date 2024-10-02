@@ -39,17 +39,14 @@ class Controller:
         except Exception as e:
             raise Exception(f"Error al procesar el archivo: {e}")
 
-    def save_tripulantes_to_db(self, on_sheets, off_sheets):
+    def save_tripulantes_to_db(self, df_on, df_off):
         try:
-            # Process 'ON' tripulantes
-            success_on = self._process_tripulantes_sheet(on_sheets.get('Pasajeros y Pasaportes ON', None), 'ON')
-            if not success_on:
-                raise ValueError("Error al procesar tripulantes ON.")
+            # Procesar las filas de los DataFrames "ON" y "OFF"
+            if df_on is not None:
+                self._process_tripulantes_sheet(df_on, 'ON')
 
-            # Process 'OFF' tripulantes
-            success_off = self._process_tripulantes_sheet(off_sheets.get('Pasajeros y Pasaportes OFF', None), 'OFF')
-            if not success_off:
-                raise ValueError("Error al procesar tripulantes OFF.")
+            if df_off is not None:
+                self._process_tripulantes_sheet(df_off, 'OFF')
 
             # Si todos los registros se procesaron correctamente, guardar los cambios
             self.db_session.commit()
@@ -60,35 +57,37 @@ class Controller:
     def _process_tripulantes_sheet(self, df, estado):
         if df is not None:
             for _, row in df.iterrows():
-                if pd.isna(row['Vessel']) or pd.isna(row['First name']) or pd.isna(row['Last name']):
-                    continue  # Skip incomplete records
+                # Si la fila es completamente vacía, omitirla
+                if row.isna().all():
+                    continue
 
                 # Buscar o crear 'Buque'
-                nombre_buque = row['Vessel'].strip().upper()  # Normalizar el nombre
+                nombre_buque = row['Vessel'].strip().upper() if pd.notna(row['Vessel']) else None
+                if not nombre_buque:
+                    continue  # Si el nombre del buque es inválido, omitir
+
                 nave = self.db_session.query(Buque).filter_by(nombre=nombre_buque).first()
                 if not nave:
                     # Si no existe, crear un nuevo buque
                     nave = Buque(
                         nombre=nombre_buque,
-                        compañia="Compañía Desconocida",  # O usa el valor correcto si está disponible
-                        ciudad="Ciudad Desconocida"  # O usa el valor correcto si está disponible
+                        compañia="Compañía Desconocida",  # Puedes modificar esto según la lógica deseada
+                        ciudad="Ciudad Desconocida"
                     )
                     self.db_session.add(nave)
                     self.db_session.commit()
 
                 # Buscar o crear 'Tripulante'
-                tripulante = self.db_session.query(Tripulante).filter_by(pasaporte=row['Passport number']).first()
+                pasaporte = row['Passport number'].strip() if pd.notna(row['Passport number']) else None
+                if not pasaporte:
+                    continue  # Si el pasaporte es inválido, omitir
+
+                tripulante = self.db_session.query(Tripulante).filter_by(pasaporte=pasaporte).first()
                 if tripulante:
                     tripulante = self._update_tripulante(tripulante, row, nave.buque_id, estado)
-                    if tripulante is None:
-                        # Si la actualización falla, no continuar con el guardado y salir del método o del bucle
-                        return False  # Retorna False para indicar que hubo un error
                 else:
                     tripulante = self._create_tripulante(row, nave.buque_id, estado)
                     self.db_session.add(tripulante)
-
-        return True  # Retorna True si no hubo errores
-
 
     def _update_tripulante(self, tripulante, row, buque_id, estado):
         tripulante.nombre = row['First name']

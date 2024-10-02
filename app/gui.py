@@ -22,7 +22,7 @@ class PandasModel(QAbstractTableModel):
     def data(self, index, role=Qt.ItemDataRole.DisplayRole):
         if index.isValid():
             if role == Qt.ItemDataRole.DisplayRole or role == Qt.ItemDataRole.EditRole:
-                return str(self._df.iloc[index.row(), index.column()])
+                return str(self._df.iloc[index.row(), index.column()]) if not pd.isna(self._df.iloc[index.row(), index.column()]) else ""
         return None
 
     def setData(self, index, value, role=Qt.ItemDataRole.EditRole):
@@ -52,7 +52,17 @@ class PandasModel(QAbstractTableModel):
                 return self._df.columns[section]
             if orientation == Qt.Orientation.Vertical:
                 return str(self._df.index[section])
-            
+    
+    def add_empty_row(self):
+        # Añadir una fila vacía al DataFrame
+        empty_row = pd.Series([None] * self._df.shape[1], index=self._df.columns)
+        self._df = pd.concat([self._df, pd.DataFrame([empty_row])], ignore_index=True)
+        self.layoutChanged.emit()  # Notificar a la vista que el modelo cambió
+
+    def get_dataframe(self):
+        # Retornar el DataFrame actual
+        return self._df
+
 class BasicApp(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -134,8 +144,13 @@ class BasicApp(QMainWindow):
         self.button_load = QPushButton("Cargar Excel")
         self.button_load.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.button_load.clicked.connect(self.load_excel_file)
-        
         layout.addWidget(self.button_load)
+
+        # Crear el botón para agregar una fila vacía
+        self.button_add_row = QPushButton("Agregar Fila Vacía")
+        self.button_add_row.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.button_add_row.clicked.connect(self.add_empty_row)
+        layout.addWidget(self.button_add_row)
 
         # Crear un QTabWidget para las pestañas
         self.tabs = QTabWidget()
@@ -157,14 +172,18 @@ class BasicApp(QMainWindow):
         self.off_tab.setLayout(self.off_layout)
 
         # Crear un combo box para seleccionar hojas
-        self.on_sheet_selector = QComboBox()
-        self.off_sheet_selector = QComboBox()
+        self.on_sheet_selector = QComboBox()  # Definir on_sheet_selector correctamente
+        self.off_sheet_selector = QComboBox()  # Definir off_sheet_selector correctamente
 
         # Conectar la selección del combo box al método para cambiar de hoja
         self.on_sheet_selector.currentIndexChanged.connect(self.change_on_sheet)
         self.off_sheet_selector.currentIndexChanged.connect(self.change_off_sheet)
 
-        # Crear un QTableView para las ETAs (asegúrate de agregar esto)
+        # Añadir los combo boxes al layout
+        self.on_layout.addWidget(self.on_sheet_selector)
+        self.off_layout.addWidget(self.off_sheet_selector)
+
+        # Crear un QTableView para las ETAs
         self.eta_on_table_view = QTableView()
         self.eta_off_table_view = QTableView()
         self.on_layout.addWidget(self.eta_on_table_view)  # Agregar a la pestaña "ON"
@@ -177,6 +196,7 @@ class BasicApp(QMainWindow):
         # Agregar la pantalla "Pasajeros" al stacked widget
         self.stacked_widget.addWidget(pasajeros_widget)
 
+        # Crear un botón para guardar los cambios
         self.button_save_changes = QPushButton("Guardar Cambios")
         self.button_save_changes.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.button_save_changes.clicked.connect(self.save_changes)
@@ -274,19 +294,20 @@ class BasicApp(QMainWindow):
                 self.process_excel_file(file_path)
 
     def process_excel_file(self, file_path):
-        # Delegate processing to the controller
         try:
             self.on_sheets, self.off_sheets = self.controller.process_excel_file(file_path)
 
-            # Update the UI
+            # Actualizar los combo boxes con los nombres de las hojas
             self.update_sheet_selectors()
-            self.show_current_sheets()
 
-            # Load data into the database
-            self.controller.save_tripulantes_to_db(self.on_sheets, self.off_sheets)
+            # Mostrar la primera hoja en los QTableViews
+            if self.on_sheets:
+                first_on_sheet = next(iter(self.on_sheets))
+                self.show_sheet(self.on_sheets[first_on_sheet], self.eta_on_table_view)
 
-            # Assign flights to tripulantes
-            self.controller.assign_flights_to_tripulantes()
+            if self.off_sheets:
+                first_off_sheet = next(iter(self.off_sheets))
+                self.show_sheet(self.off_sheets[first_off_sheet], self.eta_off_table_view)
 
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Error al procesar el archivo: {e}")
@@ -308,6 +329,7 @@ class BasicApp(QMainWindow):
     def show_sheet(self, df, table_view):
         model = PandasModel(df)
         table_view.setModel(model)
+        table_view.resizeColumnsToContents()
 
     def change_on_sheet(self):
         sheet_name = self.on_sheet_selector.currentText()
@@ -332,16 +354,16 @@ class BasicApp(QMainWindow):
         print("Cambiando ciudad")  # Verifica si este mensaje se imprime
         selected_city = self.city_combo_box.currentText()  # Obtén la ciudad seleccionada del combo box
 
-        # Obtener el rango de fechas desde los QDateEdit
-        start_date = self.start_date_edit.date().toString("yyyy-MM-dd")
-        end_date = self.end_date_edit.date().toString("yyyy-MM-dd")
-
         # Limpiar las tablas antes de cargar nuevos datos
         self.eta_on_table_view.setModel(None)  # Limpia el modelo de la tabla "ON"
         self.eta_off_table_view.setModel(None)  # Limpia el modelo de la tabla "OFF"
 
         # Load existing data using the controller
+        start_date = self.start_date_edit.date().toString("yyyy-MM-dd")
+        end_date = self.end_date_edit.date().toString("yyyy-MM-dd")
+
         eta_vuelo_df_on, eta_vuelo_df_off = self.controller.load_existing_data(selected_city, start_date, end_date)
+
         
         # Mostrar vuelos y ETAs para tripulantes 'ON'
         if eta_vuelo_df_on is not None and not eta_vuelo_df_on.empty:
@@ -357,8 +379,34 @@ class BasicApp(QMainWindow):
 
     def save_changes(self):
         try:
-            # Guardar los datos editados en la base de datos
-            self.controller.save_tripulantes_to_db(self.on_sheets, self.off_sheets)
+            # Obtener el modelo de las tablas "ON" y "OFF"
+            model_on = self.eta_on_table_view.model()
+            model_off = self.eta_off_table_view.model()
+
+            # Obtener los DataFrames actualizados desde el modelo
+            df_on = model_on.get_dataframe() if isinstance(model_on, PandasModel) else None
+            df_off = model_off.get_dataframe() if isinstance(model_off, PandasModel) else None
+
+            # Pasar los DataFrames al controlador para guardar los datos en la base de datos
+            self.controller.save_tripulantes_to_db(df_on, df_off)
+            
             QMessageBox.information(self, "Éxito", "Datos guardados correctamente.")
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Error al guardar los datos: {e}")
+
+    def add_empty_row(self):
+        # Obtener la pestaña actual ("ON" o "OFF")
+        current_index = self.tabs.currentIndex()
+        model = None
+        
+        if current_index == 0:
+            # Pestaña "ON"
+            model = self.eta_on_table_view.model()
+        elif current_index == 1:
+            # Pestaña "OFF"
+            model = self.eta_off_table_view.model()
+        
+        if isinstance(model, PandasModel):
+            # Añadir una fila vacía al modelo
+            model.add_empty_row()
+
