@@ -21,9 +21,30 @@ class PandasModel(QAbstractTableModel):
 
     def data(self, index, role=Qt.ItemDataRole.DisplayRole):
         if index.isValid():
-            if role == Qt.ItemDataRole.DisplayRole:
+            if role == Qt.ItemDataRole.DisplayRole or role == Qt.ItemDataRole.EditRole:
                 return str(self._df.iloc[index.row(), index.column()])
         return None
+
+    def setData(self, index, value, role=Qt.ItemDataRole.EditRole):
+        if index.isValid() and role == Qt.ItemDataRole.EditRole:
+            try:
+                # Intenta convertir el valor ingresado al tipo adecuado para la columna
+                dtype = self._df.iloc[:, index.column()].dtype
+                if pd.api.types.is_numeric_dtype(dtype):
+                    value = float(value)  # Convertir a número si la columna es numérica
+                self._df.iat[index.row(), index.column()] = value
+                self.dataChanged.emit(index, index, [Qt.ItemDataRole.DisplayRole])
+                return True
+            except ValueError:
+                # Manejar el caso donde la conversión falla
+                print("Error: El valor ingresado no es válido para esta columna.")
+                return False
+        return False
+
+    def flags(self, index):
+        if index.isValid():
+            return Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsEditable
+        return Qt.ItemFlag.NoItemFlags
 
     def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
         if role == Qt.ItemDataRole.DisplayRole:
@@ -156,6 +177,11 @@ class BasicApp(QMainWindow):
         # Agregar la pantalla "Pasajeros" al stacked widget
         self.stacked_widget.addWidget(pasajeros_widget)
 
+        self.button_save_changes = QPushButton("Guardar Cambios")
+        self.button_save_changes.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.button_save_changes.clicked.connect(self.save_changes)
+        layout.addWidget(self.button_save_changes)
+
     def create_generic_screen(self, title):
         # Crear una pantalla genérica con solo un título
         widget = QWidget()
@@ -275,9 +301,9 @@ class BasicApp(QMainWindow):
     def show_current_sheets(self):
         # Show the first sheets in the table views
         if self.on_sheets:
-            self.show_sheet(self.on_sheets[self.on_sheet_selector.currentText()], self.on_table_view)
+            self.show_sheet(self.on_sheets[self.on_sheet_selector.currentText()], self.eta_on_table_view)
         if self.off_sheets:
-            self.show_sheet(self.off_sheets[self.off_sheet_selector.currentText()], self.off_table_view)
+            self.show_sheet(self.off_sheets[self.off_sheet_selector.currentText()], self.eta_off_table_view)
 
     def show_sheet(self, df, table_view):
         model = PandasModel(df)
@@ -286,12 +312,12 @@ class BasicApp(QMainWindow):
     def change_on_sheet(self):
         sheet_name = self.on_sheet_selector.currentText()
         if sheet_name:
-            self.show_sheet(self.on_sheets[sheet_name], self.on_table_view)
+            self.show_sheet(self.on_sheets[sheet_name], self.eta_on_table_view)
 
     def change_off_sheet(self):
         sheet_name = self.off_sheet_selector.currentText()
         if sheet_name:
-            self.show_sheet(self.off_sheets[sheet_name], self.off_table_view)
+            self.show_sheet(self.off_sheets[sheet_name], self.eta_off_table_view)
 
     def city_selected(self):
         print("Ciudad seleccionada: ", self.city_combo_box.currentText())  # Verifica qué ciudad se seleccionó
@@ -328,3 +354,11 @@ class BasicApp(QMainWindow):
         # Imprimir los dataframes generados
         print(f"DataFrame de tripulantes 'ON':\n{eta_vuelo_df_on}")
         print(f"DataFrame de tripulantes 'OFF':\n{eta_vuelo_df_off}")
+
+    def save_changes(self):
+        try:
+            # Guardar los datos editados en la base de datos
+            self.controller.save_tripulantes_to_db(self.on_sheets, self.off_sheets)
+            QMessageBox.information(self, "Éxito", "Datos guardados correctamente.")
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Error al guardar los datos: {e}")

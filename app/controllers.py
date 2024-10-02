@@ -1,6 +1,7 @@
 import re
 import pandas as pd
 from sqlalchemy.orm import Session
+from PyQt6.QtWidgets import QMessageBox
 from app.models import Buque, Tripulante, Vuelo, EtaCiudad
 
 CITY_AIRPORT_CODES = {
@@ -41,9 +42,16 @@ class Controller:
     def save_tripulantes_to_db(self, on_sheets, off_sheets):
         try:
             # Process 'ON' tripulantes
-            self._process_tripulantes_sheet(on_sheets.get('Pasajeros y Pasaportes ON', None), 'ON')
+            success_on = self._process_tripulantes_sheet(on_sheets.get('Pasajeros y Pasaportes ON', None), 'ON')
+            if not success_on:
+                raise ValueError("Error al procesar tripulantes ON.")
+
             # Process 'OFF' tripulantes
-            self._process_tripulantes_sheet(off_sheets.get('Pasajeros y Pasaportes OFF', None), 'OFF')
+            success_off = self._process_tripulantes_sheet(off_sheets.get('Pasajeros y Pasaportes OFF', None), 'OFF')
+            if not success_off:
+                raise ValueError("Error al procesar tripulantes OFF.")
+
+            # Si todos los registros se procesaron correctamente, guardar los cambios
             self.db_session.commit()
         except Exception as e:
             self.db_session.rollback()
@@ -56,24 +64,43 @@ class Controller:
                     continue  # Skip incomplete records
 
                 # Buscar o crear 'Buque'
-                nave = self.db_session.query(Buque).filter_by(nombre=row['Vessel'].strip().upper()).first()
+                nombre_buque = row['Vessel'].strip().upper()  # Normalizar el nombre
+                nave = self.db_session.query(Buque).filter_by(nombre=nombre_buque).first()
                 if not nave:
-                    nave = Buque(nombre=row['Vessel'].strip(), compañia="Compañía Desconocida", ciudad="Ciudad Desconocida")
+                    # Si no existe, crear un nuevo buque
+                    nave = Buque(
+                        nombre=nombre_buque,
+                        compañia="Compañía Desconocida",  # O usa el valor correcto si está disponible
+                        ciudad="Ciudad Desconocida"  # O usa el valor correcto si está disponible
+                    )
                     self.db_session.add(nave)
                     self.db_session.commit()
 
-                # Fetch or create 'Tripulante'
+                # Buscar o crear 'Tripulante'
                 tripulante = self.db_session.query(Tripulante).filter_by(pasaporte=row['Passport number']).first()
                 if tripulante:
                     tripulante = self._update_tripulante(tripulante, row, nave.buque_id, estado)
+                    if tripulante is None:
+                        # Si la actualización falla, no continuar con el guardado y salir del método o del bucle
+                        return False  # Retorna False para indicar que hubo un error
                 else:
                     tripulante = self._create_tripulante(row, nave.buque_id, estado)
                     self.db_session.add(tripulante)
 
+        return True  # Retorna True si no hubo errores
+
+
     def _update_tripulante(self, tripulante, row, buque_id, estado):
         tripulante.nombre = row['First name']
         tripulante.apellido = row['Last name']
-        tripulante.sexo = row.get('Gender')
+
+        gender = row.get('Gender')
+        if gender and len(gender) == 1:
+            tripulante.sexo = gender
+        else:
+            print(f"Valor inválido para 'Gender': {gender}. Debe ser un solo carácter.") 
+            return None  # O puedes optar por no retornar el tripulante si el valor es inválido
+        
         tripulante.nacionalidad = row.get('Nationality')
         tripulante.fecha_nacimiento = pd.to_datetime(row.get('Date of birth')).date() if not pd.isna(row.get('Date of birth')) else None
         tripulante.buque_id = buque_id

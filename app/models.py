@@ -25,7 +25,7 @@ class Tripulante(Base):
     apellido: Mapped[str] = mapped_column(String, nullable=False)
     nacionalidad: Mapped[str] = mapped_column(String, nullable=False)
     pasaporte: Mapped[str] = mapped_column(String, nullable=False)
-    sexo: Mapped[str] = mapped_column(String, nullable=False)
+    sexo: Mapped[str] = mapped_column(String(1), nullable=False)
     fecha_nacimiento: Mapped[date] = mapped_column(Date, nullable=False)
     posicion: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     puerto_desembarque: Mapped[str] = mapped_column(String, nullable=True)  # No estoy segura de este
