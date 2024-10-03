@@ -120,6 +120,7 @@ def save_transporte_data(transporte_df):
 def save_buque_data(cliente_df):
     session = SessionLocal()
     try:
+        print("prueba")
         for _, row in cliente_df.iterrows():
             barco = row.get('BARCO')
             cliente = row.get('CLIENTE')  # Aquí está el cliente

@@ -2,9 +2,10 @@
 import pandas as pd
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QPushButton, QTabWidget, QWidget, QHBoxLayout, QVBoxLayout,
-    QSizePolicy, QFileDialog, QMessageBox, QTableView, QComboBox, QStackedWidget, QListWidget, QLabel
+    QSizePolicy, QFileDialog, QMessageBox, QTableView, QComboBox, QStackedWidget, QListWidget, QLabel,
+    QAbstractItemView, QDateEdit
 )
-from PyQt6.QtCore import QAbstractTableModel, Qt, QRect, QPropertyAnimation, QEasingCurve, QEvent
+from PyQt6.QtCore import QAbstractTableModel, Qt, QRect, QPropertyAnimation, QEasingCurve, QEvent, QDate    
 from app.controllers import Controller  # Import the controller
 from app.database import get_db_session  # Importa la función para obtener la sesión
 
@@ -36,13 +37,18 @@ class BasicApp(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Gestión Crew Shacketon's Way")
-        self.setGeometry(100, 100, 1000, 800)
-        
+        self.setGeometry(100, 100, 1200, 800)
+
         db_session = get_db_session()
         self.controller = Controller(db_session)  # Instantiate the controller
 
         # UI setup methods
         self.setup_ui()
+
+        # Conectar cambios de fecha a handle_date_change
+        self.start_date_edit.dateChanged.connect(self.load_existing_data)
+        self.end_date_edit.dateChanged.connect(self.load_existing_data)
+
         self.create_pasajeros_screen()
         self.create_generic_screen("Hotel")
         self.create_generic_screen("Transporte")
@@ -50,31 +56,58 @@ class BasicApp(QMainWindow):
         self.create_floating_menu()
 
         self.installEventFilter(self)
-        self.load_existing_data() #Para cargar datos iniciales. No es necesario
+        self.load_existing_data()
 
     def setup_ui(self):
         # Setting up the central widget and layouts
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
-        
+
         main_layout = QVBoxLayout()
         central_widget.setLayout(main_layout)
-        
+
         button_layout = QHBoxLayout()
-        
+
         self.button_toggle_menu = QPushButton("Menú")
         self.button_toggle_menu.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.button_toggle_menu.clicked.connect(self.toggle_menu)
         button_layout.addWidget(self.button_toggle_menu)
 
+        # Crear campos de selección de rango de fecha 
+        self.start_date_edit = QDateEdit()
+        self.start_date_edit.setCalendarPopup(True)
+        self.start_date_edit.setDisplayFormat("yyyy-MM-dd")
+        self.start_date_edit.setDate(QDate.currentDate().addMonths(-1))
+
+        self.end_date_edit = QDateEdit()
+        self.end_date_edit.setCalendarPopup(True)
+        self.end_date_edit.setDisplayFormat("yyyy-MM-dd")
+        self.end_date_edit.setDate(QDate.currentDate())
+
+        # Conectar los cambios de fecha a una función en el controlador
+        self.start_date_edit.dateChanged.connect(self.on_date_changed)
+        self.end_date_edit.dateChanged.connect(self.on_date_changed)
+
+        # Agregar al layout
+        button_layout.addWidget(QLabel("Fecha inicio"))
+        button_layout.addWidget(self.start_date_edit)
+        button_layout.addWidget(QLabel("Fecha fin"))
+        button_layout.addWidget(self.end_date_edit)
         self.city_combo_box = QComboBox()
         self.city_combo_box.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.city_combo_box.addItems(self.controller.get_city_list())
-        self.city_combo_box.currentIndexChanged.connect(self.city_selected)  # Conexión a city_selected        
+        self.city_combo_box.currentIndexChanged.connect(self.city_selected)  # Conexión a city_selected
         button_layout.addWidget(self.city_combo_box)
         main_layout.addLayout(button_layout)
         self.stacked_widget = QStackedWidget()
         main_layout.addWidget(self.stacked_widget)
+
+    def on_date_changed(self):
+        # Pasar la responsabilidad al controlador
+        start_date = self.start_date_edit.date().toString("yyyy-MM-dd")
+        end_date = self.end_date_edit.date().toString("yyyy-MM-dd")
+        self.controller.handle_date_change(start_date, end_date)
+        self.load_existing_data()  # Actualiza los datos al cambiar la fecha
 
     def create_pasajeros_screen(self):
         # Crear la pantalla "Pasajeros"
@@ -85,7 +118,7 @@ class BasicApp(QMainWindow):
         self.button_load = QPushButton("Cargar Excel")
         self.button_load.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.button_load.clicked.connect(self.load_excel_file)
-        
+
         layout.addWidget(self.button_load)
 
         # Crear un QTabWidget para las pestañas
@@ -95,7 +128,7 @@ class BasicApp(QMainWindow):
         # Crear widgets para cada pestaña
         self.on_tab = QWidget()
         self.off_tab = QWidget()
-        
+
         # Agregar las pestañas al QTabWidget
         self.tabs.addTab(self.on_tab, "ON")
         self.tabs.addTab(self.off_tab, "OFF")
@@ -103,7 +136,7 @@ class BasicApp(QMainWindow):
         # Crear un layout para cada pestaña
         self.on_layout = QVBoxLayout()
         self.off_layout = QVBoxLayout()
-        
+
         self.on_tab.setLayout(self.on_layout)
         self.off_tab.setLayout(self.off_layout)
 
@@ -115,11 +148,15 @@ class BasicApp(QMainWindow):
         self.on_sheet_selector.currentIndexChanged.connect(self.change_on_sheet)
         self.off_sheet_selector.currentIndexChanged.connect(self.change_off_sheet)
 
-        # Crear un QTableView para las ETAs (asegúrate de agregar esto)
+        # Crear un QTableView para las ETAs
         self.eta_on_table_view = QTableView()
         self.eta_off_table_view = QTableView()
         self.on_layout.addWidget(self.eta_on_table_view)  # Agregar a la pestaña "ON"
         self.off_layout.addWidget(self.eta_off_table_view)  # Agregar a la pestaña "OFF"
+
+        # Configurar la selección múltiple
+        self.eta_on_table_view.setSelectionMode(QAbstractItemView.SelectionMode.MultiSelection)
+        self.eta_off_table_view.setSelectionMode(QAbstractItemView.SelectionMode.MultiSelection)
 
         # Variables para almacenar los DataFrames de las hojas "on" y "off"
         self.on_sheets = {}
@@ -245,7 +282,6 @@ class BasicApp(QMainWindow):
         self.off_sheet_selector.addItems(self.off_sheets.keys())
 
     def show_current_sheets(self):
-        # Show the first sheets in the table views
         if self.on_sheets:
             self.show_sheet(self.on_sheets[self.on_sheet_selector.currentText()], self.on_table_view)
         if self.off_sheets:
@@ -258,32 +294,32 @@ class BasicApp(QMainWindow):
     def change_on_sheet(self):
         sheet_name = self.on_sheet_selector.currentText()
         if sheet_name:
-            self.show_sheet(self.on_sheets[sheet_name], self.on_table_view)
+            self.show_sheet(self.on_sheets[sheet_name], self.eta_on_table_view)
 
     def change_off_sheet(self):
         sheet_name = self.off_sheet_selector.currentText()
         if sheet_name:
-            self.show_sheet(self.off_sheets[sheet_name], self.off_table_view)
+            self.show_sheet(self.off_sheets[sheet_name], self.eta_off_table_view)
 
     def city_selected(self):
         print("Ciudad seleccionada: ", self.city_combo_box.currentText())  # Verifica qué ciudad se seleccionó
         self.load_existing_data()  # Carga los datos existentes basados en la ciudad seleccionada
 
     def clear_tripulantes_display(self):
-        # Aquí puedes limpiar la visualización anterior, por ejemplo:
         for i in reversed(range(self.stacked_widget.count())): 
             self.stacked_widget.itemAt(i).widget().deleteLater()
 
     def load_existing_data(self):
-        print("Cambiando ciudad")  # Verifica si este mensaje se imprime
         selected_city = self.city_combo_box.currentText()  # Obtén la ciudad seleccionada del combo box
+        start_date = self.start_date_edit.text()
+        end_date = self.end_date_edit.text() 
 
         # Limpiar las tablas antes de cargar nuevos datos
-        self.eta_on_table_view.setModel(None)  # Limpia el modelo de la tabla "ON"
-        self.eta_off_table_view.setModel(None)  # Limpia el modelo de la tabla "OFF"
+        self.eta_on_table_view.setModel(None)   # Limpia el modelo de la tabla "ON"
+        self.eta_off_table_view.setModel(None)   # Limpia el modelo de la tabla "OFF"
 
         # Load existing data using the controller
-        eta_vuelo_df_on, eta_vuelo_df_off = self.controller.load_existing_data(selected_city)
+        eta_vuelo_df_on, eta_vuelo_df_off = self.controller.load_existing_data(selected_city, start_date, end_date)
         
         # Mostrar vuelos y ETAs para tripulantes 'ON'
         if eta_vuelo_df_on is not None and not eta_vuelo_df_on.empty:
