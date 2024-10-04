@@ -55,6 +55,10 @@ class Controller:
             tripulantes_off = self.read_all_rows(excel_data, start_row=21, column_range=slice(11, 18), column_names=tripulante_columns) 
             tripulantes_off.reset_index(drop=True, inplace=True)  # Reiniciar el índice
 
+            # Procesar vuelos internacionales
+            vuelos_internacionales_on = self._extract_international_flights(excel_data, start_row=13)
+            #vuelos_internacionales_off = self._extract_international_flights(excel_data, start_row=21)
+
             # Verificar que los DataFrames no estén vacíos
             if buque_on.empty or buque_off.empty:
                 raise ValueError("Los datos de buque ON o OFF están vacíos.")
@@ -67,6 +71,8 @@ class Controller:
             self.tripulantes_off = tripulantes_off
             self.buque_on = buque_on
             self.buque_off = buque_off
+            self.vuelos_internacionales_on = vuelos_internacionales_on
+            #self.vuelos_internacionales_off = vuelos_internacionales_off
 
             self._create_buque(self.buque_on)
             self._create_buque(self.buque_off)
@@ -82,6 +88,13 @@ class Controller:
             print("\nDatos de tripulantes OFF:")
             print(tripulantes_off.head())
 
+            # Imprimir datos de vuelos internacionales ON y OFF
+            print("\nVuelos Internacionales ON:")
+            print(vuelos_internacionales_on.head())
+
+            #print("\nVuelos Internacionales OFF:")
+            #print(vuelos_internacionales_off)
+
             tripulantes = []
             # Crear tripulantes ON
             tripulantes += self._create_tripulantes(tripulantes_on, self.buque_on, "ON")
@@ -93,6 +106,57 @@ class Controller:
         except Exception as e:
             raise Exception(f"Error al procesar el archivo: {e}")   
         
+    def _extract_international_flights(self, excel_data, start_row):
+        vuelos = []
+        
+        # Convertir los nombres de las columnas a cadenas y quitar espacios
+        flight_columns = [str(col).strip() for col in excel_data.columns]
+
+        # Verificar las columnas con las que estamos trabajando
+        print("Columnas disponibles:", flight_columns)  # Imprimir las columnas para verificar qué se está cargando
+
+        # Iterar sobre cada fila, comenzando desde la fila indicada
+        for i in range(start_row, excel_data.shape[0]):
+            tripulante_vuelos = {}
+            vuelo_num = 1
+            
+            # Iterar sobre las columnas de vuelos hasta que ya no existan
+            while True:
+                vuelo_col = f'Vuelo Int {vuelo_num}'
+                fecha_col = f'Fecha Vuelo Int {vuelo_num}'
+                hora_col = f'Hora Vuelo Int {vuelo_num}'
+                
+                # Verificar si las columnas existen en el DataFrame
+                if vuelo_col in flight_columns and fecha_col in flight_columns and hora_col in flight_columns:
+                    vuelo = excel_data.loc[i, vuelo_col]
+                    fecha = excel_data.loc[i, fecha_col]
+                    hora = excel_data.loc[i, hora_col]
+
+                    # Si hay información válida en las columnas, agregarla
+                    if pd.notna(vuelo) and pd.notna(fecha) and pd.notna(hora):
+                        tripulante_vuelos[f'Vuelo {vuelo_num}'] = {
+                            "vuelo": vuelo,
+                            "fecha": pd.to_datetime(fecha, errors='coerce'),
+                            "hora": hora  # Mantener la hora como string, o usar pd.to_datetime si es necesario
+                        }
+                        vuelo_num += 1  # Avanzar al siguiente vuelo
+                    else:
+                        break  # Detener la búsqueda si alguna de las columnas está vacía
+                else:
+                    break  # Detener la búsqueda si no se encuentra una de las columnas
+            
+            # Solo agregar el vuelo si se encontraron vuelos válidos para el tripulante
+            if tripulante_vuelos:
+                vuelos.append(tripulante_vuelos)
+
+        # Verificar si se encontraron vuelos
+        if len(vuelos) == 0:
+            print("No se encontraron vuelos internacionales en las filas procesadas.")
+        else:
+            print(f"{len(vuelos)} vuelos internacionales procesados.")
+            
+        return pd.DataFrame(vuelos)
+
     def read_all_rows(self, data, start_row, column_range, column_names):
         """
         Leer todas las filas a partir de una fila específica, 
@@ -142,30 +206,42 @@ class Controller:
                 # Buscar el buque ID usando la función buscar_buque_id
                 buque_id = buscar_buque_id(nombre_buque, self.db_session)
 
-                # Crear el tripulante usando la fila actual
-                tripulante = Tripulante(
-                    nombre=row['First name'],
-                    apellido=row['Last name'],
-                    sexo=row['Gender'],
-                    nacionalidad=row['Nacionalidad'],
-                    posicion=row['Position'],
-                    pasaporte=row['Pasaporte'],
-                    fecha_nacimiento=pd.to_datetime(row['DOB']).date() if not pd.isna(row['DOB']) else None,
-                    buque_id=buque_id,
-                    estado=estado  # (ON u OFF)
-                )
-                print(f"Tripulante {tripulante.nombre} {tripulante.apellido} agregado con Buque ID: {buque_id}")
-                tripulantes.append(tripulante)  # Agregar el tripulante a la lista
+                # Buscar si el tripulante ya existe en la base de datos por pasaporte
+                tripulante_existente = self.db_session.query(Tripulante).filter_by(pasaporte=row['Pasaporte']).first()
 
-            # Aquí se agregan los tripulantes a la sesión de la base de datos
-            self.db_session.add_all(tripulantes)
-            self.db_session.commit()  # Confirmar los cambios
+                if tripulante_existente:
+                    print(f"Tripulante {tripulante_existente.nombre} {tripulante_existente.apellido} ya existe.")
+                    tripulante_id = tripulante_existente.tripulante_id
+
+                else:
+                    # Si el tripulante no existe, lo creamos
+                    tripulante = Tripulante(
+                        nombre=row['First name'],
+                        apellido=row['Last name'],
+                        sexo=row['Gender'],
+                        nacionalidad=row['Nacionalidad'],
+                        posicion=row['Position'],
+                        pasaporte=row['Pasaporte'],
+                        fecha_nacimiento=pd.to_datetime(row['DOB']).date() if not pd.isna(row['DOB']) else None,
+                        buque_id=buque_id,
+                        estado=estado  # (ON u OFF)
+                    )
+                    self.db_session.add(tripulante)
+                    self.db_session.commit()  # Confirmar la creación del tripulante
+
+                    tripulante_id = tripulante.tripulante_id
+                    print(f"Tripulante {tripulante.nombre} {tripulante.apellido} creado con ID: {tripulante_id}.")
+
+                # Crear un nuevo viaje para el tripulante
+                self._create_viaje(tripulante_id, buque_id)
+                
+                tripulantes.append(tripulante_existente if tripulante_existente else tripulante)  # Agregar a la lista
+
+            return tripulantes  # Devolver la lista de tripulantes
 
         except Exception as e:
             self.db_session.rollback()  # Revertir cambios en caso de error
             raise Exception(f"Error al crear tripulantes: {e}")
-
-        return tripulantes  # Devolver la lista de tripulantes
 
     def _create_buque(self, buques_df):
         buques = []  # Lista para almacenar los buques creados
