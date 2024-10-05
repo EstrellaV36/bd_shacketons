@@ -1,12 +1,16 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QPushButton, QTabWidget, QComboBox, QTableView, QSizePolicy, QMessageBox, QFileDialog
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTabWidget, QComboBox, QTableView, QSizePolicy, QMessageBox, QFileDialog
 from PyQt6.QtCore import Qt
 from app.interfaz.pandas_model import PandasModel
 from app.controllers import Controller
+from app.database import get_db_session
 
 class CargaMasivaScreen(QWidget):
     def __init__(self, controller, main_window):
         super().__init__()
-        self.controller = controller
+
+        db_session = get_db_session()
+        self.controller = Controller(db_session)
+        
         self.main_window = main_window
         self.setup_ui()
 
@@ -38,22 +42,24 @@ class CargaMasivaScreen(QWidget):
         self.tabs.addTab(self.on_tab, "ON")
         self.tabs.addTab(self.off_tab, "OFF")
 
-        self.on_layout = QVBoxLayout()
-        self.off_layout = QVBoxLayout()
+        # Layouts horizontales para tener buques y tripulantes uno al lado del otro
+        self.on_layout = QHBoxLayout()
+        self.off_layout = QHBoxLayout()
         
         self.on_tab.setLayout(self.on_layout)
         self.off_tab.setLayout(self.off_layout)
 
-        self.on_sheet_selector = QComboBox()
-        self.off_sheet_selector = QComboBox()
+        # Tablas para buques y tripulantes ON
+        self.eta_on_buque_table_view = QTableView()  # Tabla para buques ON
+        self.eta_on_tripulante_table_view = QTableView()  # Tabla para tripulantes ON
+        self.on_layout.addWidget(self.eta_on_buque_table_view)
+        self.on_layout.addWidget(self.eta_on_tripulante_table_view)
 
-        self.on_layout.addWidget(self.on_sheet_selector)
-        self.off_layout.addWidget(self.off_sheet_selector)
-
-        self.eta_on_table_view = QTableView()
-        self.eta_off_table_view = QTableView()
-        self.on_layout.addWidget(self.eta_on_table_view)
-        self.off_layout.addWidget(self.eta_off_table_view)
+        # Tablas para buques y tripulantes OFF
+        self.eta_off_buque_table_view = QTableView()  # Tabla para buques OFF
+        self.eta_off_tripulante_table_view = QTableView()  # Tabla para tripulantes OFF
+        self.off_layout.addWidget(self.eta_off_buque_table_view)
+        self.off_layout.addWidget(self.eta_off_tripulante_table_view)
 
         self.on_sheets = {}
         self.off_sheets = {}
@@ -73,56 +79,47 @@ class CargaMasivaScreen(QWidget):
             file_paths = file_dialog.selectedFiles()
             if file_paths:
                 file_path = file_paths[0]
-                self.process_excel_file(file_path)
-    
-    def process_excel_file(self, file_path):
-        try:
-            self.on_sheets, self.off_sheets = self.controller.process_excel_file(file_path)
-            self.update_sheet_selectors()
-
-            if self.on_sheets:
-                first_on_sheet = next(iter(self.on_sheets))
-                self.show_sheet(self.on_sheets[first_on_sheet], self.eta_on_table_view)
-
-            if self.off_sheets:
-                first_off_sheet = next(iter(self.off_sheets))
-                self.show_sheet(self.off_sheets[first_off_sheet], self.eta_off_table_view)
-
-        except Exception as e:
-            QMessageBox.critical(self, "Error", f"Error al procesar el archivo: {e}")
+                
+                # Procesar el archivo Excel y obtener los DataFrames
+                buque_on, buque_off, tripulantes_on, tripulantes_off = self.controller.process_excel_file(file_path)
+                
+                # Mostrar los DataFrames en las tablas correspondientes
+                self.show_sheet(buque_on, self.eta_on_buque_table_view)   # Mostrar buques ON
+                self.show_sheet(tripulantes_on, self.eta_on_tripulante_table_view)  # Mostrar tripulantes ON
+                
+                self.show_sheet(buque_off, self.eta_off_buque_table_view)  # Mostrar buques OFF
+                self.show_sheet(tripulantes_off, self.eta_off_tripulante_table_view)  # Mostrar tripulantes OFF
 
     def show_sheet(self, df, table_view):
         model = PandasModel(df)
         table_view.setModel(model)
         table_view.resizeColumnsToContents()
 
-    def update_sheet_selectors(self):
-        self.on_sheet_selector.clear()
-        self.on_sheet_selector.addItems(self.on_sheets.keys())
-        self.off_sheet_selector.clear()
-        self.off_sheet_selector.addItems(self.off_sheets.keys())
-
     def add_empty_row(self):
         current_index = self.tabs.currentIndex()
         model = None
         
         if current_index == 0:
-            model = self.eta_on_table_view.model()
+            model = self.eta_on_buque_table_view.model()
         elif current_index == 1:
-            model = self.eta_off_table_view.model()
+            model = self.eta_off_buque_table_view.model()
         
         if isinstance(model, PandasModel):
             model.add_empty_row()
 
     def save_changes(self):
         try:
-            model_on = self.eta_on_table_view.model()
-            model_off = self.eta_off_table_view.model()
+            model_on_buque = self.eta_on_buque_table_view.model()
+            model_on_tripulante = self.eta_on_tripulante_table_view.model()
+            model_off_buque = self.eta_off_buque_table_view.model()
+            model_off_tripulante = self.eta_off_tripulante_table_view.model()
 
-            df_on = model_on.get_dataframe() if isinstance(model_on, PandasModel) else None
-            df_off = model_off.get_dataframe() if isinstance(model_off, PandasModel) else None
+            df_on_buque = model_on_buque.get_dataframe() if isinstance(model_on_buque, PandasModel) else None
+            df_on_tripulante = model_on_tripulante.get_dataframe() if isinstance(model_on_tripulante, PandasModel) else None
+            df_off_buque = model_off_buque.get_dataframe() if isinstance(model_off_buque, PandasModel) else None
+            df_off_tripulante = model_off_tripulante.get_dataframe() if isinstance(model_off_tripulante, PandasModel) else None
 
-            self.controller.save_tripulantes_to_db(df_on, df_off)
+            self.controller.save_tripulantes_to_db(df_on_buque, df_on_tripulante, df_off_buque, df_off_tripulante)
             QMessageBox.information(self, "Éxito", "Datos guardados correctamente.")
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Error al guardar los datos: {e}")

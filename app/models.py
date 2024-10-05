@@ -6,16 +6,32 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 class Base(DeclarativeBase):
     pass
 
-#-----------  TABLA AÑADIDA PARA MANEJAR MULTIPLES ETAS POR CIUDAD -----------
+#-----------  TABLA AÑADIDA PARA MANEJAR MULTIPLES ETAS POR CIUDAD PARA BUQUES-----------
 class EtaCiudad(Base):
     __tablename__ = "etas_ciudades"
 
     eta_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    tripulante_id: Mapped[int] = mapped_column(ForeignKey("tripulantes.tripulante_id"))
+    buque_id: Mapped[int] = mapped_column(ForeignKey("buques.buque_id"))
     ciudad: Mapped[str] = mapped_column(String, nullable=False)  # PUQ, SCL, WPU, etc.
     eta: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    etd: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    buque: Mapped["Buque"] = relationship(back_populates="etas")
 
-    tripulante: Mapped["Tripulante"] = relationship(back_populates="etas")
+class Buque(Base):
+    __tablename__ = "buques"
+
+    buque_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    nombre: Mapped[str] = mapped_column(String, nullable=False)
+    empresa: Mapped[str] = mapped_column(String, nullable=False)
+    cobrar_a: Mapped[str] = mapped_column(String, nullable=True) #ver donde correspondería poner a quien cobrar
+    ciudad: Mapped[str] = mapped_column(String, nullable=False)
+    
+    etas: Mapped[list["EtaCiudad"]] = relationship(back_populates="buque")
+    tripulantes: Mapped[list["Tripulante"]] = relationship(back_populates="buque")
+    viajes: Mapped[list["Viaje"]] = relationship(back_populates="buque")
+
+    def __repr__(self):
+        return f"Buque(id={self.buque_id}, nombre={self.nombre}, compañia={self.compañia})"
 
 class Tripulante(Base):
     __tablename__ = "tripulantes"
@@ -42,25 +58,9 @@ class Tripulante(Base):
     restaurantes: Mapped[list["Restaurante"]] = relationship(back_populates="tripulante")
     transportes: Mapped[list["Transporte"]] = relationship(back_populates="tripulante")
     viajes: Mapped[list["Viaje"]] = relationship(back_populates="tripulante")
-    etas: Mapped[list["EtaCiudad"]] = relationship(back_populates="tripulante")
 
     def __repr__(self):
         return f"Tripulante(id={self.tripulante_id}, nombre={self.nombre}, apellido={self.apellido})"
-
-class Buque(Base):
-    __tablename__ = "buques"
-
-    buque_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    nombre: Mapped[str] = mapped_column(String, nullable=False)
-    compañia: Mapped[str] = mapped_column(String, nullable=False)
-    cobrar_a: Mapped[str] = mapped_column(String, nullable=True) #ver donde correspondería poner a quien cobrar
-    ciudad: Mapped[str] = mapped_column(String, nullable=False)
-
-    tripulantes: Mapped[list["Tripulante"]] = relationship(back_populates="buque")
-    viajes: Mapped[list["Viaje"]] = relationship(back_populates="buque")
-
-    def __repr__(self):
-        return f"Buque(id={self.buque_id}, nombre={self.nombre}, compañia={self.compañia})"
 
 class Vuelo(Base):
     __tablename__ = "vuelos"
@@ -143,25 +143,25 @@ class Viaje(Base):
     __tablename__ = "viajes"
 
     viaje_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    empresa_pagadora: Mapped[str] = mapped_column(String, nullable=False)
-    fecha_inicio: Mapped[datetime] = mapped_column(nullable=False)
-    fecha_fin: Mapped[datetime] = mapped_column(nullable=False)
     equipaje_perdido: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
     asistencia_medica: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
 
     tripulante_id: Mapped[int] = mapped_column(ForeignKey("tripulantes.tripulante_id"))
     buque_id: Mapped[int] = mapped_column(ForeignKey("buques.buque_id"))
+    """
     vuelo_id: Mapped[int] = mapped_column(ForeignKey("vuelos.vuelo_id"))
     hotel_id: Mapped[int] = mapped_column(ForeignKey("hoteles.hotel_id"))
     restaurante_id: Mapped[int] = mapped_column(ForeignKey("restaurantes.restaurante_id"))
     transporte_id: Mapped[int] = mapped_column(ForeignKey("transportes.transporte_id"))
-
+    """
+    #relaciones
     tripulante: Mapped["Tripulante"] = relationship(back_populates="viajes")
     buque: Mapped["Buque"] = relationship(back_populates="viajes")
+    """
     vuelo: Mapped["Vuelo"] = relationship()
     hotel: Mapped["Hotel"] = relationship()
     restaurante: Mapped["Restaurante"] = relationship()
     transporte: Mapped["Transporte"] = relationship()
-
+    """
     def __repr__(self):
         return f"Viaje(id={self.viaje_id}, empresa_pagadora={self.empresa_pagadora}, fecha_inicio={self.fecha_inicio})"
