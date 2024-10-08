@@ -42,13 +42,19 @@ def save_hotel_data(hotel_df):
             if pd.isna(nombre) or pd.isna(ciudad):
                 continue
 
-            # Verificar si el hotel ya existe
-            if session.query(Hotel).filter_by(nombre=nombre, ciudad=ciudad).first() is not None:
+            # Convertir nombre y ciudad a minúsculas para verificar insensiblemente a mayúsculas/minúsculas
+            nombre_lower = nombre.strip().lower()
+            ciudad_lower = ciudad.strip().lower()
+
+            # Verificar si el hotel ya existe (insensible a mayúsculas)
+            if session.query(Hotel).filter(
+                Hotel.nombre.ilike(nombre_lower), Hotel.ciudad.ilike(ciudad_lower)
+            ).first() is not None:
                 print(f"Hotel '{nombre}' en '{ciudad}' ya existe. Omitiendo...")
                 continue
 
             # Crear el nuevo objeto Hotel
-            hotel = Hotel(nombre=nombre, ciudad=ciudad)  # solo se establecen nombre y ciudad
+            hotel = Hotel(nombre=nombre, ciudad=ciudad)
             session.add(hotel)
 
         session.commit()
@@ -71,8 +77,14 @@ def save_restaurant_data(restaurant_df):
             if pd.isna(nombre) or pd.isna(ciudad):
                 continue
 
-            # Verificar si el restaurante ya existe
-            if session.query(Restaurante).filter_by(nombre=nombre, ciudad=ciudad).first() is not None:
+            # Convertir nombre y ciudad a minúsculas
+            nombre_lower = nombre.strip().lower()
+            ciudad_lower = ciudad.strip().lower()
+
+            # Verificar si el restaurante ya existe (insensible a mayúsculas)
+            if session.query(Restaurante).filter(
+                Restaurante.nombre.ilike(nombre_lower), Restaurante.ciudad.ilike(ciudad_lower)
+            ).first() is not None:
                 print(f"Restaurante '{nombre}' en '{ciudad}' ya existe. Omitiendo...")
                 continue
 
@@ -99,8 +111,14 @@ def save_transporte_data(transporte_df):
             if pd.isna(nombre) or pd.isna(ciudad):
                 continue
 
-            # Verificar si el transporte ya existe
-            if session.query(Transporte).filter_by(nombre=nombre, ciudad=ciudad).first() is not None:
+            # Convertir nombre y ciudad a minúsculas
+            nombre_lower = nombre.strip().lower()
+            ciudad_lower = ciudad.strip().lower()
+
+            # Verificar si el transporte ya existe (insensible a mayúsculas)
+            if session.query(Transporte).filter(
+                Transporte.nombre.ilike(nombre_lower), Transporte.ciudad.ilike(ciudad_lower)
+            ).first() is not None:
                 print(f"Transporte '{nombre}' en '{ciudad}' ya existe. Omitiendo...")
                 continue
 
@@ -129,12 +147,19 @@ def save_buque_data(cliente_df):
             if pd.isna(barco) or pd.isna(cliente) or pd.isna(ciudad):
                 continue
 
-            # Verificar si el buque ya existe
-            if session.query(Buque).filter_by(nombre=barco, cobrar_a=cliente, ciudad=ciudad).first() is not None:
+            # Convertir barco, cliente y ciudad a minúsculas
+            barco_lower = barco.strip().lower()
+            cliente_lower = cliente.strip().lower()
+            ciudad_lower = ciudad.strip().lower()
+
+            # Verificar si el buque ya existe (insensible a mayúsculas)
+            if session.query(Buque).filter(
+                Buque.nombre.ilike(barco_lower), Buque.empresa.ilike(cliente_lower), Buque.ciudad.ilike(ciudad_lower)
+            ).first() is not None:
                 print(f"Buque '{barco}' que cobra a '{cliente}' en '{ciudad}' ya existe. Omitiendo...")
                 continue
 
-            buque = Buque(nombre=barco, compañia=cliente, ciudad=ciudad)
+            buque = Buque(nombre=barco, empresa=cliente, ciudad=ciudad)
             session.add(buque)
 
         session.commit()
@@ -146,6 +171,7 @@ def save_buque_data(cliente_df):
         
     finally:
         session.close()
+
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
