@@ -51,7 +51,11 @@ class Controller:
             tripulantes_on.reset_index(drop=True, inplace=True)  # Reiniciar el índice
 
             # Procesar vuelos internacionales ON
-            vuelos_internacionales_on = self._extract_international_flights(excel_data_on, start_row=0)
+            vuelos_internacionales_on = self._extract_international_flights(excel_data_on, start_row=0, state="on")
+            vuelos_internacionales_on.reset_index(drop=True, inplace=True)  # Reiniciar el índice
+
+            #Procesar hoteles ON
+            hoteles_on = self._extract_hotels(excel_data_on, start_row=0, state="on")
 
             # Leer la hoja OFF del archivo Excel
             excel_data_off = pd.read_excel(file_path, sheet_name='OFF', header=None)
@@ -65,7 +69,11 @@ class Controller:
             tripulantes_off.reset_index(drop=True, inplace=True)  # Reiniciar el índice
 
             # Procesar vuelos internacionales OFF
-            vuelos_internacionales_off = self._extract_international_flights(excel_data_off, start_row=0)
+            vuelos_internacionales_off = self._extract_international_flights(excel_data_off, start_row=0, state="off")
+            vuelos_internacionales_off.reset_index(drop=True, inplace=True)  # Reiniciar el índice
+
+            #Procesar hoteles
+            hoteles_off = self._extract_hotels(excel_data_off, start_row=0, state="on")
 
             # Verificar que los DataFrames no estén vacíos
             if buque_on.empty or buque_off.empty:
@@ -81,6 +89,8 @@ class Controller:
             self.buque_off = buque_off
             self.vuelos_internacionales_on = vuelos_internacionales_on
             self.vuelos_internacionales_off = vuelos_internacionales_off
+            self.hoteles_on = hoteles_on
+            self.hoteles_off = hoteles_off
 
             # Crear buques
             self._create_buque(self.buque_on)
@@ -98,10 +108,15 @@ class Controller:
             #print(tripulantes_off.head())
 
             # Imprimir datos de vuelos internacionales ON y OFF
-            print("\nVuelos Internacionales ON:")
-            print(vuelos_internacionales_on.head())
-            print("\nVuelos Internacionales OFF:")
-            print(vuelos_internacionales_off.head())
+            #print("\nVuelos Internacionales ON:")
+            #print(vuelos_internacionales_on.head())
+            #print("\nVuelos Internacionales OFF:")
+            #print(vuelos_internacionales_off.head())
+
+            print("\nHoteles ON:")
+            print(hoteles_on.head())
+            print("\nHoteles OFF:")
+            print(hoteles_off.head())
 
             # Crear tripulantes ON y OFF
             tripulantes = []
@@ -113,14 +128,14 @@ class Controller:
         except Exception as e:
             raise Exception(f"Error al procesar el archivo: {e}")
         
-    def _extract_international_flights(self, excel_data, start_row):
+    def _extract_international_flights(self, excel_data, start_row, state):
         vuelos = []
         
         # Convertir los nombres de las columnas a cadenas y quitar espacios
         flight_columns = excel_data.loc[start_row].dropna().tolist()
 
         # Verificar las columnas con las que estamos trabajando
-        print("Columnas disponibles:", flight_columns)  # Imprimir las columnas para verificar qué se está cargando
+        #print("Columnas disponibles:", flight_columns)  # Imprimir las columnas para verificar qué se está cargando
 
         # Iterar sobre cada fila, comenzando desde la fila indicada
         for i in range(start_row + 1, excel_data.shape[0]):
@@ -129,43 +144,63 @@ class Controller:
             
             # Iterar sobre las columnas de vuelos hasta que ya no existan
             while True:
-                vuelo_col = f'Vuelo Int {vuelo_num}'
-                fecha_col = f'Fecha Vuelo Int {vuelo_num}'
-                hora_col = f'Hora Vuelo Int {vuelo_num}'
+                if state=="on":
+                    vuelo_col = f'Vuelo Int {vuelo_num}'
+                    fecha_col = f'Fecha Vuelo Int {vuelo_num}'
+                    hora_col = f'Hora Vuelo Int {vuelo_num}'
 
-                print(f"Fila {start_row} | i {i}")
-                
-                # Verificar si las columnas existen en el DataFrame
-                if vuelo_col in flight_columns and fecha_col in flight_columns and hora_col in flight_columns:    
-                    col_idx_vuelo = flight_columns.index(vuelo_col)
-                    col_idx_fecha = flight_columns.index(fecha_col)
-                    col_idx_hora = flight_columns.index(hora_col)  
-                    #print(f"{vuelo_col} | {fecha_col} | {hora_col}")
+                    #print(f"Fila {start_row} | i {i}")
+                    
+                    # Verificar si las columnas existen en el DataFrame
+                    if vuelo_col in flight_columns and fecha_col in flight_columns and hora_col in flight_columns:    
+                        col_idx_vuelo = flight_columns.index(vuelo_col)
+                        col_idx_fecha = flight_columns.index(fecha_col)
+                        col_idx_hora = flight_columns.index(hora_col)  
+                        #print(f"{vuelo_col} | {fecha_col} | {hora_col}")
 
-                    vuelo = excel_data.iloc[i, col_idx_vuelo]
-                    fecha = excel_data.iloc[i, col_idx_fecha]
-                    hora = excel_data.iloc[i, col_idx_hora]
+                        vuelo = excel_data.iloc[i, col_idx_vuelo]
+                        fecha = excel_data.iloc[i, col_idx_fecha]
+                        hora = excel_data.iloc[i, col_idx_hora]
 
-                    # Obtener los valores correspondientes
-                    #vuelo = excel_data.loc[i, vuelo_col]
-                    #fecha = excel_data.loc[i, fecha_col]
-                    #hora = excel_data.loc[i, hora_col]
+                        #print(f"{vuelo} | {fecha} | {hora}")
 
-                    print(f"{vuelo} | {fecha} | {hora}")
+                        # Si hay información válida en las columnas, agregarla
+                        if pd.notna(vuelo) and pd.notna(fecha) and pd.notna(hora):
+                            tripulante_vuelos[f'Vuelo {vuelo_num}'] = {
+                                "vuelo": vuelo,
+                                "fecha": pd.to_datetime(fecha, errors='coerce'),
+                                "hora": hora  # Mantener la hora como string, o usar pd.to_datetime si es necesario
+                            }
 
-                    # Si hay información válida en las columnas, agregarla
-                    if pd.notna(vuelo) and pd.notna(fecha) and pd.notna(hora):
-                        tripulante_vuelos[f'Vuelo {vuelo_num}'] = {
-                            "vuelo": vuelo,
-                            "fecha": pd.to_datetime(fecha, errors='coerce'),
-                            "hora": hora  # Mantener la hora como string, o usar pd.to_datetime si es necesario
-                        }
+                        # Incrementar el vuelo_num para buscar el siguiente conjunto
+                        vuelo_num += 1
+                    else:
+                        break  # Detener la búsqueda si no se encuentra una de las columnas
+                elif state=="off":
+                    nro_regional_flight  = 'Nro Regional Flight'
+                    date_reg_flight = 'Date Reg Flight'
+                    hora_reg_flight = 'Hora Reg Flight'
 
-                    # Incrementar el vuelo_num para buscar el siguiente conjunto
-                    vuelo_num += 1
-                else:
-                    break  # Detener la búsqueda si no se encuentra una de las columnas
-            
+                    if nro_regional_flight in flight_columns and date_reg_flight in flight_columns and hora_reg_flight in flight_columns: 
+                        col_idx_nro = flight_columns.index(nro_regional_flight)
+                        col_idx_date = flight_columns.index(date_reg_flight)
+                        col_idx_hora = flight_columns.index(hora_reg_flight)
+
+                        nro = excel_data.iloc[i, col_idx_nro]
+                        date = excel_data.iloc[i, col_idx_date]
+                        hora = excel_data.iloc[i, col_idx_hora]
+
+                        if pd.notna(nro) and pd.notna(date) and pd.notna(hora):
+                            tripulante_vuelos[f'Vuelo {vuelo_num}'] = {
+                                "nro": nro,
+                                "date": pd.to_datetime(date, errors='coerce'),
+                                "hora": hora  # Mantener la hora como string, o usar pd.to_datetime si es necesario
+                            }
+
+                        break
+                    else:
+                        break
+
             # Solo agregar el vuelo si se encontraron vuelos válidos para el tripulante
             if tripulante_vuelos:
                 vuelos.append(tripulante_vuelos)
@@ -177,6 +212,78 @@ class Controller:
             print(f"{len(vuelos)} vuelos internacionales procesados.")
             
         return pd.DataFrame(vuelos)
+    
+    def _extract_hotels(self, excel_data, start_row, state):
+        hotels = []
+        
+        # Convertir los nombres de las columnas a cadenas y quitar espacios
+        hotels_columns = excel_data.loc[start_row].dropna().tolist()
+
+        # Verificar las columnas con las que estamos trabajando
+        print("Columnas disponibles:", hotels_columns)  # Imprimir las columnas para verificar qué se está cargando
+
+        # Iterar sobre cada fila, comenzando desde la fila indicada
+        for i in range(start_row + 1, excel_data.shape[0]):
+            tripulante_hotels = {}
+            hotel_num = 1
+            
+            # Iterar sobre las columnas de vuelos hasta que ya no existan
+            while True:
+                category = 'Silver Categoria'
+                hotel_col = f'Hotel{hotel_num}'
+                check_in_col = f'Check in{hotel_num}'
+                check_out_col = f'Check out{hotel_num}'
+                rooms = f'Rooms{hotel_num}'
+                hotel_name = f'Nombre Hotel{hotel_num}'
+
+                print(f"Fila {start_row} | i {i}")
+                print(f"{category} | {hotel_col} | {check_in_col} | {check_out_col} | {rooms} | {hotel_name}")
+                    
+                # Verificar si las columnas existen en el DataFrame
+                if category in hotels_columns and hotel_col in hotels_columns and check_in_col in hotels_columns and check_out_col in hotels_columns and rooms in hotels_columns and hotel_name in hotels_columns:    
+                    col_idx_category = hotels_columns.index(category)
+                    col_idx_hotel = hotels_columns.index(hotel_col)
+                    col_idx_check_in = hotels_columns.index(check_in_col)
+                    col_idx_check_out = hotels_columns.index(check_out_col)
+                    col_idx_rooms = hotels_columns.index(rooms)
+                    col_idx_hotel_name = hotels_columns.index(hotel_name)
+                    #print(f"{vuelo_col} | {fecha_col} | {hora_col}")
+                    print(f"{category} | {hotel_col} | {check_in_col} | {check_out_col} | {rooms} | {hotel_name}")
+
+                    categoria = excel_data.iloc[i, col_idx_category]
+                    hotel = excel_data.iloc[i, col_idx_hotel]
+                    check_in = excel_data.iloc[i, col_idx_check_in]
+                    check_out = excel_data.iloc[i, col_idx_check_out]
+                    habitacion = excel_data.iloc[i, col_idx_rooms]
+                    nombre_hotel = excel_data.iloc[i, col_idx_hotel_name]
+
+                    # Si hay información válida en las columnas, agregarla
+                    if pd.notna(categoria) and pd.notna(hotel) and pd.notna(check_in) and pd.notna(check_out) and pd.notna(habitacion) and pd.notna(nombre_hotel):
+                        tripulante_hotels[f'Hotel {hotel_num}'] = {
+                            "categoria": categoria,
+                            "hotel": hotel,
+                            "check_in": pd.to_datetime(check_in, errors='coerce'),
+                            "check_out": pd.to_datetime(check_out, errors='coerce'),
+                            "habitacion": hotel,
+                            "nombre_hotel": nombre_hotel  # Mantener la hora como string, o usar pd.to_datetime si es necesario
+                        }
+
+                    # Incrementar el vuelo_num para buscar el siguiente conjunto
+                    hotel_num += 1
+                else:
+                    break  # Detener la búsqueda si no se encuentra una de las columnas
+
+            # Solo agregar el vuelo si se encontraron vuelos válidos para el tripulante
+            if tripulante_hotels:
+                hotels.append(tripulante_hotels)
+
+        # Verificar si se encontraron vuelos
+        if len(hotels) == 0:
+            print("No se encontraron hoteles en las filas procesadas.")
+        else:
+            print(f"{len(hotels)} hoteles procesados.")
+            
+        return pd.DataFrame(hotels)
 
     def read_all_rows(self, data, start_row, column_range, column_names):
         """
