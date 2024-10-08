@@ -109,9 +109,14 @@ class Controller:
             #print("\nVuelos Internacionales OFF:")
             #print(vuelos_internacionales_off.head())
 
+            # Crear tripulantes ON y OFF
+            tripulantes = []
+            tripulantes += self._create_tripulantes(tripulantes_on, self.buque_on, "ON")
+            tripulantes += self._create_tripulantes(tripulantes_off, self.buque_off, "OFF")
+
             #Crear vuelos
-            self._create_vuelos(self.vuelos_internacionales_on, state='on')
-            self._create_vuelos(self.vuelos_internacionales_off, state='off')
+            self._create_vuelos(self.vuelos_internacionales_on, self.tripulantes_on, state='on')
+            self._create_vuelos(self.vuelos_internacionales_off, self.tripulantes_off, state='off')
 
             # Imprimir los datos extraídos para depuración
             #print("\nDatos de buque ON:")
@@ -132,10 +137,6 @@ class Controller:
             print(hoteles_off.head())
             """
 
-            # Crear tripulantes ON y OFF
-            tripulantes = []
-            tripulantes += self._create_tripulantes(tripulantes_on, self.buque_on, self.vuelos_internacionales_on, self.hoteles_on, "ON")
-            tripulantes += self._create_tripulantes(tripulantes_off, self.buque_off, self.vuelos_internacionales_off, self.hoteles_off, "OFF")
 
             return self.buque_on, self.buque_off, self.tripulantes_on, self.tripulantes_off
 
@@ -200,6 +201,190 @@ class Controller:
             'hora_llegada': hora_llegada   # Retornar como objeto datetime
         }
 
+    def _create_tripulantes(self, tripulantes_df, buque_df, vuelos_df, state):        
+        tripulantes = []  # Lista para almacenar los tripulantes creados
+        try:
+            # Asegurarse de que ambos DataFrames tienen la misma longitud
+            if len(tripulantes_df) != len(buque_df):
+                raise ValueError("El número de tripulantes no coincide con el número de buques.")
+
+            # Iterar sobre cada fila del DataFrame de tripulantes
+            for i, row in tripulantes_df.iterrows():
+                # Comprobar si el índice i está dentro del rango de buque_df
+                if i >= len(buque_df):
+                    raise IndexError(f"Índice fuera de rango: {i} no está en buque_df.")
+
+                # Obtener el nombre del buque correspondiente
+                nombre_buque = buque_df.loc[i]['Vessel']
+
+                # Buscar el buque ID usando la función buscar_buque_id
+                buque_id = buscar_buque_id(nombre_buque, self.db_session)
+
+                # Buscar si el tripulante ya existe en la base de datos por pasaporte
+                tripulante_existente = self.db_session.query(Tripulante).filter_by(pasaporte=row['Pasaporte']).first()
+
+                if tripulante_existente:
+                    #print(f"Tripulante {tripulante_existente.nombre} {tripulante_existente.apellido} ya existe.")
+                    tripulante_id = tripulante_existente.tripulante_id
+
+                else:
+                    # Si el tripulante no existe, lo creamos
+                    tripulante = Tripulante(
+                        nombre=row['First name'],
+                        apellido=row['Last name'],
+                        sexo=row['Gender'],
+                        nacionalidad=row['Nacionalidad'],
+                        posicion=row['Position'],
+                        pasaporte=row['Pasaporte'],
+                        fecha_nacimiento=pd.to_datetime(row['DOB']).date() if not pd.isna(row['DOB']) else None,
+                        buque_id=buque_id,
+                        estado=state  # (ON u OFF)
+                    )
+                    self.db_session.add(tripulante)
+                    self.db_session.commit()  # Confirmar la creación del tripulante
+
+                    tripulante_id = tripulante.tripulante_id
+                    print(f"Tripulante {tripulante.nombre} {tripulante.apellido} creado con ID: {tripulante_id}.")
+
+                # Crear un nuevo viaje para el tripulante
+                #self._create_viaje(tripulante_id, buque_id)
+                
+                tripulantes.append(tripulante_existente if tripulante_existente else tripulante)  # Agregar a la lista
+
+            return tripulantes  # Devolver la lista de tripulantes
+
+        except Exception as e:
+            self.db_session.rollback()  # Revertir cambios en caso de error
+            raise Exception(f"Error al crear tripulantes: {e}")
+
+    def _create_buque(self, buques_df):
+        buques = []  # Lista para almacenar los buques creados
+        try:
+            if 'Puerto a embarcar' in buques_df.columns:
+                buques_df.rename(columns={'Puerto a embarcar': 'Puerto'}, inplace=True)
+
+            # Renombrar la columna 'Puerto a desembarcar' a 'Puerto' si existe
+            if 'Puerto a desembarcar' in buques_df.columns:
+                buques_df.rename(columns={'Puerto a desembarcar': 'Puerto'}, inplace=True)
+
+            for _, row in buques_df.iterrows():
+                # Verificar si el buque ya existe por nombre
+                buque_existente = self.db_session.query(Buque).filter_by(nombre=row['Vessel']).first()
+                if buque_existente:
+                    #print(f"Buque {buque_existente.nombre} ya existe. Usando ID: {buque_existente.buque_id}")
+                    buques.append(buque_existente)
+                    continue  # Saltar la creación del buque si ya existe
+
+                buque = Buque(
+                    nombre=row['Vessel'],
+                    empresa=row['Owner'] if pd.notna(row['Owner']) else "Empresa Desconocida",
+                    ciudad=row['Puerto'] if pd.notna(row['Puerto']) else "Ciudad Desconocida"
+                )
+                
+                # Crear las ETAs asociadas al buque
+                eta = EtaCiudad(
+                    buque=buque,
+                    ciudad=row['Puerto'],
+                    eta=pd.to_datetime(row['ETA Vessel']),
+                    etd=pd.to_datetime(row['ETD Vessel'])
+                )
+                
+                print(f"Buque {buque.nombre} agregado con ETA {eta.eta} y ETD {eta.etd}")
+
+                # Agregar el buque y la eta a las listas
+                buques.append(buque)
+                buque.etas.append(eta)  # Añadir la eta a la relación del buque
+            
+            # Aquí se agregan los buques a la sesión de la base de datos
+            self.db_session.add_all(buques)
+            self.db_session.commit()  # Confirmar los cambios
+
+        except Exception as e:
+            self.db_session.rollback()  # Revertir cambios en caso de error
+            raise Exception(f"Error al crear buques: {e}")
+
+        return buques  # Devolver la lista de buques
+        
+    def _create_vuelos(self, vuelos_df, tripulantes_df, state):
+        vuelos = []  # Lista para almacenar los vuelos creados
+        try:
+            # Iterar sobre cada fila del DataFrame de vuelos
+            for i, row in vuelos_df.iterrows():
+                print(f"Row {i}: {row.to_dict()}")  # Imprimir el contenido de la fila
+
+                # Obtener el tripulante correspondiente a la fila actual
+                tripulante_data = tripulantes_df.iloc[i]
+                tripulante = self.db_session.query(Tripulante).filter_by(pasaporte=tripulante_data['Pasaporte']).first()
+                
+                if not tripulante:
+                    print(f"No se encontró tripulante con pasaporte {tripulante_data['Pasaporte']} en la fila {i}.")
+                    continue
+
+                # Iterar sobre las claves que representan los vuelos
+                for vuelo_key in row.index:
+                    vuelo_info = row[vuelo_key]  # Obtener el diccionario del vuelo
+
+                    # Verifica que haya información para el vuelo
+                    if pd.notna(vuelo_info):  # Solo procesar si hay información
+                        # Llamar a la función _extraer_ciudades_y_horarios
+                        vuelo_info = self._extraer_ciudades_y_horarios(vuelo_info, state)
+                        # Verificar que vuelo_info no sea None antes de continuar
+                        if vuelo_info is None:
+                            print(f"Omitiendo vuelo {vuelo_key} en la fila {i} debido a datos faltantes.")
+                            continue
+
+                        # Crear o buscar el vuelo en la base de datos
+                        vuelo = self.db_session.query(Vuelo).filter_by(codigo=vuelo_info['codigo_vuelo']).first()
+                        if not vuelo:
+                            vuelo = Vuelo(
+                                codigo=vuelo_info['codigo_vuelo'],
+                                aeropuerto_salida=vuelo_info['ciudad_salida'],
+                                aeropuerto_llegada=vuelo_info['ciudad_llegada'],
+                                fecha=vuelo_info['fecha'],
+                                hora_salida=vuelo_info['hora_salida'],
+                                hora_llegada=vuelo_info['hora_llegada'],
+                            )
+                            self.db_session.add(vuelo)
+                            vuelos.append(vuelo)  # Agregar el vuelo a la lista de vuelos
+                            self.db_session.commit()  # Confirmar la creación del vuelo
+                            print(f"Vuelo {vuelo.codigo} creado desde {vuelo.aeropuerto_salida} a {vuelo.aeropuerto_llegada}.")
+                        else:
+                            print(f"Vuelo {vuelo.codigo} ya existe en la base de datos.")
+
+                        # Asociar el tripulante al vuelo en la tabla intermedia TripulanteVuelo
+                        tripulante_vuelo = TripulanteVuelo(
+                            tripulante_id=tripulante.tripulante_id,
+                            vuelo_id=vuelo.vuelo_id
+                        )
+                        self.db_session.add(tripulante_vuelo)
+                        self.db_session.commit()
+                        print(f"Tripulante {tripulante.nombre} {tripulante.apellido} asignado al vuelo {vuelo.codigo}.")
+
+                    else:
+                        print(f"No hay información para {vuelo_key} en la fila {i}.")
+
+        except Exception as e:
+            print(f"Error al crear vuelos o asignar tripulantes: {e}")
+            self.db_session.rollback()  # Revertir la sesión en caso de error
+
+        return vuelos  # Retornar la lista de vuelos creados
+
+    def _create_viaje(self, tripulante_id, buque_id, equipaje_perdido=False, asistencia_medica=False):
+        try:
+            # Crear el viaje asignando el tripulante y buque
+            viaje = Viaje(
+                tripulante_id=tripulante_id,
+                buque_id=buque_id,
+                equipaje_perdido=equipaje_perdido,
+                asistencia_medica=asistencia_medica
+            )
+            self.db_session.add(viaje)
+            self.db_session.commit()
+            #print(f"Viaje creado para Tripulante: {tripulante_id} en Buque ID: {buque_id}")
+        except Exception as e:
+            self.db_session.rollback()  # Revertir en caso de error
+            raise Exception(f"Error al crear viaje: {e}")
+        
     def _extract_international_flights(self, excel_data, start_row, state):
         vuelos = []
         
@@ -387,170 +572,6 @@ class Controller:
         
         return result_df
 
-    def _create_tripulantes(self, tripulantes_df, buque_df, vuelos_df, hoteles_df, state):        
-        tripulantes = []  # Lista para almacenar los tripulantes creados
-        try:
-            # Asegurarse de que ambos DataFrames tienen la misma longitud
-            if len(tripulantes_df) != len(buque_df):
-                raise ValueError("El número de tripulantes no coincide con el número de buques.")
-
-            # Iterar sobre cada fila del DataFrame de tripulantes
-            for i, row in tripulantes_df.iterrows():
-                # Comprobar si el índice i está dentro del rango de buque_df
-                if i >= len(buque_df):
-                    raise IndexError(f"Índice fuera de rango: {i} no está en buque_df.")
-
-                # Obtener el nombre del buque correspondiente
-                nombre_buque = buque_df.loc[i]['Vessel']
-
-                # Buscar el buque ID usando la función buscar_buque_id
-                buque_id = buscar_buque_id(nombre_buque, self.db_session)
-
-                # Buscar si el tripulante ya existe en la base de datos por pasaporte
-                tripulante_existente = self.db_session.query(Tripulante).filter_by(pasaporte=row['Pasaporte']).first()
-
-                if tripulante_existente:
-                    #print(f"Tripulante {tripulante_existente.nombre} {tripulante_existente.apellido} ya existe.")
-                    tripulante_id = tripulante_existente.tripulante_id
-
-                else:
-                    # Si el tripulante no existe, lo creamos
-                    tripulante = Tripulante(
-                        nombre=row['First name'],
-                        apellido=row['Last name'],
-                        sexo=row['Gender'],
-                        nacionalidad=row['Nacionalidad'],
-                        posicion=row['Position'],
-                        pasaporte=row['Pasaporte'],
-                        fecha_nacimiento=pd.to_datetime(row['DOB']).date() if not pd.isna(row['DOB']) else None,
-                        buque_id=buque_id,
-                        estado=state  # (ON u OFF)
-                    )
-                    self.db_session.add(tripulante)
-                    self.db_session.commit()  # Confirmar la creación del tripulante
-
-                    tripulante_id = tripulante.tripulante_id
-                    print(f"Tripulante {tripulante.nombre} {tripulante.apellido} creado con ID: {tripulante_id}.")
-
-                # Crear un nuevo viaje para el tripulante
-                self._create_viaje(tripulante_id, buque_id)
-                
-                tripulantes.append(tripulante_existente if tripulante_existente else tripulante)  # Agregar a la lista
-
-            return tripulantes  # Devolver la lista de tripulantes
-
-        except Exception as e:
-            self.db_session.rollback()  # Revertir cambios en caso de error
-            raise Exception(f"Error al crear tripulantes: {e}")
-
-    def _create_buque(self, buques_df):
-        buques = []  # Lista para almacenar los buques creados
-        try:
-            if 'Puerto a embarcar' in buques_df.columns:
-                buques_df.rename(columns={'Puerto a embarcar': 'Puerto'}, inplace=True)
-
-            # Renombrar la columna 'Puerto a desembarcar' a 'Puerto' si existe
-            if 'Puerto a desembarcar' in buques_df.columns:
-                buques_df.rename(columns={'Puerto a desembarcar': 'Puerto'}, inplace=True)
-
-            for _, row in buques_df.iterrows():
-                # Verificar si el buque ya existe por nombre
-                buque_existente = self.db_session.query(Buque).filter_by(nombre=row['Vessel']).first()
-                if buque_existente:
-                    #print(f"Buque {buque_existente.nombre} ya existe. Usando ID: {buque_existente.buque_id}")
-                    buques.append(buque_existente)
-                    continue  # Saltar la creación del buque si ya existe
-
-                buque = Buque(
-                    nombre=row['Vessel'],
-                    empresa=row['Owner'] if pd.notna(row['Owner']) else "Empresa Desconocida",
-                    ciudad=row['Puerto'] if pd.notna(row['Puerto']) else "Ciudad Desconocida"
-                )
-                
-                # Crear las ETAs asociadas al buque
-                eta = EtaCiudad(
-                    buque=buque,
-                    ciudad=row['Puerto'],
-                    eta=pd.to_datetime(row['ETA Vessel']),
-                    etd=pd.to_datetime(row['ETD Vessel'])
-                )
-                
-                print(f"Buque {buque.nombre} agregado con ETA {eta.eta} y ETD {eta.etd}")
-
-                # Agregar el buque y la eta a las listas
-                buques.append(buque)
-                buque.etas.append(eta)  # Añadir la eta a la relación del buque
-            
-            # Aquí se agregan los buques a la sesión de la base de datos
-            self.db_session.add_all(buques)
-            self.db_session.commit()  # Confirmar los cambios
-
-        except Exception as e:
-            self.db_session.rollback()  # Revertir cambios en caso de error
-            raise Exception(f"Error al crear buques: {e}")
-
-        return buques  # Devolver la lista de buques
-        
-    def _create_vuelos(self, vuelos_df, state):
-        vuelos = []  # Lista para almacenar los vuelos creados
-        try:
-            # Iterar sobre cada fila del DataFrame de vuelos
-            for i, row in vuelos_df.iterrows():
-                print(f"Row {i}: {row.to_dict()}")  # Imprimir el contenido de la fila
-                
-                # Iterar sobre las claves que representan los vuelos
-                for vuelo_key in row.index:
-                    vuelo_info = row[vuelo_key]  # Obtener el diccionario del vuelo
-
-                    # Verifica que haya información para el vuelo
-                    if pd.notna(vuelo_info):  # Solo procesar si hay información
-                        # Llamar a la función _extraer_ciudades_y_horarios
-                        vuelo_info = self._extraer_ciudades_y_horarios(vuelo_info, state)
-                        # Verificar que vuelo_info no sea None antes de continuar
-                        if vuelo_info is None:
-                            print(f"Omitiendo vuelo {vuelo_key} en la fila {i} debido a datos faltantes.")
-                            continue
-
-                        # Crear un objeto de vuelo
-                        vuelo = Vuelo(
-                            codigo=vuelo_info['codigo_vuelo'],
-                            aeropuerto_salida=vuelo_info['ciudad_salida'],
-                            aeropuerto_llegada=vuelo_info['ciudad_llegada'],
-                            fecha=vuelo_info['fecha'],
-                            hora_salida=vuelo_info['hora_salida'],
-                            hora_llegada=vuelo_info['hora_llegada'],
-                        )
-
-                        self.db_session.add(vuelo)  # Agregar el vuelo a la sesión de la base de datos
-                        vuelos.append(vuelo)  # Agregar el vuelo a la lista de vuelos
-                        self.db_session.commit()  # Confirmar la creación del vuelo
-
-                        print(f"Vuelo {vuelo.codigo} creado desde {vuelo.aeropuerto_salida} a {vuelo.aeropuerto_llegada}.")
-                    else:
-                        print(f"No hay información para {vuelo_key} en la fila {i}.")
-
-        except Exception as e:
-            print(f"Error al crear vuelos: {e}")
-            self.db_session.rollback()  # Revertir la sesión en caso de error
-
-        return vuelos  # Retornar la lista de vuelos creados
-
-    def _create_viaje(self, tripulante_id, buque_id, equipaje_perdido=False, asistencia_medica=False):
-        try:
-            # Crear el viaje asignando el tripulante y buque
-            viaje = Viaje(
-                tripulante_id=tripulante_id,
-                buque_id=buque_id,
-                equipaje_perdido=equipaje_perdido,
-                asistencia_medica=asistencia_medica
-            )
-            self.db_session.add(viaje)
-            self.db_session.commit()
-            #print(f"Viaje creado para Tripulante: {tripulante_id} en Buque ID: {buque_id}")
-        except Exception as e:
-            self.db_session.rollback()  # Revertir en caso de error
-            raise Exception(f"Error al crear viaje: {e}")
-        
     def _update_tripulante(self, tripulante, row, buque_id, estado):
         tripulante.nombre = row['First name']
         tripulante.apellido = row['Last name']

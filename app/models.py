@@ -68,7 +68,6 @@ class Tripulante(Base):
 class TripulanteVuelo(Base):
     __tablename__ = "tripulante_vuelo"
 
-    id = mapped_column(Integer, primary_key=True)
     tripulante_id: Mapped[int] = mapped_column(ForeignKey("tripulantes.tripulante_id"), primary_key=True)
     vuelo_id: Mapped[int] = mapped_column(ForeignKey("vuelos.vuelo_id"), primary_key=True)
 
@@ -164,8 +163,8 @@ class Viaje(Base):
 
     tripulante_id: Mapped[int] = mapped_column(ForeignKey("tripulantes.tripulante_id"))
     buque_id: Mapped[int] = mapped_column(ForeignKey("buques.buque_id"))
-    """
     vuelo_id: Mapped[int] = mapped_column(ForeignKey("vuelos.vuelo_id"))
+    """
     hotel_id: Mapped[int] = mapped_column(ForeignKey("hoteles.hotel_id"))
     restaurante_id: Mapped[int] = mapped_column(ForeignKey("restaurantes.restaurante_id"))
     transporte_id: Mapped[int] = mapped_column(ForeignKey("transportes.transporte_id"))
@@ -173,8 +172,8 @@ class Viaje(Base):
     #relaciones
     tripulante: Mapped["Tripulante"] = relationship(back_populates="viajes")
     buque: Mapped["Buque"] = relationship(back_populates="viajes")
-    """
     vuelo: Mapped["Vuelo"] = relationship()
+    """
     hotel: Mapped["Hotel"] = relationship()
     restaurante: Mapped["Restaurante"] = relationship()
     transporte: Mapped["Transporte"] = relationship()
