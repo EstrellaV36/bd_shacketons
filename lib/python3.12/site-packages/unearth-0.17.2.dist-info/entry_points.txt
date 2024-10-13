@@ -1,0 +1,3 @@
+[console_scripts]
+unearth = unearth.__main__:cli
+

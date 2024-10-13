@@ -1,5 +1,5 @@
 import sys
-from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QStackedWidget, QVBoxLayout, QWidget, QSizePolicy
+from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QStackedWidget, QVBoxLayout, QWidget, QLabel, QSizePolicy
 from PyQt6.QtCore import Qt
 from app.interfaz.carga_masiva import CargaMasivaScreen
 from app.interfaz.visualizacion_datos import VisualizacionDatosScreen
@@ -32,12 +32,18 @@ class BasicApp(QMainWindow):
         # Create and add screens
         self.create_main_menu()
 
-        # Instantiate other screens after creating generic screens
+        # Create generic screens before other screens
+        self.hotel_widget = self.create_generic_screen("Hotel")
+        self.transporte_widget = self.create_generic_screen("Transporte")
+        self.restaurant_widget = self.create_generic_screen("Restaurant")
+
+        # Instantiate other screens
         self.carga_masiva_screen = CargaMasivaScreen(self.controller, self)
         self.visualizacion_datos_screen = VisualizacionDatosScreen(
-            self.controller, self, self.carga_masiva_screen, self.stacked_widget
+            self.controller, self, self.carga_masiva_screen,
+            self.hotel_widget, self.transporte_widget, self.restaurant_widget
         )
-        self.generacion_reportes_screen = GeneracionReportesScreen(self, self.stacked_widget)
+        self.generacion_reportes_screen = GeneracionReportesScreen(self)
 
         # Add screens to stacked_widget
         self.stacked_widget.addWidget(self.carga_masiva_screen)
@@ -74,6 +80,23 @@ class BasicApp(QMainWindow):
 
         self.stacked_widget.addWidget(main_menu_widget)
 
+    # Método para crear pantallas genéricas con el botón "Volver"
+    def create_generic_screen(self, title):
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+
+        # Añadir un botón "Volver" que lleva al menú principal
+        button_volver = QPushButton("Volver")
+        button_volver.setFixedWidth(100)
+        button_volver.clicked.connect(lambda: self.stacked_widget.setCurrentIndex(0))
+        layout.addWidget(button_volver, alignment=Qt.AlignmentFlag.AlignLeft)
+
+        label = QLabel(title, alignment=Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(label)
+
+        self.stacked_widget.addWidget(widget)
+        return widget
+
     def open_visualizacion_datos(self):
         # Asegurarse de que el menú flotante esté completamente cerrado antes de ingresar a "Visualización de Datos"
         self.visualizacion_datos_screen.close_menu()  # Método para cerrar el menú flotante
@@ -84,9 +107,3 @@ class BasicApp(QMainWindow):
 
         # Cambiar a la pantalla de visualización de datos
         self.stacked_widget.setCurrentWidget(self.visualizacion_datos_screen)
-
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    main_window = BasicApp()
-    main_window.show()
-    sys.exit(app.exec())

@@ -1,0 +1,5 @@
+[console_scripts]
+pdm = pdm.core:main
+
+[gui_scripts]
+

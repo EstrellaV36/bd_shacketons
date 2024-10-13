@@ -48,12 +48,14 @@ class Tripulante(Base):
     necesita_asistencia_puq: Mapped[bool] = mapped_column(Boolean, default=False)
     necesita_asistencia_scl: Mapped[bool] = mapped_column(Boolean, default=False)
     necesita_asistencia_wpu: Mapped[bool] = mapped_column(Boolean, default=False)
+
     buque_id: Mapped[Optional[int]] = mapped_column(ForeignKey("buques.buque_id"))
     tipo: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
     estado: Mapped[str] = mapped_column(String, nullable=False)  # Añadido para diferenciar ON/OFF
 
+    vuelos_asociados: Mapped[list["TripulanteVuelo"]] = relationship("TripulanteVuelo", back_populates="tripulante")
+
     buque: Mapped["Buque"] = relationship(back_populates="tripulantes")
-    vuelos: Mapped[list["Vuelo"]] = relationship(back_populates="tripulante")
     hoteles: Mapped[list["Hotel"]] = relationship(back_populates="tripulante")
     restaurantes: Mapped[list["Restaurante"]] = relationship(back_populates="tripulante")
     transportes: Mapped[list["Transporte"]] = relationship(back_populates="tripulante")
@@ -61,12 +63,27 @@ class Tripulante(Base):
 
     def __repr__(self):
         return f"Tripulante(id={self.tripulante_id}, nombre={self.nombre}, apellido={self.apellido})"
+    
+#-----------  TABLA AÑADIDA PARA MANEJAR MULTIPLES TRIPULANTES POR VUELO ----------
+class TripulanteVuelo(Base):
+    __tablename__ = "tripulante_vuelo"
+
+    tripulante_id: Mapped[int] = mapped_column(ForeignKey("tripulantes.tripulante_id"), primary_key=True)
+    vuelo_id: Mapped[int] = mapped_column(ForeignKey("vuelos.vuelo_id"), primary_key=True)
+
+    # Relaciones
+    tripulante: Mapped["Tripulante"] = relationship("Tripulante", back_populates="vuelos_asociados")
+    vuelo: Mapped["Vuelo"] = relationship("Vuelo", back_populates="tripulantes_asociados")
+
+    def __repr__(self):
+        return f"TripulanteVuelo(tripulante_id={self.tripulante_id}, vuelo_id={self.vuelo_id})"
 
 class Vuelo(Base):
     __tablename__ = "vuelos"
 
     vuelo_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     codigo: Mapped[str] = mapped_column(String, nullable=False)
+    fecha: Mapped[datetime] = mapped_column(nullable=False)
     hora_salida: Mapped[datetime] = mapped_column(nullable=False)
     hora_llegada: Mapped[datetime] = mapped_column(nullable=False)
     aeropuerto_salida: Mapped[str] = mapped_column(String, nullable=False)
@@ -74,9 +91,7 @@ class Vuelo(Base):
     requiere_colacion: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
     tipo_colacion: Mapped[Optional[str]] = mapped_column(String)
 
-    tripulante_id: Mapped[int] = mapped_column(ForeignKey("tripulantes.tripulante_id"))
-
-    tripulante: Mapped["Tripulante"] = relationship(back_populates="vuelos")
+    tripulantes_asociados: Mapped[list["TripulanteVuelo"]] = relationship("TripulanteVuelo", back_populates="vuelo")
 
     def __repr__(self):
         return f"Vuelo(id={self.vuelo_id}, codigo={self.codigo})"
@@ -143,13 +158,13 @@ class Viaje(Base):
     __tablename__ = "viajes"
 
     viaje_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    equipaje_perdido: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
-    asistencia_medica: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
+    equipaje_perdido: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True, default=False)
+    asistencia_medica: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True, default=False)
 
     tripulante_id: Mapped[int] = mapped_column(ForeignKey("tripulantes.tripulante_id"))
     buque_id: Mapped[int] = mapped_column(ForeignKey("buques.buque_id"))
-    """
     vuelo_id: Mapped[int] = mapped_column(ForeignKey("vuelos.vuelo_id"))
+    """
     hotel_id: Mapped[int] = mapped_column(ForeignKey("hoteles.hotel_id"))
     restaurante_id: Mapped[int] = mapped_column(ForeignKey("restaurantes.restaurante_id"))
     transporte_id: Mapped[int] = mapped_column(ForeignKey("transportes.transporte_id"))
@@ -157,8 +172,8 @@ class Viaje(Base):
     #relaciones
     tripulante: Mapped["Tripulante"] = relationship(back_populates="viajes")
     buque: Mapped["Buque"] = relationship(back_populates="viajes")
-    """
     vuelo: Mapped["Vuelo"] = relationship()
+    """
     hotel: Mapped["Hotel"] = relationship()
     restaurante: Mapped["Restaurante"] = relationship()
     transporte: Mapped["Transporte"] = relationship()

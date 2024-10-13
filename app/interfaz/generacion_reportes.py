@@ -1,125 +1,243 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QListWidget, QStackedWidget
-from PyQt6.QtCore import Qt, QPropertyAnimation, QRect, QEasingCurve
+import pandas as pd
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QTableWidget, QTableWidgetItem, QComboBox, QFileDialog
+from PyQt6.QtCore import Qt
+from app.database import get_db_session
+from app.models import Buque, EtaCiudad, Tripulante, Vuelo, TripulanteVuelo # Asegúrate de que estos modelos se importen correctamente
+from app.controllers import CITY_AIRPORT_CODES
+from sqlalchemy import func
+
 
 class GeneracionReportesScreen(QWidget):
-    def __init__(self, main_window, stacked_widget):
+    def __init__(self, main_window):
         super().__init__()
         self.main_window = main_window
-        self.stacked_widget = stacked_widget
         self.setup_ui()
 
     def setup_ui(self):
         layout = QVBoxLayout(self)
 
-        # Botón "Volver" al menú principal
+        # Añadir un botón "Volver" al menú principal
+        self.button_volver = QPushButton("Volver")
+        self.button_volver.setFixedWidth(100)
+        self.button_volver.clicked.connect(self.volver_al_menu_principal)
+        layout.addWidget(self.button_volver, alignment=Qt.AlignmentFlag.AlignLeft)
+
+        # Crear un layout horizontal para los botones
+        layout_botones = QHBoxLayout()
+        layout_botones.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        # Botones
+        button_informar = QPushButton("Informar")
+        button_informar.setFixedSize(120, 40)
+        layout_botones.addWidget(button_informar)
+
+        button_programar = QPushButton("Programar")
+        button_programar.setFixedSize(120, 40)
+        button_programar.clicked.connect(self.mostrar_asistencias)
+        layout_botones.addWidget(button_programar)
+
+        button_liquidar = QPushButton("Liquidar")
+        button_liquidar.setFixedSize(120, 40)
+        layout_botones.addWidget(button_liquidar)
+
+        button_cuadrar_proveedor = QPushButton("Cuadrar Proveedor")
+        button_cuadrar_proveedor.setFixedSize(120, 40)
+        layout_botones.addWidget(button_cuadrar_proveedor)
+
+        # Añadir el layout de botones al layout principal
+        layout.addLayout(layout_botones)
+
+    def mostrar_asistencias(self):
+        asistencias_screen = AsistenciasScreen(self.main_window)
+        self.main_window.stacked_widget.addWidget(asistencias_screen)
+        self.main_window.stacked_widget.setCurrentWidget(asistencias_screen)
+
+    def volver_al_menu_principal(self):
+        self.main_window.stacked_widget.setCurrentIndex(0)  # Regresar al menú principal
+
+class AsistenciasScreen(QWidget):
+    def __init__(self, main_window):
+        super().__init__()
+        self.main_window = main_window
+        self.setup_ui()
+
+    def setup_ui(self):
+        layout = QVBoxLayout(self)
+
+        # Cuadro de selección de ciudad dentro de AsistenciasScreen
+        self.combo_ciudades = QComboBox()
+        self.combo_ciudades.addItems(["SCL", "PUQ", "WPU"])  # Agrega las ciudades al combo box
+        layout.addWidget(self.combo_ciudades)
+
+        # Label para mostrar asistencias
+        self.label = QLabel()  # Mover el label aquí para que sea un atributo de la clase
+        layout.addWidget(self.label)
+
+        # Tabla para mostrar datos
+        self.table_widget = QTableWidget()
+        layout.addWidget(self.table_widget)
+
+        # Botón para generar el Excel
+        button_generar_excel = QPushButton("Generar Excel")
+        button_generar_excel.clicked.connect(self.generar_excel_con_ciudad)  # Conectar al método de generación de Excel
+        layout.addWidget(button_generar_excel)
+
+        # Botón "Volver" para regresar a la pantalla anterior (Generación de Reportes)
         button_volver = QPushButton("Volver")
         button_volver.setFixedWidth(100)
-        button_volver.clicked.connect(lambda: self.main_window.stacked_widget.setCurrentIndex(0))
+        button_volver.clicked.connect(self.volver_a_reportes)
         layout.addWidget(button_volver, alignment=Qt.AlignmentFlag.AlignLeft)
 
-        # Crear el botón para abrir el menú flotante
-        self.button_toggle_menu = QPushButton("Menú")
-        self.button_toggle_menu.setFixedWidth(100)
-        self.button_toggle_menu.clicked.connect(self.toggle_menu)
-        layout.addWidget(self.button_toggle_menu, alignment=Qt.AlignmentFlag.AlignRight)
+        # Conectar el cambio en el QComboBox a un método
+        self.combo_ciudades.currentTextChanged.connect(self.actualizar_datos)
 
-        # Crear el menú flotante
-        self.create_floating_menu()
+        # Actualizar datos inicialmente
+        self.actualizar_datos()
+        
+    def generar_excel_con_ciudad(self):
+        ciudad_seleccionada = self.combo_ciudades.currentText()  # Obtener la ciudad seleccionada
+        self.generar_excel(ciudad_seleccionada)  # Llamar a generar_excel con la ciudad seleccionada
 
-        label = QLabel("Generación de reportes (contenido aquí)")
-        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(label)
+    def actualizar_datos(self):
+        ciudad_seleccionada = self.combo_ciudades.currentText()  # Obtiene la ciudad seleccionada
+        self.label.setText(f"Asistencias en {ciudad_seleccionada}")  # Actualiza el label
 
-        # Crear pantallas específicas para "Informar" y "Programar"
-        self.informar_widget = self.create_generic_screen("Informar")
-        self.programar_widget = self.create_generic_screen("Programar")
+        # Cargar datos en la tabla
+        self.cargar_datos(ciudad_seleccionada)
 
-        # Añadir las pantallas al stacked_widget
-        self.stacked_widget.addWidget(self.informar_widget)
-        self.stacked_widget.addWidget(self.programar_widget)
+    def cargar_datos(self, ciudad_seleccionada):
+        session = get_db_session()  # Obtener la sesión de la base de datos
 
-        self.setLayout(layout)
+        # Obtener el nombre de la ciudad a partir del código
+        ciudad_seleccionada = CITY_AIRPORT_CODES.get(ciudad_seleccionada).lower()  # Convertir a minúsculas
 
-    # Método para crear pantallas genéricas con el botón "Volver" y un título
-    def create_generic_screen(self, title):
-        widget = QWidget()
-        layout = QVBoxLayout(widget)
+        # Obtener datos de vuelos de arribo
+        arribo_vuelos = (
+            session.query(
+                Buque.nombre.label("Vessel"),
+                Vuelo.aeropuerto_llegada.label("Aeropuerto_Llegada"),
+                EtaCiudad.eta.label("ETA"),  
+                Vuelo.hora_llegada.label("Hora_Arribo"),
+                Tripulante.nombre.label("First_Name"),
+                Tripulante.apellido.label("Last_Name"),
+                Tripulante.estado.label("Type"),
+                Vuelo.codigo.label("Nro_Vuelo_Arribo"),
+                Vuelo.fecha.label("Fecha_Vuelo_Arribo")  # Asegúrate de que este campo exista
+            )
+            .outerjoin(TripulanteVuelo, TripulanteVuelo.tripulante_id == Tripulante.tripulante_id)
+            .outerjoin(Vuelo, TripulanteVuelo.vuelo_id == Vuelo.vuelo_id)
+            .outerjoin(Buque, Tripulante.buque_id == Buque.buque_id) 
+            .outerjoin(EtaCiudad, Buque.buque_id == EtaCiudad.buque_id)  # Asegúrate de que Buque tenga un buque_id
+            .filter(func.lower(Vuelo.aeropuerto_llegada) == ciudad_seleccionada)  
+            .all()
+        )
+        # Obtener datos de vuelos de salida
+        salida_vuelos = (
+            session.query(
+                Buque.nombre.label("Vessel"),
+                Vuelo.aeropuerto_salida.label("Aeropuerto Salida"),
+                EtaCiudad.eta.label("ETA"),  
+                Vuelo.hora_salida.label("Hora_Salida"),
+                Tripulante.nombre.label("First_Name"),
+                Tripulante.apellido.label("Last_Name"),
+                Tripulante.estado.label("Type"),
+                Vuelo.codigo.label("Nro_Vuelo_Salida"),
+                Vuelo.fecha.label("Fecha_Vuelo_Salida")  # Asegúrate de que este campo exista
 
-        # Añadir un botón "Volver" que lleva de vuelta a la pantalla de Generación de Reportes
-        button_volver = QPushButton("Volver")
-        button_volver.setFixedWidth(100)
-        button_volver.clicked.connect(lambda: self.stacked_widget.setCurrentWidget(self))
-        layout.addWidget(button_volver, alignment=Qt.AlignmentFlag.AlignLeft)
+            )
+            .outerjoin(TripulanteVuelo, TripulanteVuelo.tripulante_id == Tripulante.tripulante_id)
+            .outerjoin(Vuelo, TripulanteVuelo.vuelo_id == Vuelo.vuelo_id)
+            .outerjoin(Buque, Tripulante.buque_id == Buque.buque_id)  # Ajuste aquí
+            .outerjoin(EtaCiudad, Buque.buque_id == EtaCiudad.buque_id)  # Asegúrate de que Buque tenga un buque_id
+            .filter(func.lower(Vuelo.aeropuerto_salida) == ciudad_seleccionada)  
+            .all()
+        )
+        # Limpiar la tabla
+        self.table_widget.setRowCount(0)
+        self.table_widget.setColumnCount(11)  # Número de columnas
+        self.table_widget.setHorizontalHeaderLabels(
+            ["Vessel", "ETA", "First Name", "Last Name", "Type",
+            "Nro Vuelo Arribo", "Fecha Vuelo Arribo", "Hora Arribo",
+            "Nro Vuelo Salida", "Fecha Vuelo Salida", "Hora Vuelo Salida"]
+        )
 
-        # Añadir un botón "Menú" que abre el menú flotante
-        button_toggle_menu = QPushButton("Menú")
-        button_toggle_menu.setFixedWidth(100)
-        button_toggle_menu.clicked.connect(self.toggle_menu)
-        layout.addWidget(button_toggle_menu, alignment=Qt.AlignmentFlag.AlignRight)
+        # Combinar y llenar la tabla
+        for arribo in arribo_vuelos:
+            # Buscar un vuelo de salida correspondiente
+            salida = next((s for s in salida_vuelos if s.First_Name == arribo.First_Name and s.Last_Name == arribo.Last_Name), None)
 
-        # Añadir el título centrado para la pantalla
-        label = QLabel(title, alignment=Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(label)
+            self.table_widget.insertRow(self.table_widget.rowCount())
+            self.table_widget.setItem(self.table_widget.rowCount() - 1, 0, QTableWidgetItem(str(arribo.Vessel)))
+            self.table_widget.setItem(self.table_widget.rowCount() - 1, 1, QTableWidgetItem(str(arribo.ETA)))  # Usar la fecha de recalada
+            self.table_widget.setItem(self.table_widget.rowCount() - 1, 2, QTableWidgetItem(str(arribo.First_Name)))
+            self.table_widget.setItem(self.table_widget.rowCount() - 1, 3, QTableWidgetItem(str(arribo.Last_Name)))
+            self.table_widget.setItem(self.table_widget.rowCount() - 1, 4, QTableWidgetItem(str(arribo.Type)))
+            self.table_widget.setItem(self.table_widget.rowCount() - 1, 5, QTableWidgetItem(str(arribo.Nro_Vuelo_Arribo)))
+            self.table_widget.setItem(self.table_widget.rowCount() - 1, 6, QTableWidgetItem(str(arribo.Fecha_Vuelo_Arribo)))
+            self.table_widget.setItem(self.table_widget.rowCount() - 1, 7, QTableWidgetItem(str(arribo.Hora_Arribo)))
 
-        widget.setLayout(layout)
-        return widget
+            # Si hay un vuelo de salida, añadirlo a la fila
+            if salida:
+                self.table_widget.setItem(self.table_widget.rowCount() - 1, 8, QTableWidgetItem(str(salida.Nro_Vuelo_Salida)))
+                self.table_widget.setItem(self.table_widget.rowCount() - 1, 9, QTableWidgetItem(str(salida.Fecha_Vuelo_Salida)))
+                self.table_widget.setItem(self.table_widget.rowCount() - 1, 10, QTableWidgetItem(str(salida.Hora_Salida)))
+            else:
+                # Dejar los campos vacíos si no hay vuelo de salida
+                self.table_widget.setItem(self.table_widget.rowCount() - 1, 8, QTableWidgetItem(""))
+                self.table_widget.setItem(self.table_widget.rowCount() - 1, 9, QTableWidgetItem(""))
+                self.table_widget.setItem(self.table_widget.rowCount() - 1, 10, QTableWidgetItem(""))
 
-    def create_floating_menu(self):
-        # Crear el widget flotante
-        self.menu_widget = QWidget(self.main_window)
-        self.menu_widget.setGeometry(-250, 0, 250, self.main_window.height())
-        self.menu_widget.setStyleSheet("background-color: rgba(0, 0, 0, 0.8); color: white;")
+        # También puedes agregar los vuelos de salida si no están en arribo
+        for salida in salida_vuelos:
+            # Si no se ha agregado un vuelo de arribo correspondiente
+            if not any(arr.First_Name == salida.First_Name and arr.Last_Name == salida.Last_Name for arr in arribo_vuelos):
+                self.table_widget.insertRow(self.table_widget.rowCount())
+                self.table_widget.setItem(self.table_widget.rowCount() - 1, 0, QTableWidgetItem(str(salida.Vessel)))
+                self.table_widget.setItem(self.table_widget.rowCount() - 1, 1, QTableWidgetItem(""))  # No hay ETA aquí
+                self.table_widget.setItem(self.table_widget.rowCount() - 1, 2, QTableWidgetItem(str(salida.First_Name)))
+                self.table_widget.setItem(self.table_widget.rowCount() - 1, 3, QTableWidgetItem(str(salida.Last_Name)))
+                self.table_widget.setItem(self.table_widget.rowCount() - 1, 4, QTableWidgetItem(str(salida.Type)))
+                self.table_widget.setItem(self.table_widget.rowCount() - 1, 5, QTableWidgetItem(""))
+                self.table_widget.setItem(self.table_widget.rowCount() - 1, 6, QTableWidgetItem(""))
+                self.table_widget.setItem(self.table_widget.rowCount() - 1, 7, QTableWidgetItem(""))
+                self.table_widget.setItem(self.table_widget.rowCount() - 1, 8, QTableWidgetItem(str(salida.Nro_Vuelo_Salida)))
+                self.table_widget.setItem(self.table_widget.rowCount() - 1, 9, QTableWidgetItem(str(salida.Fecha_Vuelo_Salida)))
+                self.table_widget.setItem(self.table_widget.rowCount() - 1, 10, QTableWidgetItem(str(salida.Hora_Salida)))
 
-        # Crear un layout vertical para el menú
-        menu_layout = QVBoxLayout()
-        self.menu_widget.setLayout(menu_layout)
 
-        # Agregar opciones al menú
-        self.menu_list = QListWidget()
-        self.menu_list.addItems(["Informar", "Programar"])
-        self.menu_list.currentRowChanged.connect(self.change_tab)
+    def generar_excel(self, ciudad_seleccionada):
+        # Crear un DataFrame con los datos de la tabla
+        data = []
+        for row in range(self.table_widget.rowCount()):
+            row_data = []
+            for column in range(self.table_widget.columnCount()):
+                item = self.table_widget.item(row, column)
+                row_data.append(item.text() if item else "")
+            data.append(row_data)
 
-        # Botón para cerrar el menú
-        close_button = QPushButton("Cerrar Menú")
-        close_button.clicked.connect(self.toggle_menu)
+        # Definir los nombres de las columnas
+        column_names = [
+            "Vessel", "ETA", "First Name", "Last Name", "Type",
+            "Nro Vuelo Arribo", "Fecha Vuelo Arribo", "Hora Arribo",
+            "Nro Vuelo Salida", "Fecha Vuelo Salida", "Hora Vuelo Salida"
+        ]
 
-        # Agregar elementos al layout del menú
-        menu_layout.addWidget(QLabel("Menú"))
-        menu_layout.addWidget(self.menu_list)
-        menu_layout.addWidget(close_button)
+        # Convertir a DataFrame
+        df = pd.DataFrame(data, columns=column_names)
 
-        # Inicialmente ocultar el menú
-        self.menu_widget.hide()
+        # Construir el nombre del archivo Excel
+        file_name = f'asistencia_{ciudad_seleccionada}.xlsx'
+        
+        # Guardar en un archivo Excel
+        file_path, _ = QFileDialog.getSaveFileName(
+            self, 
+            "Guardar archivo Excel", 
+            file_name,  # Usar el nombre del archivo predefinido
+            "Excel Files (*.xlsx);;All Files (*)"
+        )
+        
+        if file_path:
+            df.to_excel(file_path, index=False)
 
-    def toggle_menu(self):
-        if self.menu_widget.isVisible():
-            self.animation = QPropertyAnimation(self.menu_widget, b"geometry")
-            self.animation.setDuration(500)
-            self.animation.setStartValue(QRect(0, 0, 250, self.main_window.height()))
-            self.animation.setEndValue(QRect(-250, 0, 250, self.main_window.height()))
-            self.animation.setEasingCurve(QEasingCurve.Type.OutCubic)
-            self.animation.start()
-            self.animation.finished.connect(lambda: self.menu_widget.hide())
-        else:
-            self.menu_widget.raise_()  # Asegurarse de que el menú esté al frente
-            self.menu_widget.show()
-            self.animation = QPropertyAnimation(self.menu_widget, b"geometry")
-            self.animation.setDuration(500)
-            self.animation.setStartValue(QRect(-250, 0, 250, self.main_window.height()))
-            self.animation.setEndValue(QRect(0, 0, 250, self.main_window.height()))
-            self.animation.setEasingCurve(QEasingCurve.Type.OutCubic)
-            self.animation.start()
-
-    def close_menu(self):
-        # Cierra el menú de forma inmediata, asegurando que quede completamente oculto
-        self.menu_widget.setGeometry(-250, 0, 250, self.main_window.height())  # Ajustar la posición fuera de la pantalla
-        self.menu_widget.hide()  # Asegurarse de ocultarlo sin animación
-
-    def change_tab(self, index):
-        # Cerrar el menú antes de realizar cualquier acción
-        self.close_menu()
-
-        if index == 0:  # Informar
-            self.stacked_widget.setCurrentWidget(self.informar_widget)
-        elif index == 1:  # Programar
-            self.stacked_widget.setCurrentWidget(self.programar_widget)
+    def volver_a_reportes(self):
+        self.main_window.stacked_widget.setCurrentIndex(self.main_window.stacked_widget.currentIndex() - 1)
