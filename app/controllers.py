@@ -36,7 +36,6 @@ def buscar_buque_id(nombre_buque, session):
     else:
         raise ValueError(f"Buque {nombre_buque} no encontrado en la base de datos.")
                     
-
 class Controller:
     def __init__(self, db_session: Session):
         self.db_session = db_session
@@ -201,7 +200,7 @@ class Controller:
             'hora_llegada': hora_llegada   # Retornar como objeto datetime
         }
 
-    def _create_tripulantes(self, tripulantes_df, buque_df, vuelos_df, state):        
+    def _create_tripulantes(self, tripulantes_df, buque_df, state):        
         tripulantes = []  # Lista para almacenar los tripulantes creados
         try:
             # Asegurarse de que ambos DataFrames tienen la misma longitud

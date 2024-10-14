@@ -64,7 +64,7 @@ class Tripulante(Base):
     def __repr__(self):
         return f"Tripulante(id={self.tripulante_id}, nombre={self.nombre}, apellido={self.apellido})"
     
-#-----------  TABLA AÑADIDA PARA MANEJAR MULTIPLES TRIPULANTES POR VUELO ----------
+#-----------  TABLA AÑADIDA PARA MANEJAR MULTIPLES Vuelos POR Tripulante ----------
 class TripulanteVuelo(Base):
     __tablename__ = "tripulante_vuelo"
 

@@ -4,6 +4,8 @@ from PyQt6.QtCore import Qt
 from app.database import get_db_session
 from app.models import Buque, EtaCiudad, Tripulante, Vuelo, TripulanteVuelo # Asegúrate de que estos modelos se importen correctamente
 from app.controllers import CITY_AIRPORT_CODES
+from openpyxl.styles import PatternFill
+from openpyxl import Workbook
 from sqlalchemy import func
 
 
@@ -28,20 +30,20 @@ class GeneracionReportesScreen(QWidget):
 
         # Botones
         button_informar = QPushButton("Informar")
-        button_informar.setFixedSize(120, 40)
+        button_informar.setFixedSize(140, 40)
         layout_botones.addWidget(button_informar)
 
         button_programar = QPushButton("Programar")
-        button_programar.setFixedSize(120, 40)
+        button_programar.setFixedSize(140, 40)
         button_programar.clicked.connect(self.mostrar_asistencias)
         layout_botones.addWidget(button_programar)
 
         button_liquidar = QPushButton("Liquidar")
-        button_liquidar.setFixedSize(120, 40)
+        button_liquidar.setFixedSize(140, 40)
         layout_botones.addWidget(button_liquidar)
 
         button_cuadrar_proveedor = QPushButton("Cuadrar Proveedor")
-        button_cuadrar_proveedor.setFixedSize(120, 40)
+        button_cuadrar_proveedor.setFixedSize(140, 40)
         layout_botones.addWidget(button_cuadrar_proveedor)
 
         # Añadir el layout de botones al layout principal
@@ -78,7 +80,7 @@ class AsistenciasScreen(QWidget):
         layout.addWidget(self.table_widget)
 
         # Botón para generar el Excel
-        button_generar_excel = QPushButton("Generar Excel")
+        button_generar_excel = QPushButton("Generar excel")
         button_generar_excel.clicked.connect(self.generar_excel_con_ciudad)  # Conectar al método de generación de Excel
         layout.addWidget(button_generar_excel)
 
@@ -93,7 +95,7 @@ class AsistenciasScreen(QWidget):
 
         # Actualizar datos inicialmente
         self.actualizar_datos()
-        
+
     def generar_excel_con_ciudad(self):
         ciudad_seleccionada = self.combo_ciudades.currentText()  # Obtener la ciudad seleccionada
         self.generar_excel(ciudad_seleccionada)  # Llamar a generar_excel con la ciudad seleccionada
@@ -206,7 +208,7 @@ class AsistenciasScreen(QWidget):
 
 
     def generar_excel(self, ciudad_seleccionada):
-        # Crear un DataFrame con los datos de la tabla
+    # Crear un DataFrame con los datos de la tabla
         data = []
         for row in range(self.table_widget.rowCount()):
             row_data = []
@@ -237,7 +239,30 @@ class AsistenciasScreen(QWidget):
         )
         
         if file_path:
-            df.to_excel(file_path, index=False)
+            # Crear un nuevo libro de trabajo de Excel
+            wb = Workbook()
+            ws = wb.active
+
+            # Definir el color de relleno para los encabezados (celeste claro)
+            header_fill = PatternFill(start_color='ADD8E6', end_color='ADD8E6', fill_type='solid')
+            # Definir el color de relleno para los datos (amarillo claro)
+            data_fill = PatternFill(start_color='FFFF99', end_color='FFFF99', fill_type='solid')
+
+            # Escribir los encabezados del DataFrame manualmente
+            for col_num, col_name in enumerate(column_names, 1):
+                cell = ws.cell(row=5, column=col_num)
+                cell.value = col_name
+                cell.fill = header_fill  # Aplicar color a los encabezados
+
+            # Escribir los datos del DataFrame y aplicar color a las celdas
+            for row_num, row_data in enumerate(df.values, start=6):
+                for col_num, cell_value in enumerate(row_data, 1):
+                    cell = ws.cell(row=row_num, column=col_num)
+                    cell.value = cell_value
+                    cell.fill = data_fill  # Aplicar color a los datos
+
+            # Guardar el archivo Excel con colores aplicados
+            wb.save(file_path)
 
     def volver_a_reportes(self):
         self.main_window.stacked_widget.setCurrentIndex(self.main_window.stacked_widget.currentIndex() - 1)
