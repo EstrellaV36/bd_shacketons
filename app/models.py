@@ -51,6 +51,7 @@ class Tripulante(Base):
     necesita_asistencia_puq: Mapped[bool] = mapped_column(Boolean, default=False)
     necesita_asistencia_scl: Mapped[bool] = mapped_column(Boolean, default=False)
     necesita_asistencia_wpu: Mapped[bool] = mapped_column(Boolean, default=False)
+    pref_alimenticia: Mapped[Optional[str]] = mapped_column(String, default='NORMAL')
 
     buque_id: Mapped[Optional[int]] = mapped_column(ForeignKey("buques.buque_id"))
     tipo: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
@@ -61,14 +62,13 @@ class Tripulante(Base):
     
     # Relación a través de la tabla intermedia TripulanteHotel
     tripulante_hotels: Mapped[list["TripulanteHotel"]] = relationship("TripulanteHotel", back_populates="tripulante")
-    
-    restaurantes: Mapped[list["Restaurante"]] = relationship(back_populates="tripulante")
+    tripulante_restaurantes: Mapped[list["TripulanteRestaurante"]] = relationship("TripulanteRestaurante", back_populates="tripulante")
     transportes: Mapped[list["Transporte"]] = relationship(back_populates="tripulante")
     viajes: Mapped[list["Viaje"]] = relationship(back_populates="tripulante")
 
     def __repr__(self):
         return f"Tripulante(id={self.tripulante_id}, nombre={self.nombre}, apellido={self.apellido})"
-    
+
 #-----------  TABLA AÑADIDA PARA MANEJAR MULTIPLES TRIPULANTES POR VUELO ----------
 class TripulanteVuelo(Base):
     __tablename__ = "tripulante_vuelo"
@@ -114,7 +114,7 @@ class TripulanteHotel(Base):
     tipo_habitacion: Mapped[str] = mapped_column(String, nullable=True, default=None)
     numero_noches: Mapped[int] = mapped_column(Integer, nullable=True, default=None)
     day_room: Mapped[bool] = mapped_column(Boolean, nullable=True, default=False)
-    
+
     tripulante: Mapped["Tripulante"] = relationship("Tripulante", back_populates="tripulante_hotels")
     hotel: Mapped["Hotel"] = relationship("Hotel", back_populates="tripulante_hotels")
 
@@ -134,18 +134,30 @@ class Hotel(Base):
     def __repr__(self):
         return f"Hotel(id={self.hotel_id}, nombre={self.nombre}, ciudad={self.ciudad})"
 
+class TripulanteRestaurante(Base):
+    __tablename__ = "tripulante_restaurante"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)  # ID único para la relación
+    fecha_reserva: Mapped[datetime] = mapped_column(nullable=True, default=None)  # Campo nulo permitido
+    tipo_comida: Mapped[str] = mapped_column(nullable=True, default=None)
+    tripulante_id: Mapped[int] = mapped_column(ForeignKey("tripulantes.tripulante_id"), nullable=False)
+    restaurante_id: Mapped[int] = mapped_column(ForeignKey("restaurantes.restaurante_id"), nullable=False)
+
+    # Relaciones
+    tripulante: Mapped["Tripulante"] = relationship("Tripulante", back_populates="tripulante_restaurantes")
+    restaurante: Mapped["Restaurante"] = relationship("Restaurante", back_populates="tripulante_restaurantes")
+
+    def __repr__(self):
+        return f"TripulanteRestaurante(id={self.id}, tripulante_id={self.tripulante_id}, restaurante_id={self.restaurante_id}, fecha_reserva={self.fecha_reserva})"
+
 class Restaurante(Base):
     __tablename__ = "restaurantes"
 
     restaurante_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     nombre: Mapped[str] = mapped_column(String, nullable=False)  # Campo no nulo
-    direccion: Mapped[str] = mapped_column(String, nullable=True, default=None)  # Campo nulo permitido
     ciudad: Mapped[str] = mapped_column(String, nullable=False)  # Campo no nulo
-    fecha_reserva: Mapped[datetime] = mapped_column(nullable=True, default=None)  # Campo nulo permitido
 
-    tripulante_id: Mapped[int] = mapped_column(ForeignKey("tripulantes.tripulante_id"), nullable=True)
-
-    tripulante: Mapped["Tripulante"] = relationship(back_populates="restaurantes")
+    tripulante_restaurantes: Mapped[list["TripulanteRestaurante"]] = relationship("TripulanteRestaurante", back_populates="restaurante")
 
     def __repr__(self):
         return f"Restaurante(id={self.restaurante_id}, nombre={self.nombre}, ciudad={self.ciudad})"

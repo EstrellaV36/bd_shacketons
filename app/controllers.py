@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 import traceback
 from sqlalchemy import func
 from PyQt6.QtWidgets import QMessageBox
-from app.models import Buque, Tripulante, Vuelo, EtaCiudad, Viaje, TripulanteVuelo, Hotel, TripulanteHotel
+from app.models import Buque, Tripulante, Vuelo, EtaCiudad, Viaje, TripulanteVuelo, Hotel, TripulanteHotel, Restaurante, TripulanteRestaurante
 
 CITY_AIRPORT_CODES = {
     'PUQ': "PUNTA ARENAS",
@@ -191,7 +191,9 @@ class Controller:
 
             self._create_hotel(self.hoteles_on, self.tripulantes_on)
             self._create_hotel(self.hoteles_off, self.tripulantes_off)
-            print(hoteles_off)
+
+            self._create_restaurantes(self.restaurantes_on,self.tripulantes_on)
+            self._create_restaurantes(self.restaurantes_off,self.tripulantes_off)
 
             return self.buque_on, self.buque_off, self.tripulantes_on, self.tripulantes_off
 
@@ -591,7 +593,7 @@ class Controller:
                             )
                             self.db_session.add(hotel)
                             self.db_session.flush()  # Para obtener el ID del hotel recién creado
-                            print(f"Nuevo hotel creado: {hotel.nombre}")  # Para depuración
+                            #print(f"Nuevo hotel creado: {hotel.nombre}")  # Para depuración
 
                         # Crear relación Tripulante-Hotel, asegurándose de que los valores no sean NaN
                         nuevo_tripulante_hotel = TripulanteHotel(
@@ -605,18 +607,99 @@ class Controller:
                             day_room=False  # O ajusta según sea necesario
                         )
                         self.db_session.add(nuevo_tripulante_hotel)
-                        print(f"Nueva relación Tripulante-Hotel creada: Tripulante ID {tripulante.tripulante_id}, Hotel ID {hotel.hotel_id}")
+                        #print(f"Nueva relación Tripulante-Hotel creada: Tripulante ID {tripulante.tripulante_id}, Hotel ID {hotel.hotel_id}")  HAY QUE REVISAR ESTA PARTE PORQUE NO SE SUPONE QUE CREE SIEMPRE LAS MISMAS RELACIONES PERO MIENTRAS SIRVE
                 else:
                     print(f"No hay hotel válido asignado para el tripulante ID {tripulante.tripulante_id}.")
 
             # Confirmar los cambios en la base de datos
             self.db_session.commit()
-            print("Todos los cambios han sido confirmados en la base de datos.")
 
         except Exception as e:
             print(f"Error al crear hoteles o asignar tripulantes: {e}")
             traceback.print_exc()
             self.db_session.rollback()
+
+    def _create_restaurantes(self, restaurantes_df, tripulantes_df):
+        try:
+            for index in range(len(restaurantes_df)):
+                print(f"Procesando índice: {index}")  # Línea de depuración para el índice actual
+
+                restaurante_row = restaurantes_df.iloc[index]
+
+                # Obtener el pasaporte del tripulante basado en la fila actual
+                pasaporte_tripulante = tripulantes_df.iloc[index]['Pasaporte']  # Asegúrate de que esta columna exista
+                tripulante = self.db_session.query(Tripulante).filter_by(pasaporte=pasaporte_tripulante).first()
+
+                # Comprobar si se encontró el tripulante
+                if not tripulante:
+                    print(f"Tripulante no encontrado para el pasaporte: {pasaporte_tripulante}, continuando...")  # Línea de depuración
+                    continue
+
+                # Obtener preferencia alimenticia de cada restaurante
+                preferencia_alimenticia_set = set(
+                    restaurante_row[f'Restaurante {i}']['Preferencia']
+                    for i in range(1, 4)
+                    if f'Restaurante {i}' in restaurante_row and restaurante_row[f'Restaurante {i}'] is not None
+                )
+                print(f"Tripulante ID: {tripulante.tripulante_id}, Preferencias Alimenticias: {preferencia_alimenticia_set}")  # Línea de depuración
+
+                # Obtener los nombres de los restaurantes a partir del DataFrame
+                nombre_restaurantes = [
+                    restaurante_row[f'Restaurante {i}']['Restaurante']
+                    for i in range(1, 4)
+                    if f'Restaurante {i}' in restaurante_row and restaurante_row[f'Restaurante {i}'] is not None
+                ]
+                print(f"Nombres de Restaurantes: {nombre_restaurantes}")  # Línea de depuración para los restaurantes
+
+                # Procesar cada servicio de comida
+                for i in range(1, 4):
+                    # Asegúrate de que el nombre del restaurante no sea None
+                    if not nombre_restaurantes[i - 1]:
+                        print(f"No hay nombre de restaurante para Restaurante {i}, continuando...")
+                        continue
+
+                    servicio_comida = restaurante_row[f'Restaurante {i}']['Servicio Comida']
+                    if pd.isna(servicio_comida):
+                        print(f"No hay servicio de comida en {nombre_restaurantes[i-1]}, continuando...")  # Línea de depuración
+                        continue
+
+                    # Extraer ciudad y tipo de comida
+                    ciudad_tipo = servicio_comida.split(" ")  # Separar "PUQ Cena" en ["PUQ", "Cena"]
+                    ciudad = ciudad_tipo[0] if len(ciudad_tipo) > 0 else None
+                    tipo_comida = ciudad_tipo[1] if len(ciudad_tipo) > 1 else None
+                    print(f"Servicio Comida en {nombre_restaurantes[i-1]}: Ciudad = {ciudad}, Tipo de Comida = {tipo_comida}")  # Línea de depuración
+
+                    # Crear o recuperar el restaurante
+                    nombre_restaurante = nombre_restaurantes[i - 1]
+                    restaurante = self.db_session.query(Restaurante).filter_by(nombre=nombre_restaurante).first()
+                    
+                    if not restaurante:
+                        print(f"Creando nuevo restaurante: {nombre_restaurante} en {ciudad}")  # Línea de depuración
+                        restaurante = Restaurante(nombre=nombre_restaurante, ciudad=ciudad)
+                        self.db_session.add(restaurante)
+                        self.db_session.flush()  # Asegúrate de que el ID se genere antes de continuar
+                    else:
+                        print(f"Restaurante existente encontrado: {nombre_restaurante}")  # Línea de depuración
+
+                    # Asignar preferencia alimenticia al tripulante si no se ha establecido
+                    if preferencia_alimenticia_set:
+                        preferencia_alimenticia = next(iter(preferencia_alimenticia_set))  # Elegir una preferencia (puedes modificar esto según tus reglas)
+                        # Aquí debes asegurar que el `restaurante` no sea None
+                        if restaurante is not None:  # Crea la relación entre el tripulante y el restaurante
+                            relacion = TripulanteRestaurante(
+                                fecha_reserva=datetime.now(),
+                                tipo_comida=tipo_comida,
+                                tripulante_id=tripulante.tripulante_id,
+                                restaurante_id=restaurante.restaurante_id  # Usa el ID del restaurante existente
+                            )
+                            self.db_session.add(relacion)
+
+            # Guardar cambios en la base de datos
+            self.db_session.commit()
+
+        except Exception as e:
+            print(f"Error al guardar en la base de datos: {e}")
+            self.db_session.rollback()  # Asegúrate de revertir la sesión en caso de error
 
 
     def _create_viaje(self, tripulante_id, buque_id, equipaje_perdido=False, asistencia_medica=False):
@@ -1004,63 +1087,65 @@ class Controller:
         # Convertir los nombres de las columnas a cadenas y quitar espacios
         restaurant_columns = excel_data.loc[start_row].dropna().str.lower().tolist()
 
-        # Verificar las columnas con las que estamos trabajando
-        #print("Columnas disponibles:", vuelos_columns)  # Imprimir las columnas para verificar qué se está cargando
-
         # Iterar sobre cada fila, comenzando desde la fila indicada
         for i in range(start_row + 1, excel_data.shape[0]):
             tripulante_restaurants = {}
             restaurants_num = 1
             
-            # Iterar sobre las columnas de vuelos hasta que ya no existan
+            # Iterar sobre las columnas de restaurantes hasta que ya no existan
             while True:
                 prefer_alimento = "prefer. aliment"
                 servicio_comida = f'servicio comida {restaurants_num}'
                 fecha_desde = f'fecha desde {restaurants_num}'
                 fecha_hasta = f'fecha hasta {restaurants_num}'
                 restaurante = f'restaurant {restaurants_num}'
-                #print(assist)
-                    
+                        
                 # Verificar si las columnas existen en el DataFrame
-                if prefer_alimento in restaurant_columns and servicio_comida in restaurant_columns and fecha_desde in restaurant_columns and fecha_hasta in restaurant_columns and restaurante in restaurant_columns:
+                if (prefer_alimento in restaurant_columns and
+                    servicio_comida in restaurant_columns and
+                    fecha_desde in restaurant_columns and
+                    fecha_hasta in restaurant_columns and
+                    restaurante in restaurant_columns):
+                    
                     col_idx_prefer_alimento = restaurant_columns.index(prefer_alimento)
                     col_idx_servicio_comida = restaurant_columns.index(servicio_comida)
                     col_idx_fecha_desde = restaurant_columns.index(fecha_desde)
                     col_idx_fecha_hasta = restaurant_columns.index(fecha_hasta)
                     col_idx_restaurante = restaurant_columns.index(restaurante)
 
-                    prefer_alimento_idx = excel_data.iloc[i, col_idx_prefer_alimento]
-                    servicio_comida_idx = excel_data.iloc[i, col_idx_servicio_comida]
-                    fecha_desde_idx = excel_data.iloc[i, col_idx_fecha_desde]
-                    fecha_hasta_idx = excel_data.iloc[i, col_idx_fecha_hasta]
-                    restaurante_idx = excel_data.iloc[i, col_idx_restaurante]
+                    # Obtener los valores, asignando nulo si no hay información
+                    prefer_alimento_idx = excel_data.iloc[i, col_idx_prefer_alimento] if pd.notna(excel_data.iloc[i, col_idx_prefer_alimento]) else None
+                    servicio_comida_idx = excel_data.iloc[i, col_idx_servicio_comida] if pd.notna(excel_data.iloc[i, col_idx_servicio_comida]) else None
+                    fecha_desde_idx = excel_data.iloc[i, col_idx_fecha_desde] if pd.notna(excel_data.iloc[i, col_idx_fecha_desde]) else None
+                    fecha_hasta_idx = excel_data.iloc[i, col_idx_fecha_hasta] if pd.notna(excel_data.iloc[i, col_idx_fecha_hasta]) else None
+                    restaurante_idx = excel_data.iloc[i, col_idx_restaurante] if pd.notna(excel_data.iloc[i, col_idx_restaurante]) else None
 
-                    # Si hay información válida en las columnas, agregarla
-                    if pd.notna(prefer_alimento_idx) or (pd.notna(servicio_comida_idx) and pd.notna(fecha_desde_idx) and pd.notna(fecha_hasta_idx) and pd.notna(restaurante_idx)):
-                        tripulante_restaurants[f'Restaurante {restaurants_num}'] = {
-                            "Preferencia": prefer_alimento_idx,
-                            "Servicio Comida": servicio_comida_idx,
-                            "Fecha desde": fecha_desde_idx,
-                            "Fecha hasta": fecha_hasta_idx,
-                            "Restaurante": restaurante_idx
-                        }
+                    # Agregar la información incluso si algunos campos son nulos
+                    tripulante_restaurants[f'Restaurante {restaurants_num}'] = {
+                        "Preferencia": prefer_alimento_idx,
+                        "Servicio Comida": servicio_comida_idx,
+                        "Fecha desde": fecha_desde_idx,
+                        "Fecha hasta": fecha_hasta_idx,
+                        "Restaurante": restaurante_idx
+                    }
 
-                    # Incrementar el vuelo_num para buscar el siguiente conjunto
+                    # Incrementar el restaurante_num para buscar el siguiente conjunto
                     restaurants_num += 1
                 else:
                     break  # Detener la búsqueda si no se encuentra una de las columnas
 
-            # Solo agregar el vuelo si se encontraron vuelos válidos para el tripulante
+            # Solo agregar el restaurante si se encontraron datos para el tripulante
             if tripulante_restaurants:
                 restaurants.append(tripulante_restaurants)
 
-        # Verificar si se encontraron vuelos
+        # Verificar si se encontraron restaurantes
         if len(restaurants) == 0:
             print("No se encontraron restaurantes en las filas procesadas.")
         else:
             print(f"{len(restaurants)} restaurantes procesados. ({state})")
             
         return pd.DataFrame(restaurants)
+
     
     def _extract_extras(self, excel_data, start_row, state):
         extras = []
