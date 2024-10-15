@@ -17,6 +17,9 @@ class EtaCiudad(Base):
     etd: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     buque: Mapped["Buque"] = relationship(back_populates="etas")
 
+    def __repr__(self):
+        return f"id={self.eta_id}, buque={self.buque}, ciudad={self.ciudad}, eta={self.eta}, etd={self.etd})"
+
 class Buque(Base):
     __tablename__ = "buques"
 
@@ -31,7 +34,7 @@ class Buque(Base):
     viajes: Mapped[list["Viaje"]] = relationship(back_populates="buque")
 
     def __repr__(self):
-        return f"Buque(id={self.buque_id}, nombre={self.nombre}, compañia={self.compañia})"
+        return f"Buque(id={self.nombre}, nombre={self.empresa}, compañia={self.ciudad})"
 
 class Tripulante(Base):
     __tablename__ = "tripulantes"
@@ -51,7 +54,6 @@ class Tripulante(Base):
 
     buque_id: Mapped[Optional[int]] = mapped_column(ForeignKey("buques.buque_id"))
     tipo: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
-    estado: Mapped[str] = mapped_column(String, nullable=False)  # Añadido para diferenciar ON/OFF
 
     vuelos_asociados: Mapped[list["TripulanteVuelo"]] = relationship("TripulanteVuelo", back_populates="tripulante")
 
@@ -64,7 +66,7 @@ class Tripulante(Base):
     def __repr__(self):
         return f"Tripulante(id={self.tripulante_id}, nombre={self.nombre}, apellido={self.apellido})"
     
-#-----------  TABLA AÑADIDA PARA MANEJAR MULTIPLES Vuelos POR Tripulante ----------
+#-----------  TABLA AÑADIDA PARA MANEJAR MULTIPLES TRIPULANTES POR VUELO ----------
 class TripulanteVuelo(Base):
     __tablename__ = "tripulante_vuelo"
 
@@ -158,8 +160,9 @@ class Viaje(Base):
     __tablename__ = "viajes"
 
     viaje_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    equipaje_perdido: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
-    asistencia_medica: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
+    equipaje_perdido: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True, default=False)
+    asistencia_medica: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True, default=False)
+    estado: Mapped[str] = mapped_column(String, nullable=False)  # Añadido para diferenciar ON/OFF
 
     tripulante_id: Mapped[int] = mapped_column(ForeignKey("tripulantes.tripulante_id"))
     buque_id: Mapped[int] = mapped_column(ForeignKey("buques.buque_id"))
