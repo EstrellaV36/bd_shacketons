@@ -182,8 +182,8 @@ class Controller:
 
             # Crear tripulantes ON y OFF
             tripulantes = []
-            tripulantes += self._create_tripulantes(tripulantes_on, self.buque_on)
-            tripulantes += self._create_tripulantes(tripulantes_off, self.buque_off)
+            tripulantes += self._create_tripulantes(tripulantes_on, self.buque_on, self.asistencias_on)
+            tripulantes += self._create_tripulantes(tripulantes_off, self.buque_off, self.asistencias_off)
 
             # Crear vuelos ON y OFF
             vuelos_on = self._create_vuelos(self.vuelos_internacionales_on, self.tripulantes_on, state='on')
@@ -248,7 +248,7 @@ class Controller:
             'hora_llegada': hora_llegada   # Retornar como objeto datetime
         }
 
-    def _create_tripulantes(self, tripulantes_df, buque_df):
+    def _create_tripulantes(self, tripulantes_df, buque_df, asistencias_df):
         tripulantes = []  # Lista para almacenar los tripulantes creados
         vuelos_tripulante = []  # Lista para almacenar los vuelos asociados a cada tripulante
         try:
@@ -258,21 +258,19 @@ class Controller:
 
             # Iterar sobre cada fila del DataFrame de tripulantes
             for i, row in tripulantes_df.iterrows():
-                # Comprobar si el índice i está dentro del rango de buque_df
+                # Comprobar si el índice i está dentro de buque_df
                 if i >= len(buque_df):
                     raise IndexError(f"Índice fuera de rango: {i} no está en buque_df.")
 
                 # Obtener el nombre del buque correspondiente
                 nombre_buque = buque_df.loc[i]['Vessel']
-
-                # Buscar el buque ID usando la función buscar_buque_id
                 buque_id = buscar_buque_id(nombre_buque, self.db_session)
 
                 # Buscar si el tripulante ya existe en la base de datos por pasaporte
                 tripulante_existente = self.db_session.query(Tripulante).filter_by(pasaporte=row['Pasaporte']).first()
 
                 if tripulante_existente:
-                    tripulante_id = tripulante_existente.tripulante_id
+                    continue
                 else:
                     # Si el tripulante no existe, lo creamos
                     tripulante = Tripulante(
@@ -288,9 +286,23 @@ class Controller:
                     self.db_session.add(tripulante)
                     self.db_session.commit()  # Confirmar la creación del tripulante
 
-                    tripulante_id = tripulante.tripulante_id
-                
-                tripulantes.append(tripulante_existente if tripulante_existente else tripulante)  # Agregar a la lista
+                    tripulante_existente = tripulante  # Asignar el nuevo tripulante a la variable existente
+
+                # Asignar asistencias al tripulante
+                asistencias_tripulante = asistencias_df.iloc[i]  # Obtener la fila de asistencias correspondiente
+
+                # Extraer los valores de asistencia como una lista
+                asistencias_lista = [asistencia['asistencia'] for asistencia in asistencias_tripulante]
+
+                # Asignar booleanos según la presencia de cada asistencia
+                tripulante_existente.necesita_asistencia_scl = 'Asistencia SCL' in asistencias_lista
+                tripulante_existente.necesita_asistencia_puq = 'Asistencia PUQ' in asistencias_lista
+                tripulante_existente.necesita_asistencia_wpu = 'Asistencia WPU' in asistencias_lista
+
+                # Confirmar los cambios en la base de datos
+                self.db_session.commit()
+
+                tripulantes.append(tripulante_existente)  # Agregar a la lista
 
             # Retornar la lista de tripulantes y vuelos asociados
             return tripulantes, vuelos_tripulante
@@ -739,9 +751,6 @@ class Controller:
         # Convertir los nombres de las columnas a cadenas y quitar espacios
         assist_columns = excel_data.loc[start_row].dropna().str.lower().tolist()
 
-        # Verificar las columnas con las que estamos trabajando
-        #print("Columnas disponibles:", vuelos_columns)  # Imprimir las columnas para verificar qué se está cargando
-
         # Iterar sobre cada fila, comenzando desde la fila indicada
         for i in range(start_row + 1, excel_data.shape[0]):
             tripulante_assists = {}
@@ -750,7 +759,6 @@ class Controller:
             # Iterar sobre las columnas de vuelos hasta que ya no existan
             while True:
                 assist = f'asistencia {assist_num}'
-                #print(assist)
                     
                 # Verificar si las columnas existen en el DataFrame
                 if assist in assist_columns:
@@ -758,12 +766,15 @@ class Controller:
 
                     assist_idx = excel_data.iloc[i, col_idx_assist]
 
-                    #print(nro_inter_flight)
-
                     # Si hay información válida en las columnas, agregarla
                     if pd.notna(assist_idx):
                         tripulante_assists[f'Asistencia {assist_num}'] = {
                             "asistencia": assist_idx,
+                        }
+                    else:
+                        # Si el campo está vacío, agregar un valor predeterminado
+                        tripulante_assists[f'Asistencia {assist_num}'] = {
+                            "asistencia": "NO",  # o cualquier valor que consideres apropiado
                         }
 
                     # Incrementar el vuelo_num para buscar el siguiente conjunto
@@ -771,18 +782,15 @@ class Controller:
                 else:
                     break  # Detener la búsqueda si no se encuentra una de las columnas
 
-            # Solo agregar el vuelo si se encontraron vuelos válidos para el tripulante
-            if tripulante_assists:
-                assists.append(tripulante_assists)
+            # Agregar el tripulante_assists, incluso si está vacío
+            assists.append(tripulante_assists)
 
-        # Verificar si se encontraron vuelos
+        # Verificar si se encontraron asistencias
         if len(assists) == 0:
             print("No se encontraron asistencias en las filas procesadas.")
-        #else:
-            #print(f"{len(assists)} asistencias procesadas. ({state})")
             
         return pd.DataFrame(assists)
-    
+
     def _extract_transports(self, excel_data, start_row, state):
         transports = []
         
