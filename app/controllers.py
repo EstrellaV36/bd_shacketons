@@ -158,7 +158,6 @@ class Controller:
             extras_off = self._extract_extras(excel_data_off, start_row=0, state="off")
             extras_off.reset_index(drop=True, inplace=True)  # Reiniciar el índice
 
-            print(f"Hotel ON: {hoteles_on.head()}")
             # Almacenar los datos
             self.tripulantes_on = tripulantes_on
             self.tripulantes_off = tripulantes_off
@@ -191,11 +190,69 @@ class Controller:
             vuelos_off = self._create_vuelos(self.vuelos_internacionales_off, self.tripulantes_off, state='off')
 
             self._create_hotel(self.hoteles_on, self.tripulantes_on)
+            self._create_hotel(self.hoteles_off, self.tripulantes_off)
+            print(hoteles_off)
 
             return self.buque_on, self.buque_off, self.tripulantes_on, self.tripulantes_off
 
         except Exception as e:
             raise Exception(f"Error al procesar el archivo: {e}")
+        
+    def _extraer_hoteles_fechas(self, hotel_df):
+        # Inicializa una lista vacía para almacenar información de hoteles
+        hoteles_info = []
+
+        # Recorre cada fila del DataFrame original
+        for _, row in hotel_df.iterrows():
+            # Inicializa una lista para almacenar la información de hoteles en la fila
+            hotel_entries = []
+
+            # Variable para indicar si se encontró al menos un hotel válido
+            found_valid_hotel = False
+            
+            # Procesar cada hotel en la fila
+            for hotel_key in row.index:
+                hotel_info = row[hotel_key]
+
+                if isinstance(hotel_info, dict):
+                    # Crear un diccionario para la información del hotel
+                    hotel_entry = {
+                        'nombre_hotel': hotel_info.get('nombre_hotel'),
+                        'categoria': hotel_info.get('categoria'),
+                        'ciudad': hotel_info.get('hotel').split()[-1] if 'hotel' in hotel_info else 'Desconocida',
+                        'check_in': hotel_info.get('check_in'),
+                        'check_out': hotel_info.get('check_out'),
+                        'numero_noches': (pd.to_datetime(hotel_info.get('check_out')) - pd.to_datetime(hotel_info.get('check_in'))).days if pd.notna(hotel_info.get('check_in')) and pd.notna(hotel_info.get('check_out')) else 0,
+                        'habitacion': hotel_info.get('habitacion')
+                    }
+
+                    # Agrega la entrada del hotel a la lista
+                    hotel_entries.append(hotel_entry)
+                    found_valid_hotel = True
+            
+            # Si se encontraron hoteles válidos, añade la lista de hoteles a la información del tripulante
+            if found_valid_hotel:
+                # Añadir el primer hotel encontrado como una entrada en el DataFrame
+                hoteles_info.append(hotel_entries)
+            else:
+                # Si no se encontró ningún hotel, añade 'SIN HOTEL'
+                hoteles_info.append([{
+                    'nombre_hotel': 'SIN HOTEL',
+                    'categoria': None,
+                    'ciudad': 'Desconocida',
+                    'check_in': None,
+                    'check_out': None,
+                    'numero_noches': 0,
+                    'habitacion': None
+                }])
+
+        # Crea un DataFrame con la información de hoteles
+        # Expande la lista de hoteles en el DataFrame
+        hoteles_df = pd.DataFrame(hoteles_info)
+        # Mantiene el índice del DataFrame original
+        hoteles_df.index = hotel_df.index
+
+        return hoteles_df
 
     def _extraer_ciudades_y_horarios(self, vuelo_info, tipo_vuelo):        
         vuelo = vuelo_info['vuelo']
@@ -472,90 +529,24 @@ class Controller:
 
             # Confirmar todos los cambios al final
             self.db_session.commit()
-
         except Exception as e:
-            print(f"Error al crear vuelos o asignar tripulantes: {e}")
-            traceback.print_exc()  # Esto imprime el traceback completo para depurar
-            self.db_session.rollback()  # Revertir la sesión en caso de error
-
-        return vuelos  # Retornar la lista de vuelos creados
-    
-    def _extraer_hoteles_fechas(self, hotel_df):
-        hoteles_info = []  # Lista para almacenar la información de los hoteles
-
-        # Iterar sobre cada fila del DataFrame de hoteles
-        for i, row in hotel_df.iterrows():
-            # Iterar sobre las claves que representan los hoteles
-            for hotel_key in row.index:
-                hotel_info = row[hotel_key]  # Obtener la información del hotel
-
-                if isinstance(hotel_info, dict):  # Solo procesar si es un diccionario
-                    # Asignar valores
-                    hotel_nombre = hotel_info['nombre_hotel'] if pd.notna(hotel_info['nombre_hotel']) else 'Desconocido'
-                    categoria = hotel_info['categoria']
-                    
-                    # Extraer el código de la ciudad del nombre del hotel
-                    ciudad_codigo = hotel_info['hotel'].split()[-1]  # Suponiendo que el formato es "Hotel [CÓDIGO]"
-                    ciudad = CITY_AIRPORT_CODES.get(ciudad_codigo, 'Desconocida')  # Obtener ciudad del diccionario
-
-                    # Obtener las fechas de check-in y check-out
-                    check_in = hotel_info.get('check_in', None)
-                    check_out = hotel_info.get('check_out', None)
-
-                    # Calcular número de noches
-                    if pd.notna(check_in) and pd.notna(check_out):
-                        num_noches = (pd.to_datetime(check_out) - pd.to_datetime(check_in)).days
-                    else:
-                        num_noches = 0  # O definir un valor por defecto si es necesario
-
-                    # Acceder al tipo de habitación desde hotel_info
-                    tipo_habitacion = hotel_info.get('habitacion', None)  # Extraer tipo de habitación
-                    #print(tipo_habitacion)  # Para ver el valor de la habitación extraída
-
-                    # Almacenar la información del hotel en la lista
-                    hoteles_info.append({
-                        'nombre_hotel': hotel_nombre,
-                        'categoria': categoria,
-                        'ciudad': ciudad,
-                        'check_in': check_in,
-                        'check_out': check_out,
-                        'numero_noches': num_noches,
-                        'habitacion': tipo_habitacion  # Añadir el tipo de habitación
-                    })
-                elif pd.isna(hotel_info) or (isinstance(hotel_info, str) and hotel_info.strip() == "SIN HOTEL"):
-                    # Manejar el caso "SIN HOTEL"
-                    hoteles_info.append({
-                        'nombre_hotel': 'SIN HOTEL',
-                        'categoria': None,
-                        'ciudad': 'Desconocida',
-                        'check_in': None,
-                        'check_out': None,
-                        'numero_noches': 0,
-                        'habitacion': None  # Por defecto en este caso
-                    })
-
-        return hoteles_info  # Retornar la lista con la información de los hoteles
+            print(f"Error al crear hoteles o asignar tripulantes: {e}")
+            traceback.print_exc()
+            self.db_session.rollback()
 
     def _create_hotel(self, hotel_df, tripulantes_df):
-        hotels = []  # Lista para almacenar los hoteles creados
         try:
             # Verificar que ambos DataFrames no estén vacíos
             if hotel_df.empty or tripulantes_df.empty:
                 print("No hay hoteles o tripulantes para procesar.")
-                return hotels  # Retornar la lista vacía en caso de no haber datos
+                return
 
-            # Extraer la información de los hoteles utilizando la nueva función
+            # Extraer información de hoteles
             hoteles_info = self._extraer_hoteles_fechas(hotel_df)
+            #print(f"hoteles_info extraida: {hoteles_info}")
 
-            # Iterar sobre cada fila del DataFrame de hoteles
-            for i, row in hotel_df.iterrows():
-                #print(f"Procesando fila {i} del DataFrame de hoteles:")
-                # Verificar que la fila de tripulantes tenga un índice válido
-                if i >= len(tripulantes_df):
-                    continue
-
-                # Obtener el tripulante correspondiente a la fila actual
-                tripulante_data = tripulantes_df.iloc[i]
+            # Asignar hoteles a tripulantes
+            for i, tripulante_data in tripulantes_df.iterrows():
                 if pd.isna(tripulante_data['Pasaporte']):
                     print(f"Pasaporte vacío para el tripulante en la fila {i}. Omitiendo...")
                     continue
@@ -565,78 +556,68 @@ class Controller:
                     print(f"No se encontró tripulante con pasaporte {tripulante_data['Pasaporte']} en la fila {i}.")
                     continue
 
-                # Iterar sobre la información extraída de los hoteles
-                for hotel_info in hoteles_info:
-                    hotel_nombre = hotel_info['nombre_hotel']
-                    categoria = hotel_info['categoria']
-                    ciudad = hotel_info['ciudad']
-                    check_in = hotel_info['check_in']
-                    check_out = hotel_info['check_out']
-                    num_noches = hotel_info['numero_noches']
-                    tipo_habitacion = hotel_info.get('habitacion')  # Recuperar el tipo de habitación
+                # Obtener la información de hoteles correspondiente al tripulante
+                hotel_entries = hoteles_info.iloc[i] if i < len(hoteles_info) else None
+                
+                if hotel_entries is not None:
+                    for hotel_info in hotel_entries:  # Iterar sobre la lista de hoteles
+                        if hotel_info is None:
+                            #print(f"No hay información de hotel disponible para el tripulante ID {tripulante.tripulante_id}.")
+                            continue  # Omitir si hotel_info es None
 
-                    # Verificar si el hotel ya existe
-                    existing_hotel = self.db_session.query(Hotel).filter_by(nombre=hotel_nombre, ciudad=ciudad).first()
+                        # Verificar si el nombre del hotel es NaN
+                        hotel_nombre = hotel_info['nombre_hotel']
+                        if pd.isna(hotel_nombre):
+                            #print(f"Nombre de hotel no disponible para el tripulante ID {tripulante.tripulante_id}.")
+                            continue  # Omitir si el nombre del hotel es NaN
 
-                    if existing_hotel:
-                        hotel = existing_hotel
-                        #print(f"  Hotel existente encontrado: {hotel}")
-                    else:
-                        # Crear el objeto Hotel
-                        hotel = Hotel(
-                            nombre=hotel_nombre,
-                            ciudad=ciudad,
-                        )
-                        # Añadir el hotel a la sesión
-                        self.db_session.add(hotel)
-                        self.db_session.flush()  # Asegúrate de que el hotel tiene un ID antes de asignarlo
-                        print(f"  Hotel creado: {hotel}")
+                        # Normalizar el nombre del hotel para la búsqueda
+                        hotel_nombre_normalizado = hotel_nombre.strip().lower()
+                        #print(f"Verificando existencia del hotel: {hotel_nombre_normalizado}")  # Para depuración
 
-                    # Verificar si hay un "To Be Confirmed" y si las fechas y el hotel están cambiando
-                    tripulante_hotel = self.db_session.query(TripulanteHotel).filter_by(
-                        tripulante_id=tripulante.tripulante_id,
-                        hotel_id=hotel.hotel_id
-                    ).first()
+                        # Comprobar si el hotel ya existe en la base de datos
+                        existing_hotel = self.db_session.query(Hotel).filter(
+                            func.lower(Hotel.nombre) == hotel_nombre_normalizado
+                        ).first()
 
-                    if tripulante_hotel:
-                        # Actualizar si es un hotel TBC
-                        if tripulante_hotel.hotel_id == existing_hotel.hotel_id and existing_hotel.nombre == "TBC":
-                            tripulante_hotel.hotel_id = hotel.hotel_id
-                            tripulante_hotel.fecha_entrada = check_in
-                            tripulante_hotel.fecha_salida = check_out
-                            tripulante_hotel.tipo_habitacion = tipo_habitacion
-                            tripulante_hotel.numero_noches = num_noches
-                            #print(f"  Relación Tripulante-Hotel actualizada: {tripulante_hotel}")
-                    else:
-                        # Verificar que los IDs son válidos antes de crear la relación
-                        fecha_entrada = check_in if pd.notna(check_in) else None
-                        fecha_salida = check_out if pd.notna(check_out) else None
-
-                        if tripulante.tripulante_id is not None and hotel.hotel_id is not None:
-                            # Crear la relación en TripulanteHotel
-                            tripulante_hotel = TripulanteHotel(
-                                tripulante_id=tripulante.tripulante_id,
-                                hotel_id=hotel.hotel_id,
-                                fecha_entrada=fecha_entrada,
-                                fecha_salida=fecha_salida,
-                                tipo_habitacion=tipo_habitacion,  # Asignar el tipo de habitación
-                                numero_noches=num_noches,
-                                categoria=categoria if pd.notna(categoria) else None,
-                                day_room=False
+                        if existing_hotel:
+                            hotel = existing_hotel
+                            #print(f"Hotel existente encontrado: {hotel.nombre}")  # Para depuración
+                        else:
+                            # Crear nuevo hotel si no existe
+                            hotel = Hotel(
+                                nombre=hotel_info['nombre_hotel'],
+                                ciudad=hotel_info['ciudad'],
                             )
+                            self.db_session.add(hotel)
+                            self.db_session.flush()  # Para obtener el ID del hotel recién creado
+                            print(f"Nuevo hotel creado: {hotel.nombre}")  # Para depuración
 
-                            # Añadir la relación a la sesión
-                            self.db_session.add(tripulante_hotel)
-                            #print(f"  Relación Tripulante-Hotel creada: {tripulante_hotel}")
+                        # Crear relación Tripulante-Hotel, asegurándose de que los valores no sean NaN
+                        nuevo_tripulante_hotel = TripulanteHotel(
+                            tripulante_id=tripulante.tripulante_id,
+                            hotel_id=hotel.hotel_id,
+                            fecha_entrada=hotel_info['check_in'] if pd.notna(hotel_info['check_in']) else None,
+                            fecha_salida=hotel_info['check_out'] if pd.notna(hotel_info['check_out']) else None,
+                            tipo_habitacion=hotel_info['habitacion'] if pd.notna(hotel_info['habitacion']) else None,
+                            numero_noches=int(hotel_info['numero_noches']) if pd.notna(hotel_info['numero_noches']) else 0,
+                            categoria=int(hotel_info['categoria']) if pd.notna(hotel_info['categoria']) else 0,
+                            day_room=False  # O ajusta según sea necesario
+                        )
+                        self.db_session.add(nuevo_tripulante_hotel)
+                        print(f"Nueva relación Tripulante-Hotel creada: Tripulante ID {tripulante.tripulante_id}, Hotel ID {hotel.hotel_id}")
+                else:
+                    print(f"No hay hotel válido asignado para el tripulante ID {tripulante.tripulante_id}.")
 
             # Confirmar los cambios en la base de datos
             self.db_session.commit()
-            #print("Todos los cambios han sido confirmados en la base de datos.")
+            print("Todos los cambios han sido confirmados en la base de datos.")
 
         except Exception as e:
             print(f"Error al crear hoteles o asignar tripulantes: {e}")
-            traceback.print_exc()  # Esto imprime el traceback completo para depurar
-            self.db_session.rollback()  # Revertir los cambios en caso de error
+            traceback.print_exc()
+            self.db_session.rollback()
+
 
     def _create_viaje(self, tripulante_id, buque_id, equipaje_perdido=False, asistencia_medica=False):
         try:
@@ -741,18 +722,22 @@ class Controller:
         return pd.DataFrame(vuelos)
     
     def _extract_hotels(self, excel_data, start_row, state):
-        hotels = []
+        hotels = []  # Lista para almacenar la información de los hoteles
         
         # Convertir los nombres de las columnas a cadenas y quitar espacios
         hotels_columns = excel_data.loc[start_row].dropna().str.lower().tolist()
 
         # Iterar sobre cada fila, comenzando desde la fila indicada
         for i in range(start_row + 1, excel_data.shape[0]):
-            tripulante_hotels = {}
-            hotel_num = 1
+            tripulante_hotels = {}  # Diccionario para almacenar información del tripulante
+            hotel_num = 1  # Contador de hoteles
+            
+            # Variable para verificar si se encontraron hoteles
+            found_hotels = False
             
             # Iterar sobre las columnas de hoteles hasta que ya no existan
             while True:
+                # Crear los nombres de las columnas esperadas
                 category = 'silver categoria'
                 hotel_col = f'hotel {hotel_num}'
                 check_in_col = f'check in {hotel_num}'
@@ -772,13 +757,14 @@ class Controller:
                     col_idx_rooms = hotels_columns.index(rooms)
                     col_idx_hotel_name = hotels_columns.index(hotel_name)
 
+                    # Obtener información del hotel
                     categoria = excel_data.iloc[i, col_idx_category]
                     hotel = excel_data.iloc[i, col_idx_hotel]
                     check_in = excel_data.iloc[i, col_idx_check_in]
                     check_out = excel_data.iloc[i, col_idx_check_out]
                     habitacion = excel_data.iloc[i, col_idx_rooms]
                     nombre_hotel = excel_data.iloc[i, col_idx_hotel_name]
-                    #print(f"Fila {i}: habitacion = {habitacion}")
+
                     # Si hay información válida en las columnas, agregarla
                     if pd.notna(categoria) and pd.notna(hotel):
                         tripulante_hotels[f'Hotel {hotel_num}'] = {
@@ -789,23 +775,25 @@ class Controller:
                             "habitacion": habitacion,
                             "nombre_hotel": nombre_hotel 
                         }
+                        found_hotels = True  # Se encontró al menos un hotel
 
                     # Incrementar el número de hotel para buscar el siguiente conjunto
                     hotel_num += 1
                 else:
                     break  # Detener la búsqueda si no se encuentra una de las columnas
 
-            # Asegurarse de agregar al tripulante incluso si no tiene hoteles
-            if not tripulante_hotels:  # Si el diccionario está vacío, agregar un mensaje
-                tripulante_hotels['SIN HOTEL'] = {
-                    "categoria": 'SIN HOTEL',
-                    "hotel": 'SIN HOTEL',
+            # Si no se encontraron hoteles, agregar un registro para ese tripulante
+            if not found_hotels:
+                tripulante_hotels['Hotel 1'] = {
+                    "categoria": None,
+                    "hotel": "SIN HOTEL",
                     "check_in": None,
                     "check_out": None,
                     "habitacion": None,
-                    "nombre_hotel": 'SIN HOTEL'
+                    "nombre_hotel": "SIN HOTEL"
                 }
 
+            # Agregar la información del tripulante a la lista de hoteles
             hotels.append(tripulante_hotels)
 
         # Verificar si se encontraron hoteles
@@ -814,7 +802,8 @@ class Controller:
         else:
             print(f"{len(hotels)} hoteles procesados. ({state})")
             
-        return pd.DataFrame(hotels)
+        return pd.DataFrame(hotels)  # Retornar el DataFrame con la información de hoteles
+
 
     def _extract_flights(self, excel_data, start_row, state):
         vuelos = []
