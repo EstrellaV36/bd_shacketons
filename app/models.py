@@ -47,7 +47,7 @@ class Tripulante(Base):
     sexo: Mapped[str] = mapped_column(String(1), nullable=False)
     fecha_nacimiento: Mapped[date] = mapped_column(Date, nullable=False)
     posicion: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    puerto_desembarque: Mapped[str] = mapped_column(String, nullable=True)  # No estoy segura de este
+    puerto_desembarque: Mapped[str] = mapped_column(String, nullable=True)
     necesita_asistencia_puq: Mapped[bool] = mapped_column(Boolean, default=False)
     necesita_asistencia_scl: Mapped[bool] = mapped_column(Boolean, default=False)
     necesita_asistencia_wpu: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -58,7 +58,10 @@ class Tripulante(Base):
     vuelos_asociados: Mapped[list["TripulanteVuelo"]] = relationship("TripulanteVuelo", back_populates="tripulante")
 
     buque: Mapped["Buque"] = relationship(back_populates="tripulantes")
-    hoteles: Mapped[list["Hotel"]] = relationship(back_populates="tripulante")
+    
+    # Relación a través de la tabla intermedia TripulanteHotel
+    tripulante_hotels: Mapped[list["TripulanteHotel"]] = relationship("TripulanteHotel", back_populates="tripulante")
+    
     restaurantes: Mapped[list["Restaurante"]] = relationship(back_populates="tripulante")
     transportes: Mapped[list["Transporte"]] = relationship(back_populates="tripulante")
     viajes: Mapped[list["Viaje"]] = relationship(back_populates="tripulante")
@@ -98,22 +101,35 @@ class Vuelo(Base):
     def __repr__(self):
         return f"Vuelo(id={self.vuelo_id}, codigo={self.codigo})"
 
-class Hotel(Base):
-    __tablename__ = "hoteles"
+#----------- TABLA AÑADIDA PARA MANEJAR MULTIPLES HOTELES POR TRIPULANTE ----------
+class TripulanteHotel(Base):
+    __tablename__ = "tripulante_hotel"
 
-    hotel_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    nombre: Mapped[str] = mapped_column(String, nullable=False)
-    ciudad: Mapped[str] = mapped_column(String, nullable=False)
+    tripulante_hotel_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    tripulante_id: Mapped[int] = mapped_column(ForeignKey("tripulantes.tripulante_id"), nullable=False)
+    hotel_id: Mapped[int] = mapped_column(ForeignKey("hoteles.hotel_id"), nullable=False)
     categoria: Mapped[int] = mapped_column(Integer, nullable=True, default=None)
     fecha_entrada: Mapped[date] = mapped_column(Date, nullable=True, default=None)
     fecha_salida: Mapped[date] = mapped_column(Date, nullable=True, default=None)
     tipo_habitacion: Mapped[str] = mapped_column(String, nullable=True, default=None)
     numero_noches: Mapped[int] = mapped_column(Integer, nullable=True, default=None)
     day_room: Mapped[bool] = mapped_column(Boolean, nullable=True, default=False)
+    
+    tripulante: Mapped["Tripulante"] = relationship("Tripulante", back_populates="tripulante_hotels")
+    hotel: Mapped["Hotel"] = relationship("Hotel", back_populates="tripulante_hotels")
 
-    tripulante_id: Mapped[int] = mapped_column(ForeignKey("tripulantes.tripulante_id"), nullable=True)
+    def __repr__(self):
+        return f"TripulanteHotel(tripulante_id={self.tripulante_id}, hotel_id={self.hotel_id})"
 
-    tripulante: Mapped["Tripulante"] = relationship(back_populates="hoteles")
+class Hotel(Base):
+    __tablename__ = "hoteles"
+
+    hotel_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    nombre: Mapped[str] = mapped_column(String, nullable=False)
+    ciudad: Mapped[str] = mapped_column(String, nullable=False)
+
+    # Relación inversa a través de la tabla intermedia TripulanteHotel
+    tripulante_hotels: Mapped[list["TripulanteHotel"]] = relationship("TripulanteHotel", back_populates="hotel")
 
     def __repr__(self):
         return f"Hotel(id={self.hotel_id}, nombre={self.nombre}, ciudad={self.ciudad})"
