@@ -107,10 +107,6 @@ class Controller:
             hoteles_on = self._extract_hotels(excel_data_on, start_row=0, state="on")
             hoteles_on.reset_index(drop=True, inplace=True)  # Reiniciar el índice
 
-            #Procesar vuelos ON
-            vuelos_on = self._extract_flights(excel_data_on, start_row=0, state="on")
-            vuelos_on.reset_index(drop=True, inplace=True)  # Reiniciar el índice
-
             #Procesar asistencias ON
             asistencias_on = self._extract_assists(excel_data_on, start_row=0, state="on")
             asistencias_on.reset_index(drop=True, inplace=True)  # Reiniciar el índice
@@ -138,17 +134,13 @@ class Controller:
             tripulantes_off = self.read_all_rows(excel_data_off, start_row=1, column_range=slice(9, 16), column_names=tripulante_columns) 
             tripulantes_off.reset_index(drop=True, inplace=True)  # Reiniciar el índice
 
-            # Procesar vuelos internacionales OFF
-            #vuelos_internacionales_off = self._extract_international_flights(excel_data_off, start_row=0, state="off")
-            #vuelos_internacionales_off.reset_index(drop=True, inplace=True)  # Reiniciar el índice
-
             #Procesar hoteles OFF
             hoteles_off = self._extract_hotels(excel_data_off, start_row=0, state="off")
             hoteles_off.reset_index(drop=True, inplace=True)  # Reiniciar el índice
 
-            #Procesar vuelos OFF
-            vuelos_off = self._extract_flights(excel_data_off, start_row=0, state="off")
-            vuelos_off.reset_index(drop=True, inplace=True)  # Reiniciar el índice
+            #Procesar vuelos internacionales OFF
+            vuelos_internacionales_off = self._extract_international_flights(excel_data_on, start_row=0, state="on")
+            vuelos_internacionales_off.reset_index(drop=True, inplace=True)  # Reiniciar el índice
 
             #Procesar asistencias OFF
             asistencias_off = self._extract_assists(excel_data_off, start_row=0, state="off")
@@ -166,24 +158,15 @@ class Controller:
             extras_off = self._extract_extras(excel_data_off, start_row=0, state="off")
             extras_off.reset_index(drop=True, inplace=True)  # Reiniciar el índice
 
-            # Verificar que los DataFrames no estén vacíos
-            if buque_on.empty or buque_off.empty:
-                raise ValueError("Los datos de buque ON o OFF están vacíos.")
-            
-            if tripulantes_on.empty and tripulantes_off.empty:
-                raise ValueError("Los datos de tripulantes ON y OFF están vacíos.")
-
             # Almacenar los datos
             self.tripulantes_on = tripulantes_on
             self.tripulantes_off = tripulantes_off
             self.buque_on = buque_on
             self.buque_off = buque_off
             self.vuelos_internacionales_on = vuelos_internacionales_on
-            #self.vuelos_internacionales_off = vuelos_internacionales_off
+            self.vuelos_internacionales_off = vuelos_internacionales_off
             self.hoteles_on = hoteles_on
             self.hoteles_off = hoteles_off
-            self.vuelos_on = vuelos_on
-            self.vuelos_off = vuelos_off
             self.asistencias_on = asistencias_on
             self.asistencias_off = asistencias_off
             self.transportes_on = transportes_on
@@ -192,13 +175,6 @@ class Controller:
             self.restaurantes_off = restaurantes_off
             self.extras_on = extras_on
             self.extras_off = extras_off
-
-            #pd.set_option('display.max_columns', None)  # Para mostrar todas las columnas
-            #pd.set_option('display.max_rows', None)     # Para mostrar todas las filas
-            #pd.set_option('display.max_colwidth', None)
-
-            #print(self.hoteles_on.get('Hotel 1'))  # Esto te mostrará las claves del diccionario
-            #print(extras_off)
 
             # Crear buques ON y OFF
             self._create_buque(self.buque_on)
@@ -211,21 +187,15 @@ class Controller:
 
             # Crear vuelos ON y OFF
             vuelos_on = self._create_vuelos(self.vuelos_internacionales_on, self.tripulantes_on, state='on')
-            #vuelos_off = self._create_vuelos(self.vuelos_internacionales_off, self.tripulantes_off, state='off')
+            vuelos_off = self._create_vuelos(self.vuelos_internacionales_off, self.tripulantes_off, state='off')
 
             return self.buque_on, self.buque_off, self.tripulantes_on, self.tripulantes_off
 
         except Exception as e:
             raise Exception(f"Error al procesar el archivo: {e}")
 
-    def _extraer_ciudades_y_horarios(self, vuelo_info, tipo_vuelo):
-        # Dependiendo del tipo de vuelo, se ajusta el acceso a las claves
-        if tipo_vuelo == 'on':
-            vuelo = vuelo_info['vuelo']
-        elif tipo_vuelo == 'off':
-            vuelo = vuelo_info['nro']
-        else:
-            raise ValueError("Tipo de vuelo no válido. Debe ser 'on' o 'off'.")
+    def _extraer_ciudades_y_horarios(self, vuelo_info, tipo_vuelo):        
+        vuelo = vuelo_info['vuelo']
 
         # Verifica si el vuelo es NaN o None
         if vuelo is None or pd.isna(vuelo):
@@ -243,12 +213,8 @@ class Controller:
         aeropuerto_salida, aeropuerto_llegada = aeropuertos.split("-")
 
         # Obtener la fecha y las horas como objetos datetime
-        if tipo_vuelo == 'on':
-            fecha_vuelo = vuelo_info['fecha']  # Se espera que sea un objeto Timestamp
-            hora_salida, hora_llegada = vuelo_info['hora'].split('-')
-        elif tipo_vuelo == 'off':
-            fecha_vuelo = vuelo_info['date']  # Se espera que sea un objeto Timestamp
-            hora_salida, hora_llegada = vuelo_info['hora'].split('-')
+        fecha_vuelo = vuelo_info['fecha']  # Se espera que sea un objeto Timestamp
+        hora_salida, hora_llegada = vuelo_info['hora'].split('-')
 
         # Eliminar espacios en blanco antes de convertir a datetime
         hora_salida = hora_salida.strip()
@@ -326,16 +292,6 @@ class Controller:
                 
                 tripulantes.append(tripulante_existente if tripulante_existente else tripulante)  # Agregar a la lista
 
-                #vuelo_id = buscar_vuelo_id(codigo_vuelo, self.db_session)    
-
-                # Agregar todos los vuelos de 'on' y 'off' a la lista de vuelos del tripulante
-                """
-                for vuelo in vuelos_on + vuelos_off:
-                    vuelos_tripulante.append({
-                        'tripulante_id': tripulante_id,
-                        'vuelo_id': vuelo['vuelo_id']
-                    })"""
-
             # Retornar la lista de tripulantes y vuelos asociados
             return tripulantes, vuelos_tripulante
         except Exception as e:
@@ -409,7 +365,7 @@ class Controller:
                     nuevo_buque.etas.append(nueva_eta)
                     self.db_session.add(nueva_eta)
                     self.db_session.flush()  # Asegurar que la nueva ETA esté en la BD
-                    print(f"Nuevo buque creado: {nuevo_buque.nombre}, ETA: {nueva_eta.eta}, ETD: {nueva_eta.etd}")
+                    #print(f"Nuevo buque creado: {nuevo_buque.nombre}, ETA: {nueva_eta.eta}, ETD: {nueva_eta.etd}")
 
             # Confirmar todos los cambios al final
             self.db_session.commit()
@@ -423,26 +379,42 @@ class Controller:
     def _create_vuelos(self, vuelos_df, tripulantes_df, state):
         vuelos = []  # Lista para almacenar los vuelos creados
         try:
+            # Verificar que ambos DataFrames no estén vacíos
+            if vuelos_df.empty or tripulantes_df.empty:
+                print("No hay vuelos o tripulantes para procesar.")
+                return []
+
             # Iterar sobre cada fila del DataFrame de vuelos
             for i, row in vuelos_df.iterrows():
-                # Obtener el tripulante correspondiente a la fila actual (asegurarse que sea la misma fila)
+                # Verificar que la fila de tripulantes tenga un índice válido
+                if i >= len(tripulantes_df):
+                    #print(f"No hay datos de tripulante para la fila {i}.")
+                    continue
+
+                # Obtener el tripulante correspondiente a la fila actual
                 tripulante_data = tripulantes_df.iloc[i]
+
+                if pd.isna(tripulante_data['Pasaporte']):
+                    print(f"Pasaporte vacío para el tripulante en la fila {i}. Omitiendo...")
+                    continue
+
                 tripulante = self.db_session.query(Tripulante).filter_by(pasaporte=tripulante_data['Pasaporte']).first()
                 
                 if not tripulante:
                     print(f"No se encontró tripulante con pasaporte {tripulante_data['Pasaporte']} en la fila {i}.")
                     continue
 
-                print(f"Tripulante {tripulante.nombre} encontrado para procesar vuelos.")
+                #print(f"Tripulante {tripulante.nombre} encontrado para procesar vuelos.")
 
                 # Iterar sobre las claves que representan los vuelos
                 for vuelo_key in row.index:
                     vuelo_info = row[vuelo_key]  # Obtener el diccionario del vuelo
-                    print(vuelo_info)
+                    #print(vuelo_info)
+
                     # Verificar que haya información para el vuelo
-                    if pd.notna(vuelo_info) and isinstance(vuelo_info, dict):  # Solo procesar si hay información y es un diccionario                        # Llamar a la función _extraer_ciudades_y_horarios
+                    if pd.notna(vuelo_info) and isinstance(vuelo_info, dict):  # Solo procesar si hay información y es un diccionario                        
                         vuelo_info = self._extraer_ciudades_y_horarios(vuelo_info, state)
-                        
+
                         if vuelo_info is None or 'codigo_vuelo' not in vuelo_info:
                             print(f"Omitiendo vuelo {vuelo_key} en la fila {i} debido a datos faltantes.")
                             continue
@@ -463,7 +435,7 @@ class Controller:
                             self.db_session.flush()  # Asegurar que el vuelo esté disponible en la base de datos
                             vuelos.append(vuelo)  # Agregar el vuelo a la lista de vuelos
 
-                        print(f"Vuelo {vuelo.codigo} encontrado o creado.")
+                        #print(f"Vuelo {vuelo.codigo} encontrado o creado.")
 
                         # Verificar si ya existe una asociación en TripulanteVuelo
                         tripulante_vuelo_existente = self.db_session.query(TripulanteVuelo).filter_by(
@@ -478,9 +450,10 @@ class Controller:
                             )
                             self.db_session.add(tripulante_vuelo)
                             self.db_session.flush()  # Confirmar la asociación sin hacer commit completo
-                            print(f"Tripulante {tripulante.nombre} asignado al vuelo {vuelo.codigo}.")
+                            #print(f"Tripulante {tripulante.nombre} asignado al vuelo {vuelo.codigo}.")
                     else:
-                        print(f"No hay información para {vuelo_key} en la fila {i}.")
+                        #print(f"No hay información para {vuelo_key} en la fila {i}.")
+                        continue
 
             # Confirmar todos los cambios al final
             self.db_session.commit()
