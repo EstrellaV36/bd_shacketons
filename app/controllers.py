@@ -2,6 +2,7 @@ from datetime import datetime
 import re
 import pandas as pd
 from sqlalchemy.orm import Session
+import traceback
 from sqlalchemy import func
 from PyQt6.QtWidgets import QMessageBox
 from app.models import Buque, Tripulante, Vuelo, EtaCiudad, Viaje, TripulanteVuelo
@@ -19,10 +20,37 @@ CITY_AIRPORT_CODES = {
     'ZAG': 'ZAGREB',
     'AMS': 'AMSTERDAM',
     'EZE': 'BUENOS AIRES',
-    'LUN': 'LUN',
-    'DOH': 'DOH',
-    'PUJ': 'PUJ',
-    'LIM': 'LIM'
+    'LUN': "LUSAKA",  # Kenneth Kaunda International Airport
+    'DOH': "DOHA",    # Hamad International Airport
+    'PUJ': "PUNTA CANA",  # Punta Cana International Airport
+    'LIM': "LIMA",     # Jorge Chávez International Airport
+    'ANF': "ANTOFAGASTA",
+    'IQQ': "IQUIQUE",
+    'CCP': "CONCEPCIÓN",
+    'LSC': "LA SERENA",
+    'ARI': "ARICA",
+    'IPC': "RAPA NUI",
+    'LAX': "LOS ÁNGELES",
+    'JFK': "NUEVA YORK",  # John F. Kennedy International Airport
+    'MAD': "MADRID",  # Adolfo Suárez Madrid–Barajas Airport
+    'LHR': "LONDRES",
+    'DXB': "DUBÁI",
+    'MQP': "MPUMALANGA",  # Mpumalanga International Airport
+    'JNB': "JOHANNESBURGO",  # O.R. Tambo International Airport
+    'LCA': "LÁRNACA",  # Larnaca International Airport
+    'ZRH': "ZÚRICH",  # Zurich Airport
+    'GOX': "GOLFE DE GARABOGAZ",  # Golfe de Garabogaz Airport
+    'TRV': "THIRUVANANTHAPURAM",  # Trivandrum International Airport
+    'PVG': "SHANGHAI",  # Shanghai Pudong International Airport
+    'CGK': "YAKARTA",  # Soekarno-Hatta International Airport
+    'BDS': "BRINDISI",  # Brindisi Airport
+    'GRU': "SÃO PAULO",  # São Paulo/Guarulhos–Governador André Franco Montoro International Airport
+    'NBO': "NAIROBI",  # Jomo Kenyatta International Airport
+    'ICN': "SEÚL",  # Incheon International Airport
+    'HRE': "HARARE",  # Harare International Airport
+    'OTP': "BUCARESTANT",  # Henri Coandă International Airport
+    'AKL': "AUCKLAND",  # Auckland Airport
+    'FCO': "ROMA",  # Aeropuerto Internacional Leonardo da Vinci
 }
 
 # Definir los nombres de las columnas antes de llamar al método
@@ -46,10 +74,10 @@ def buscar_vuelo_id(codigo_vuelo, session):
     vuelo = session.query(Vuelo).filter(Vuelo.codigo.ilike(codigo_vuelo)).first()  # Usando ilike para coincidencias sin distinción entre mayúsculas y minúsculas
 
     if vuelo:
-        print(f"Buque encontrado con el codigo: {vuelo.codigo}")
+        print(f"Vuelo encontrado con el codigo: {vuelo.codigo}")
         return vuelo.codigo
     else:
-        raise ValueError(f"Buque {vuelo.codigo} no encontrado en la base de datos.")
+        raise ValueError(f"Vuelo {vuelo.codigo} no encontrado en la base de datos.")
 
 class Controller:
     def __init__(self, db_session: Session):
@@ -182,7 +210,7 @@ class Controller:
             tripulantes += self._create_tripulantes(tripulantes_off, self.buque_off)
 
             # Crear vuelos ON y OFF
-            #vuelos_on = self._create_vuelos(self.vuelos_internacionales_on, self.tripulantes_on, state='on')
+            vuelos_on = self._create_vuelos(self.vuelos_internacionales_on, self.tripulantes_on, state='on')
             #vuelos_off = self._create_vuelos(self.vuelos_internacionales_off, self.tripulantes_off, state='off')
 
             return self.buque_on, self.buque_off, self.tripulantes_on, self.tripulantes_off
@@ -208,15 +236,11 @@ class Controller:
         partes = vuelo.split()
         
         if len(partes) < 2:
-            #print("ENTRE")
             raise ValueError(f"Formato de vuelo inválido: {vuelo_info[vuelo]}")
 
         codigo_vuelo = partes[0]  # 'AF178' o 'KL702'
         aeropuertos = partes[1]  # 'CDG' o 'SCL'
         aeropuerto_salida, aeropuerto_llegada = aeropuertos.split("-")
-        #aeropuerto_llegada = partes[2]  # 'JFK' o 'AMS'
-        
-        #print(f"{codigo_vuelo} | {aeropuerto_salida} | {aeropuerto_llegada}")
 
         # Obtener la fecha y las horas como objetos datetime
         if tipo_vuelo == 'on':
@@ -230,21 +254,25 @@ class Controller:
         hora_salida = hora_salida.strip()
         hora_llegada = hora_llegada.strip()
 
-        # Verifica si la hora de llegada contiene un '+1' y ajusta la fecha
+        # Verifica si la hora de llegada contiene un '+1' y ajusta la hora
         if '+1' in hora_llegada:
-            fecha_vuelo += pd.Timedelta(days=1)  # Agregar un día a la fecha de vuelo
             hora_llegada = hora_llegada.replace('+1', '').strip()  # Eliminar '+1' de la hora de llegada
+            # Aquí no se modifica la fecha_vuelo, solo se ajusta la hora_llegada
 
         # Convertir las horas de salida y llegada a objetos datetime
         hora_salida = datetime.combine(fecha_vuelo.date(), datetime.strptime(hora_salida, "%H:%M").time())
+        
+        # Convertir la hora de llegada
         hora_llegada = datetime.combine(fecha_vuelo.date(), datetime.strptime(hora_llegada, "%H:%M").time())
+        
+        # Si la hora de llegada era originalmente pasada la medianoche, ajusta para mostrarlo como un día más
+        if '+1' in vuelo_info['hora']:
+            hora_llegada += pd.Timedelta(days=1)  # Esto es solo para el cálculo, pero puedes ajustar el formato al mostrarlo.
 
         # Buscar las ciudades en el diccionario de aeropuertos
         ciudad_salida = CITY_AIRPORT_CODES.get(aeropuerto_salida, "Desconocido")
         ciudad_llegada = CITY_AIRPORT_CODES.get(aeropuerto_llegada, "Desconocido")
 
-        #print(f"{codigo_vuelo} | {ciudad_salida} | {ciudad_llegada} | {fecha_vuelo} | {hora_salida} | {hora_llegada}")
-        
         return {
             'codigo_vuelo': codigo_vuelo,
             'ciudad_salida': ciudad_salida,
@@ -397,36 +425,31 @@ class Controller:
         try:
             # Iterar sobre cada fila del DataFrame de vuelos
             for i, row in vuelos_df.iterrows():
-                #print("ENTRE")
-                #print(f"Row {i}: {row.to_dict()}")  # Imprimir el contenido de la fila
-
-                # Obtener el tripulante correspondiente a la fila actual
-                tripulante_data = tripulantes_df.iloc[i+1]
+                # Obtener el tripulante correspondiente a la fila actual (asegurarse que sea la misma fila)
+                tripulante_data = tripulantes_df.iloc[i]
                 tripulante = self.db_session.query(Tripulante).filter_by(pasaporte=tripulante_data['Pasaporte']).first()
                 
                 if not tripulante:
                     print(f"No se encontró tripulante con pasaporte {tripulante_data['Pasaporte']} en la fila {i}.")
                     continue
 
+                print(f"Tripulante {tripulante.nombre} encontrado para procesar vuelos.")
+
                 # Iterar sobre las claves que representan los vuelos
                 for vuelo_key in row.index:
                     vuelo_info = row[vuelo_key]  # Obtener el diccionario del vuelo
-                    #print(vuelo_info)
-
-                    # Verifica que haya información para el vuelo
-                    if pd.notna(vuelo_info):  # Solo procesar si hay información
-                        
-                        # Llamar a la función _extraer_ciudades_y_horarios
+                    print(vuelo_info)
+                    # Verificar que haya información para el vuelo
+                    if pd.notna(vuelo_info) and isinstance(vuelo_info, dict):  # Solo procesar si hay información y es un diccionario                        # Llamar a la función _extraer_ciudades_y_horarios
                         vuelo_info = self._extraer_ciudades_y_horarios(vuelo_info, state)
-                        #print(vuelo_info) 
-                        # Verificar que vuelo_info no sea None antes de continuar
-                        if vuelo_info is None:
-                            #print(f"Omitiendo vuelo {vuelo_key} en la fila {i} debido a datos faltantes.")
+                        
+                        if vuelo_info is None or 'codigo_vuelo' not in vuelo_info:
+                            print(f"Omitiendo vuelo {vuelo_key} en la fila {i} debido a datos faltantes.")
                             continue
 
                         # Crear o buscar el vuelo en la base de datos
                         vuelo = self.db_session.query(Vuelo).filter_by(codigo=vuelo_info['codigo_vuelo']).first()
-                        #print(f"{vuelo.codigo} | {vuelo_info['codigo_vuelo']}")
+
                         if not vuelo:
                             vuelo = Vuelo(
                                 codigo=vuelo_info['codigo_vuelo'],
@@ -437,11 +460,11 @@ class Controller:
                                 hora_llegada=vuelo_info['hora_llegada'],
                             )
                             self.db_session.add(vuelo)
+                            self.db_session.flush()  # Asegurar que el vuelo esté disponible en la base de datos
                             vuelos.append(vuelo)  # Agregar el vuelo a la lista de vuelos
-                            self.db_session.commit()  # Confirmar la creación del vuelo
-                            #print(f"Vuelo {vuelo.codigo} creado desde {vuelo.aeropuerto_salida} a {vuelo.aeropuerto_llegada}.")
 
-                        print(f"{vuelo}")
+                        print(f"Vuelo {vuelo.codigo} encontrado o creado.")
+
                         # Verificar si ya existe una asociación en TripulanteVuelo
                         tripulante_vuelo_existente = self.db_session.query(TripulanteVuelo).filter_by(
                             tripulante_id=tripulante.tripulante_id, vuelo_id=vuelo.vuelo_id
@@ -454,14 +477,17 @@ class Controller:
                                 vuelo_id=vuelo.vuelo_id
                             )
                             self.db_session.add(tripulante_vuelo)
-                            self.db_session.commit()
-                            #print(f"Tripulante {tripulante.nombre} {tripulante.apellido} asignado al vuelo {vuelo.codigo}.")
-
+                            self.db_session.flush()  # Confirmar la asociación sin hacer commit completo
+                            print(f"Tripulante {tripulante.nombre} asignado al vuelo {vuelo.codigo}.")
                     else:
                         print(f"No hay información para {vuelo_key} en la fila {i}.")
 
+            # Confirmar todos los cambios al final
+            self.db_session.commit()
+
         except Exception as e:
             print(f"Error al crear vuelos o asignar tripulantes: {e}")
+            traceback.print_exc()  # Esto imprime el traceback completo para depurar
             self.db_session.rollback()  # Revertir la sesión en caso de error
 
         return vuelos  # Retornar la lista de vuelos creados
