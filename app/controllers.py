@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 import traceback
 from sqlalchemy import func
 from PyQt6.QtWidgets import QMessageBox
-from app.models import Buque, Tripulante, Vuelo, EtaCiudad, Viaje, TripulanteVuelo, Hotel, TripulanteHotel, Transporte, TripulanteTransporte
+from app.models import Buque, Tripulante, Vuelo, EtaCiudad, Viaje, TripulanteVuelo, Hotel, TripulanteHotel, Restaurante, TripulanteRestaurante, Transporte, TripulanteTransporte
 
 CITY_AIRPORT_CODES = {
     'PUQ': "PUNTA ARENAS",
@@ -60,12 +60,10 @@ buque_off_columns = ['Owner', 'Vessel', 'Date First flight', 'ETA Vessel', 'ETD 
 tripulante_columns = ['First name', 'Last name', 'Gender', 'Nacionalidad', 'Position', 'Pasaporte', 'DOB']
 
 def buscar_buque_id(nombre_buque, session):
-    # Asegúrate de que el campo 'nombre' es el correcto
     buque = session.query(Buque).filter(Buque.nombre.ilike(nombre_buque)).first()  # Usando ilike para coincidencias sin distinción entre mayúsculas y minúsculas
-
     if buque:
         #print(f"Buque encontrado: {nombre_buque} con ID: {buque.buque_id}")
-        return buque.nombre
+        return buque.buque_id
     else:
         raise ValueError(f"Buque {nombre_buque} no encontrado en la base de datos.")
     
@@ -158,7 +156,6 @@ class Controller:
             extras_off = self._extract_extras(excel_data_off, start_row=0, state="off")
             extras_off.reset_index(drop=True, inplace=True)  # Reiniciar el índice
 
-            #print(f"Hotel ON: {hoteles_on.head()}")
             # Almacenar los datos
             self.tripulantes_on = tripulantes_on
             self.tripulantes_off = tripulantes_off
@@ -183,14 +180,18 @@ class Controller:
 
             # Crear tripulantes ON y OFF
             tripulantes = []
-            tripulantes += self._create_tripulantes(tripulantes_on, self.buque_on, self.asistencias_on)
-            tripulantes += self._create_tripulantes(tripulantes_off, self.buque_off, self.asistencias_off)
+            tripulantes += self._create_tripulantes(tripulantes_on, self.buque_on, self.asistencias_on, "on")
+            tripulantes += self._create_tripulantes(tripulantes_off, self.buque_off, self.asistencias_off, "off")
 
             # Crear vuelos ON y OFF
-            self._create_vuelos(self.vuelos_internacionales_on, self.tripulantes_on, state='on')
-            self._create_vuelos(self.vuelos_internacionales_off, self.tripulantes_off, state='off')
+            vuelos_on = self._create_vuelos(self.vuelos_internacionales_on, self.tripulantes_on, state='on')
+            vuelos_off = self._create_vuelos(self.vuelos_internacionales_off, self.tripulantes_off, state='off')
 
             self._create_hotel(self.hoteles_on, self.tripulantes_on)
+            self._create_hotel(self.hoteles_off, self.tripulantes_off)
+
+            self._create_restaurantes(self.restaurantes_on,self.tripulantes_on)
+            self._create_restaurantes(self.restaurantes_off,self.tripulantes_off)
 
             self._create_transporte(self.transportes_on, self.tripulantes_on)
             self._create_transporte(self.transportes_off, self.tripulantes_off)
@@ -199,117 +200,62 @@ class Controller:
 
         except Exception as e:
             raise Exception(f"Error al procesar el archivo: {e}")
-
-    def _create_transporte(self, transportes_df, tripulantes_df):
-        transportes = []  # Lista para almacenar los vuelos creados
-        try:
-            # Verificar que ambos DataFrames no estén vacíos
-            if transportes_df.empty or tripulantes_df.empty:
-                print("No hay vuelos o tripulantes para procesar.")
-                return []
-
-            x=1
-            # Iterar sobre cada fila del DataFrame de vuelos
-            for i, row in transportes_df.iterrows():
-                # Verificar que la fila de tripulantes tenga un índice válido
-                if i >= len(tripulantes_df):
-                    #print(f"No hay datos de tripulante para la fila {i}.")
-                    continue
-
-                # Obtener el tripulante correspondiente a la fila actual
-                tripulante_data = tripulantes_df.iloc[i]
-
-                if pd.isna(tripulante_data['Pasaporte']):
-                    print(f"Pasaporte vacío para el tripulante en la fila {i}. Omitiendo...")
-                    continue
-
-                tripulante = self.db_session.query(Tripulante).filter_by(pasaporte=tripulante_data['Pasaporte']).first()
-                
-                if not tripulante:
-                    print(f"No se encontró tripulante con pasaporte {tripulante_data['Pasaporte']} en la fila {i}.")
-                    continue
-
-                # Iterar sobre las claves que representan los vuelos
-                for transporte_key in row.index:
-                    transporte_info = row[transporte_key]  # Obtener el diccionario del vuelo
-
-                    # Verificar que haya información para el vuelo
-                    if pd.notna(transporte_info) and isinstance(transporte_info, dict):  # Solo procesar si hay información y es un diccionario                        
-                        transporte_info = self._extraer_transportes(transporte_info)
-
-                        for _transporte in transporte_info:
-                            # Verificar que el valor de 'tramo' no sea 'Desconocido'
-                            if _transporte['tramo'] != 'Desconocido':
-                                if transporte_info is None or 'tramo' not in _transporte:
-                                    print(f"Omitiendo transporte {transporte_info} en la fila {i} debido a datos faltantes.")
-                                    continue
-
-                                transporte = self.db_session.query(Transporte).filter_by(nombre=_transporte['tramo']).first()
-                                
-                                if not transporte:
-                                    transporte = Transporte(
-                                        nombre=_transporte['tramo'],
-                                        ciudad="A",
-                                    )
-                                    self.db_session.add(transporte)
-                                    self.db_session.flush()  # Asegurar que el vuelo esté disponible en la base de datos
-                                    transportes.append(transporte)  # Agregar el vuelo a la lista de vuelos
-
-                                tripulante_transporte_existente = self.db_session.query(TripulanteTransporte).filter_by(
-                                    tripulante_id=tripulante.tripulante_id,
-                                    transporte_id=transporte.transporte_id,
-                                ).first()
-
-                                if not tripulante_transporte_existente:
-                                    ciudad = _transporte['ciudad']
-                                    lugar_inicio = _transporte['lugar_inicio']
-                                    lugar_final = _transporte['lugar_final']
-                                    fecha = _transporte['fecha']
-                                    # Asociar el tripulante al vuelo en la tabla intermedia TripulanteVuelo
-                                    tripulante_vuelo = TripulanteTransporte(
-                                        tripulante_id=tripulante.tripulante_id,
-                                        transporte_id=transporte.transporte_id,
-                                        ciudad=ciudad,
-                                        lugar_inicio=lugar_inicio,
-                                        lugar_final=lugar_final,
-                                        fecha=fecha
-                                    )
-                                    self.db_session.add(tripulante_vuelo)
-                                    self.db_session.flush()
-                    else:
-                        continue
-
-            self.db_session.commit()
-
-        except Exception as e:
-            print(f"Error al crear vuelos o asignar tripulantes: {e}")
-            traceback.print_exc()  # Esto imprime el traceback completo para depurar
-            self.db_session.rollback()  # Revertir la sesión en caso de error
-
-        return transportes  # Retornar la lista de vuelos creados
-
-    def _extraer_transportes(self, transporte_info):        
-        transportes_info = []
-
-        if Transporte is None or pd.isna(Transporte):
-            print("Transporte es NaN o None. Omitiendo...")
-            return None
         
-        if transporte_info['Transporte'] != 'Desconocido':
-            tramo = transporte_info['Transporte']
-            ciudad, resto = tramo.split(" ", 1)
-            lugar_inicio, lugar_final = resto.split("-", 1)
-            fecha = transporte_info['Date Pick Up']
+    def _extraer_hoteles_fechas(self, hotel_df):
+        # Inicializa una lista vacía para almacenar información de hoteles
+        hoteles_info = []
 
-            transportes_info.append({
-                'tramo': tramo,
-                'ciudad': ciudad,
-                'lugar_inicio': lugar_inicio,
-                'lugar_final': lugar_final,
-                'fecha': fecha
-            })
-        
-        return transportes_info
+        # Recorre cada fila del DataFrame original
+        for _, row in hotel_df.iterrows():
+            # Inicializa una lista para almacenar la información de hoteles en la fila
+            hotel_entries = []
+
+            # Variable para indicar si se encontró al menos un hotel válido
+            found_valid_hotel = False
+            
+            # Procesar cada hotel en la fila
+            for hotel_key in row.index:
+                hotel_info = row[hotel_key]
+
+                if isinstance(hotel_info, dict):
+                    # Crear un diccionario para la información del hotel
+                    hotel_entry = {
+                        'nombre_hotel': hotel_info.get('nombre_hotel'),
+                        'categoria': hotel_info.get('categoria'),
+                        'ciudad': hotel_info.get('hotel').split()[-1] if 'hotel' in hotel_info else 'Desconocida',
+                        'check_in': hotel_info.get('check_in'),
+                        'check_out': hotel_info.get('check_out'),
+                        'numero_noches': (pd.to_datetime(hotel_info.get('check_out')) - pd.to_datetime(hotel_info.get('check_in'))).days if pd.notna(hotel_info.get('check_in')) and pd.notna(hotel_info.get('check_out')) else 0,
+                        'habitacion': hotel_info.get('habitacion')
+                    }
+
+                    # Agrega la entrada del hotel a la lista
+                    hotel_entries.append(hotel_entry)
+                    found_valid_hotel = True
+            
+            # Si se encontraron hoteles válidos, añade la lista de hoteles a la información del tripulante
+            if found_valid_hotel:
+                # Añadir el primer hotel encontrado como una entrada en el DataFrame
+                hoteles_info.append(hotel_entries)
+            else:
+                # Si no se encontró ningún hotel, añade 'SIN HOTEL'
+                hoteles_info.append([{
+                    'nombre_hotel': 'SIN HOTEL',
+                    'categoria': None,
+                    'ciudad': 'Desconocida',
+                    'check_in': None,
+                    'check_out': None,
+                    'numero_noches': 0,
+                    'habitacion': None
+                }])
+
+        # Crea un DataFrame con la información de hoteles
+        # Expande la lista de hoteles en el DataFrame
+        hoteles_df = pd.DataFrame(hoteles_info)
+        # Mantiene el índice del DataFrame original
+        hoteles_df.index = hotel_df.index
+
+        return hoteles_df
 
     def _extraer_ciudades_y_horarios(self, vuelo_info, tipo_vuelo):        
         vuelo = vuelo_info['vuelo']
@@ -365,7 +311,7 @@ class Controller:
             'hora_llegada': hora_llegada   # Retornar como objeto datetime
         }
     
-    def _create_tripulantes(self, tripulantes_df, buque_df, asistencias_df):
+    def _create_tripulantes(self, tripulantes_df, buque_df, asistencias_df, estado):
         tripulantes = []  # Lista para almacenar los tripulantes creados
         vuelos_tripulante = []  # Lista para almacenar los vuelos asociados a cada tripulante
         try:
@@ -399,6 +345,7 @@ class Controller:
                         pasaporte=row['Pasaporte'],
                         fecha_nacimiento=pd.to_datetime(row['DOB']).date() if not pd.isna(row['DOB']) else None,
                         buque_id=buque_id,
+                        estado=estado
                     )
                     self.db_session.add(tripulante)
                     self.db_session.commit()  # Confirmar la creación del tripulante
@@ -586,91 +533,24 @@ class Controller:
 
             # Confirmar todos los cambios al final
             self.db_session.commit()
-
         except Exception as e:
-            print(f"Error al crear vuelos o asignar tripulantes: {e}")
-            traceback.print_exc()  # Esto imprime el traceback completo para depurar
-            self.db_session.rollback()  # Revertir la sesión en caso de error
-
-        return vuelos  # Retornar la lista de vuelos creados
-    
-    def _extraer_hoteles_fechas(self, hotel_df):
-        hoteles_info = []  # Lista para almacenar la información de los hoteles
-
-        # Iterar sobre cada fila del DataFrame de hoteles
-        for i, row in hotel_df.iterrows():
-            # Iterar sobre las claves que representan los hoteles
-            for hotel_key in row.index:
-                hotel_info = row[hotel_key]  # Obtener la información del hotel
-
-                if isinstance(hotel_info, dict):  # Solo procesar si es un diccionario
-                    # Asignar valores
-                    
-                    hotel_nombre = hotel_info['nombre_hotel'] if pd.notna(hotel_info['nombre_hotel']) else 'Desconocido'
-                    categoria = hotel_info['categoria']
-                    
-                    # Extraer el código de la ciudad del nombre del hotel
-                    ciudad_codigo = hotel_info['hotel'].split()[-1]  # Suponiendo que el formato es "Hotel [CÓDIGO]"
-                    ciudad = CITY_AIRPORT_CODES.get(ciudad_codigo, 'Desconocida')  # Obtener ciudad del diccionario
-
-                    # Obtener las fechas de check-in y check-out
-                    check_in = hotel_info.get('check_in', None)
-                    check_out = hotel_info.get('check_out', None)
-
-                    # Calcular número de noches
-                    if pd.notna(check_in) and pd.notna(check_out):
-                        num_noches = (pd.to_datetime(check_out) - pd.to_datetime(check_in)).days
-                    else:
-                        num_noches = 0  # O definir un valor por defecto si es necesario
-
-                    # Acceder al tipo de habitación desde hotel_info
-                    tipo_habitacion = hotel_info.get('habitacion', None)  # Extraer tipo de habitación
-                    #print(tipo_habitacion)  # Para ver el valor de la habitación extraída
-
-                    # Almacenar la información del hotel en la lista
-                    hoteles_info.append({
-                        'nombre_hotel': hotel_nombre,
-                        'categoria': categoria,
-                        'ciudad': ciudad,
-                        'check_in': check_in,
-                        'check_out': check_out,
-                        'numero_noches': num_noches,
-                        'habitacion': tipo_habitacion  # Añadir el tipo de habitación
-                    })
-                elif pd.isna(hotel_info) or (isinstance(hotel_info, str) and hotel_info.strip() == "SIN HOTEL"):
-                    # Manejar el caso "SIN HOTEL"
-                    hoteles_info.append({
-                        'nombre_hotel': 'SIN HOTEL',
-                        'categoria': None,
-                        'ciudad': 'Desconocida',
-                        'check_in': None,
-                        'check_out': None,
-                        'numero_noches': 0,
-                        'habitacion': None  # Por defecto en este caso
-                    })
-
-        return hoteles_info  # Retornar la lista con la información de los hoteles
+            print(f"Error al crear hoteles o asignar tripulantes: {e}")
+            traceback.print_exc()
+            self.db_session.rollback()
 
     def _create_hotel(self, hotel_df, tripulantes_df):
-        hotels = []  # Lista para almacenar los hoteles creados
         try:
             # Verificar que ambos DataFrames no estén vacíos
             if hotel_df.empty or tripulantes_df.empty:
                 print("No hay hoteles o tripulantes para procesar.")
-                return hotels  # Retornar la lista vacía en caso de no haber datos
+                return
 
-            # Extraer la información de los hoteles utilizando la nueva función
+            # Extraer información de hoteles
             hoteles_info = self._extraer_hoteles_fechas(hotel_df)
+            #print(f"hoteles_info extraida: {hoteles_info}")
 
-            # Iterar sobre cada fila del DataFrame de hoteles
-            for i, row in hotel_df.iterrows():
-                #print(f"Procesando fila {i} del DataFrame de hoteles:")
-                # Verificar que la fila de tripulantes tenga un índice válido
-                if i >= len(tripulantes_df):
-                    continue
-
-                # Obtener el tripulante correspondiente a la fila actual
-                tripulante_data = tripulantes_df.iloc[i]
+            # Asignar hoteles a tripulantes
+            for i, tripulante_data in tripulantes_df.iterrows():
                 if pd.isna(tripulante_data['Pasaporte']):
                     print(f"Pasaporte vacío para el tripulante en la fila {i}. Omitiendo...")
                     continue
@@ -680,80 +560,262 @@ class Controller:
                     print(f"No se encontró tripulante con pasaporte {tripulante_data['Pasaporte']} en la fila {i}.")
                     continue
 
-                #print(hoteles_info)
+                # Obtener la información de hoteles correspondiente al tripulante
+                hotel_entries = hoteles_info.iloc[i] if i < len(hoteles_info) else None
+                
+                if hotel_entries is not None:
+                    for hotel_info in hotel_entries:  # Iterar sobre la lista de hoteles
+                        if hotel_info is None:
+                            #print(f"No hay información de hotel disponible para el tripulante ID {tripulante.tripulante_id}.")
+                            continue  # Omitir si hotel_info es None
 
-                # Iterar sobre la información extraída de los hoteles
-                for hotel_info in hoteles_info:
-                    hotel_nombre = hotel_info['nombre_hotel']
-                    categoria = hotel_info['categoria']
-                    ciudad = hotel_info['ciudad']
-                    check_in = hotel_info['check_in']
-                    check_out = hotel_info['check_out']
-                    num_noches = hotel_info['numero_noches']
-                    tipo_habitacion = hotel_info.get('habitacion')  # Recuperar el tipo de habitación
+                        # Verificar si el nombre del hotel es NaN
+                        hotel_nombre = hotel_info['nombre_hotel']
+                        if pd.isna(hotel_nombre):
+                            #print(f"Nombre de hotel no disponible para el tripulante ID {tripulante.tripulante_id}.")
+                            continue  # Omitir si el nombre del hotel es NaN
 
-                    # Verificar si el hotel ya existe
-                    existing_hotel = self.db_session.query(Hotel).filter_by(nombre=hotel_nombre, ciudad=ciudad).first()
+                        # Normalizar el nombre del hotel para la búsqueda
+                        hotel_nombre_normalizado = hotel_nombre.strip().lower()
+                        #print(f"Verificando existencia del hotel: {hotel_nombre_normalizado}")  # Para depuración
 
-                    if existing_hotel:
-                        hotel = existing_hotel
-                        #print(f"  Hotel existente encontrado: {hotel}")
-                    else:
-                        # Crear el objeto Hotel
-                        hotel = Hotel(
-                            nombre=hotel_nombre,
-                            ciudad=ciudad,
-                        )
-                        # Añadir el hotel a la sesión
-                        self.db_session.add(hotel)
-                        self.db_session.flush()  # Asegúrate de que el hotel tiene un ID antes de asignarlo
-                        print(f"  Hotel creado: {hotel}")
+                        # Comprobar si el hotel ya existe en la base de datos
+                        existing_hotel = self.db_session.query(Hotel).filter(
+                            func.lower(Hotel.nombre) == hotel_nombre_normalizado
+                        ).first()
 
-                    # Verificar si hay un "To Be Confirmed" y si las fechas y el hotel están cambiando
-                    tripulante_hotel = self.db_session.query(TripulanteHotel).filter_by(
-                        tripulante_id=tripulante.tripulante_id,
-                        hotel_id=hotel.hotel_id
-                    ).first()
-
-                    if tripulante_hotel:
-                        # Actualizar si es un hotel TBC
-                        if tripulante_hotel.hotel_id == existing_hotel.hotel_id and existing_hotel.nombre == "TBC":
-                            tripulante_hotel.hotel_id = hotel.hotel_id
-                            tripulante_hotel.fecha_entrada = check_in
-                            tripulante_hotel.fecha_salida = check_out
-                            tripulante_hotel.tipo_habitacion = tipo_habitacion
-                            tripulante_hotel.numero_noches = num_noches
-                            #print(f"  Relación Tripulante-Hotel actualizada: {tripulante_hotel}")
-                    else:
-                        # Verificar que los IDs son válidos antes de crear la relación
-                        fecha_entrada = check_in if pd.notna(check_in) else None
-                        fecha_salida = check_out if pd.notna(check_out) else None
-
-                        if tripulante.tripulante_id is not None and hotel.hotel_id is not None:
-                            # Crear la relación en TripulanteHotel
-                            tripulante_hotel = TripulanteHotel(
-                                tripulante_id=tripulante.tripulante_id,
-                                hotel_id=hotel.hotel_id,
-                                fecha_entrada=fecha_entrada,
-                                fecha_salida=fecha_salida,
-                                tipo_habitacion=tipo_habitacion,  # Asignar el tipo de habitación
-                                numero_noches=num_noches,
-                                categoria=categoria if pd.notna(categoria) else None,
-                                day_room=False
+                        if existing_hotel:
+                            hotel = existing_hotel
+                            #print(f"Hotel existente encontrado: {hotel.nombre}")  # Para depuración
+                        else:
+                            # Crear nuevo hotel si no existe
+                            hotel = Hotel(
+                                nombre=hotel_info['nombre_hotel'],
+                                ciudad=hotel_info['ciudad'],
                             )
+                            self.db_session.add(hotel)
+                            self.db_session.flush()  # Para obtener el ID del hotel recién creado
+                            #print(f"Nuevo hotel creado: {hotel.nombre}")  # Para depuración
 
-                            # Añadir la relación a la sesión
-                            self.db_session.add(tripulante_hotel)
-                            #print(f"  Relación Tripulante-Hotel creada: {tripulante_hotel}")
+                        # Crear relación Tripulante-Hotel, asegurándose de que los valores no sean NaN
+                        nuevo_tripulante_hotel = TripulanteHotel(
+                            tripulante_id=tripulante.tripulante_id,
+                            hotel_id=hotel.hotel_id,
+                            fecha_entrada=hotel_info['check_in'] if pd.notna(hotel_info['check_in']) else None,
+                            fecha_salida=hotel_info['check_out'] if pd.notna(hotel_info['check_out']) else None,
+                            tipo_habitacion=hotel_info['habitacion'] if pd.notna(hotel_info['habitacion']) else None,
+                            numero_noches=int(hotel_info['numero_noches']) if pd.notna(hotel_info['numero_noches']) else 0,
+                            categoria=int(hotel_info['categoria']) if pd.notna(hotel_info['categoria']) else 0,
+                            day_room=False  # O ajusta según sea necesario
+                        )
+                        self.db_session.add(nuevo_tripulante_hotel)
+                        #print(f"Nueva relación Tripulante-Hotel creada: Tripulante ID {tripulante.tripulante_id}, Hotel ID {hotel.hotel_id}")  HAY QUE REVISAR ESTA PARTE PORQUE NO SE SUPONE QUE CREE SIEMPRE LAS MISMAS RELACIONES PERO MIENTRAS SIRVE
+                else:
+                    print(f"No hay hotel válido asignado para el tripulante ID {tripulante.tripulante_id}.")
 
             # Confirmar los cambios en la base de datos
             self.db_session.commit()
-            #print("Todos los cambios han sido confirmados en la base de datos.")
 
         except Exception as e:
             print(f"Error al crear hoteles o asignar tripulantes: {e}")
+            traceback.print_exc()
+            self.db_session.rollback()
+
+    def _create_restaurantes(self, restaurantes_df, tripulantes_df):
+        try:
+            for index in range(len(restaurantes_df)):
+                #print(f"Procesando índice: {index}")  # Línea de depuración para el índice actual
+
+                restaurante_row = restaurantes_df.iloc[index]
+
+                # Obtener el pasaporte del tripulante basado en la fila actual
+                pasaporte_tripulante = tripulantes_df.iloc[index]['Pasaporte']  # Asegúrate de que esta columna exista
+                tripulante = self.db_session.query(Tripulante).filter_by(pasaporte=pasaporte_tripulante).first()
+
+                # Comprobar si se encontró el tripulante
+                if not tripulante:
+                    #print(f"Tripulante no encontrado para el pasaporte: {pasaporte_tripulante}, continuando...")  # Línea de depuración
+                    continue
+
+                # Obtener preferencia alimenticia de cada restaurante
+                preferencia_alimenticia_set = set(
+                    restaurante_row[f'Restaurante {i}']['Preferencia']
+                    for i in range(1, 4)
+                    if f'Restaurante {i}' in restaurante_row and restaurante_row[f'Restaurante {i}'] is not None
+                )
+                #print(f"Tripulante ID: {tripulante.tripulante_id}, Preferencias Alimenticias: {preferencia_alimenticia_set}")  # Línea de depuración
+
+                # Obtener los nombres de los restaurantes a partir del DataFrame
+                nombre_restaurantes = [
+                    restaurante_row[f'Restaurante {i}']['Restaurante']
+                    for i in range(1, 4)
+                    if f'Restaurante {i}' in restaurante_row and restaurante_row[f'Restaurante {i}'] is not None
+                ]
+                #print(f"Nombres de Restaurantes: {nombre_restaurantes}")  # Línea de depuración para los restaurantes
+
+                # Procesar cada servicio de comida
+                for i in range(1, 4):
+                    # Asegúrate de que el nombre del restaurante no sea None
+                    if not nombre_restaurantes[i - 1]:
+                        #print(f"No hay nombre de restaurante para Restaurante {i}, continuando...")
+                        continue
+
+                    servicio_comida = restaurante_row[f'Restaurante {i}']['Servicio Comida']
+                    if pd.isna(servicio_comida):
+                        #print(f"No hay servicio de comida en {nombre_restaurantes[i-1]}, continuando...")  # Línea de depuración
+                        continue
+
+                    # Extraer ciudad y tipo de comida
+                    ciudad_tipo = servicio_comida.split(" ")  # Separar "PUQ Cena" en ["PUQ", "Cena"]
+                    ciudad = ciudad_tipo[0] if len(ciudad_tipo) > 0 else None
+                    tipo_comida = ciudad_tipo[1] if len(ciudad_tipo) > 1 else None
+                    #print(f"Servicio Comida en {nombre_restaurantes[i-1]}: Ciudad = {ciudad}, Tipo de Comida = {tipo_comida}")  # Línea de depuración
+
+                    # Crear o recuperar el restaurante
+                    nombre_restaurante = nombre_restaurantes[i - 1]
+                    restaurante = self.db_session.query(Restaurante).filter_by(nombre=nombre_restaurante).first()
+                    
+                    if not restaurante:
+                        #print(f"Creando nuevo restaurante: {nombre_restaurante} en {ciudad}")  # Línea de depuración
+                        restaurante = Restaurante(nombre=nombre_restaurante, ciudad=ciudad)
+                        self.db_session.add(restaurante)
+                        self.db_session.flush()  # Asegúrate de que el ID se genere antes de continuar
+                    else:
+                        #print(f"Restaurante existente encontrado: {nombre_restaurante}")  # Línea de depuración
+                        continue
+
+                    # Asignar preferencia alimenticia al tripulante si no se ha establecido
+                    if preferencia_alimenticia_set:
+                        preferencia_alimenticia = next(iter(preferencia_alimenticia_set))  # Elegir una preferencia (puedes modificar esto según tus reglas)
+                        # Aquí debes asegurar que el `restaurante` no sea None
+                        if restaurante is not None:  # Crea la relación entre el tripulante y el restaurante
+                            relacion = TripulanteRestaurante(
+                                fecha_reserva=datetime.now(),
+                                tipo_comida=tipo_comida,
+                                tripulante_id=tripulante.tripulante_id,
+                                restaurante_id=restaurante.restaurante_id  # Usa el ID del restaurante existente
+                            )
+                            self.db_session.add(relacion)
+
+            # Guardar cambios en la base de datos
+            self.db_session.commit()
+
+        except Exception as e:
+            print(f"Error al guardar en la base de datos: {e}")
+            self.db_session.rollback()  # Asegúrate de revertir la sesión en caso de error
+
+    def _create_transporte(self, transportes_df, tripulantes_df):
+        transportes = []  # Lista para almacenar los vuelos creados
+        try:
+            # Verificar que ambos DataFrames no estén vacíos
+            if transportes_df.empty or tripulantes_df.empty:
+                print("No hay vuelos o tripulantes para procesar.")
+                return []
+
+            x=1
+            # Iterar sobre cada fila del DataFrame de vuelos
+            for i, row in transportes_df.iterrows():
+                # Verificar que la fila de tripulantes tenga un índice válido
+                if i >= len(tripulantes_df):
+                    #print(f"No hay datos de tripulante para la fila {i}.")
+                    continue
+
+                # Obtener el tripulante correspondiente a la fila actual
+                tripulante_data = tripulantes_df.iloc[i]
+
+                if pd.isna(tripulante_data['Pasaporte']):
+                    print(f"Pasaporte vacío para el tripulante en la fila {i}. Omitiendo...")
+                    continue
+
+                tripulante = self.db_session.query(Tripulante).filter_by(pasaporte=tripulante_data['Pasaporte']).first()
+                
+                if not tripulante:
+                    print(f"No se encontró tripulante con pasaporte {tripulante_data['Pasaporte']} en la fila {i}.")
+                    continue
+
+                # Iterar sobre las claves que representan los vuelos
+                for transporte_key in row.index:
+                    transporte_info = row[transporte_key]  # Obtener el diccionario del vuelo
+
+                    # Verificar que haya información para el vuelo
+                    if pd.notna(transporte_info) and isinstance(transporte_info, dict):  # Solo procesar si hay información y es un diccionario                        
+                        transporte_info = self._extraer_transportes(transporte_info)
+
+                        for _transporte in transporte_info:
+                            # Verificar que el valor de 'tramo' no sea 'Desconocido'
+                            if _transporte['tramo'] != 'Desconocido':
+                                if transporte_info is None or 'tramo' not in _transporte:
+                                    print(f"Omitiendo transporte {transporte_info} en la fila {i} debido a datos faltantes.")
+                                    continue
+
+                                transporte = self.db_session.query(Transporte).filter_by(nombre=_transporte['tramo']).first()
+                                
+                                if not transporte:
+                                    transporte = Transporte(
+                                        nombre=_transporte['tramo'],
+                                        ciudad=_transporte['ciudad'],
+                                    )
+                                    self.db_session.add(transporte)
+                                    self.db_session.flush()  # Asegurar que el vuelo esté disponible en la base de datos
+                                    transportes.append(transporte)  # Agregar el vuelo a la lista de vuelos
+
+                                tripulante_transporte_existente = self.db_session.query(TripulanteTransporte).filter_by(
+                                    tripulante_id=tripulante.tripulante_id,
+                                    transporte_id=transporte.transporte_id,
+                                ).first()
+
+                                if not tripulante_transporte_existente:
+                                    ciudad = _transporte['ciudad']
+                                    lugar_inicio = _transporte['lugar_inicio']
+                                    lugar_final = _transporte['lugar_final']
+                                    fecha = _transporte['fecha']
+                                    # Asociar el tripulante al vuelo en la tabla intermedia TripulanteVuelo
+                                    tripulante_vuelo = TripulanteTransporte(
+                                        tripulante_id=tripulante.tripulante_id,
+                                        transporte_id=transporte.transporte_id,
+                                        ciudad=ciudad,
+                                        lugar_inicio=lugar_inicio,
+                                        lugar_final=lugar_final,
+                                        fecha=fecha
+                                    )
+                                    self.db_session.add(tripulante_vuelo)
+                                    self.db_session.flush()
+                    else:
+                        continue
+
+            self.db_session.commit()
+
+        except Exception as e:
+            print(f"Error al crear vuelos o asignar tripulantes: {e}")
             traceback.print_exc()  # Esto imprime el traceback completo para depurar
-            self.db_session.rollback()  # Revertir los cambios en caso de error
+            self.db_session.rollback()  # Revertir la sesión en caso de error
+
+        return transportes  # Retornar la lista de vuelos creados
+
+    def _extraer_transportes(self, transporte_info):        
+        transportes_info = []
+
+        if Transporte is None or pd.isna(Transporte):
+            print("Transporte es NaN o None. Omitiendo...")
+            return None
+        
+        if transporte_info['Transporte'] != 'Desconocido':
+            tramo = transporte_info['Transporte']
+            ciudad, resto = tramo.split(" ", 1)
+            lugar_inicio, lugar_final = resto.split("-", 1)
+            fecha = transporte_info['Date Pick Up']
+
+            ciudad = CITY_AIRPORT_CODES.get(ciudad)
+
+            transportes_info.append({
+                'tramo': tramo,
+                'ciudad': ciudad,
+                'lugar_inicio': lugar_inicio,
+                'lugar_final': lugar_final,
+                'fecha': fecha
+            })
+        
+        return transportes_info
 
     def _create_viaje(self, tripulante_id, buque_id, equipaje_perdido=False, asistencia_medica=False):
         try:
@@ -858,18 +920,22 @@ class Controller:
         return pd.DataFrame(vuelos)
     
     def _extract_hotels(self, excel_data, start_row, state):
-        hotels = []
+        hotels = []  # Lista para almacenar la información de los hoteles
         
         # Convertir los nombres de las columnas a cadenas y quitar espacios
         hotels_columns = excel_data.loc[start_row].dropna().str.lower().tolist()
 
         # Iterar sobre cada fila, comenzando desde la fila indicada
         for i in range(start_row + 1, excel_data.shape[0]):
-            tripulante_hotels = {}
-            hotel_num = 1
+            tripulante_hotels = {}  # Diccionario para almacenar información del tripulante
+            hotel_num = 1  # Contador de hoteles
+            
+            # Variable para verificar si se encontraron hoteles
+            found_hotels = False
             
             # Iterar sobre las columnas de hoteles hasta que ya no existan
             while True:
+                # Crear los nombres de las columnas esperadas
                 category = 'silver categoria'
                 hotel_col = f'hotel {hotel_num}'
                 check_in_col = f'check in {hotel_num}'
@@ -889,13 +955,14 @@ class Controller:
                     col_idx_rooms = hotels_columns.index(rooms)
                     col_idx_hotel_name = hotels_columns.index(hotel_name)
 
+                    # Obtener información del hotel
                     categoria = excel_data.iloc[i, col_idx_category]
                     hotel = excel_data.iloc[i, col_idx_hotel]
                     check_in = excel_data.iloc[i, col_idx_check_in]
                     check_out = excel_data.iloc[i, col_idx_check_out]
                     habitacion = excel_data.iloc[i, col_idx_rooms]
                     nombre_hotel = excel_data.iloc[i, col_idx_hotel_name]
-                    #print(f"Fila {i}: habitacion = {habitacion}")
+
                     # Si hay información válida en las columnas, agregarla
                     if pd.notna(categoria) and pd.notna(hotel):
                         tripulante_hotels[f'Hotel {hotel_num}'] = {
@@ -906,23 +973,25 @@ class Controller:
                             "habitacion": habitacion,
                             "nombre_hotel": nombre_hotel 
                         }
+                        found_hotels = True  # Se encontró al menos un hotel
 
                     # Incrementar el número de hotel para buscar el siguiente conjunto
                     hotel_num += 1
                 else:
                     break  # Detener la búsqueda si no se encuentra una de las columnas
 
-            # Asegurarse de agregar al tripulante incluso si no tiene hoteles
-            if not tripulante_hotels:  # Si el diccionario está vacío, agregar un mensaje
-                tripulante_hotels['SIN HOTEL'] = {
-                    "categoria": 'SIN HOTEL',
-                    "hotel": 'SIN HOTEL',
+            # Si no se encontraron hoteles, agregar un registro para ese tripulante
+            if not found_hotels:
+                tripulante_hotels['Hotel 1'] = {
+                    "categoria": None,
+                    "hotel": "SIN HOTEL",
                     "check_in": None,
                     "check_out": None,
                     "habitacion": None,
-                    "nombre_hotel": 'SIN HOTEL'
+                    "nombre_hotel": "SIN HOTEL"
                 }
 
+            # Agregar la información del tripulante a la lista de hoteles
             hotels.append(tripulante_hotels)
 
         # Verificar si se encontraron hoteles
@@ -931,7 +1000,8 @@ class Controller:
         else:
             print(f"{len(hotels)} hoteles procesados. ({state})")
             
-        return pd.DataFrame(hotels)
+        return pd.DataFrame(hotels)  # Retornar el DataFrame con la información de hoteles
+
 
     def _extract_flights(self, excel_data, start_row, state):
         vuelos = []
@@ -995,21 +1065,31 @@ class Controller:
                     #print(nro_inter_flight)
 
                     # Si hay información válida en las columnas, agregarla
-                    if pd.notna(nro_inter_flight) or pd.notna(nro_domestic_flight) or pd.notna(nro_regional_flight):
+                    if pd.notna(nro_inter_flight):
                         tripulante_vuelos[f'Vuelo {vuelos_num}'] = {
-                            "nro internat flight": nro_inter_flight,
-                            "date internat flight": pd.to_datetime(date_inter_flight, errors='coerce'),
-                            "hora internat flight": hora_inter_flight,
-                            "nro dom flight": nro_domestic_flight,
-                            "date dom flight": pd.to_datetime(date_domestic_flight, errors='coerce'),
-                            "hora dom flight": hora_domestic_flight,
-                            "nro reg flight": nro_regional_flight,
-                            "date reg flight": pd.to_datetime(date_regional_flight, errors='coerce', dayfirst=True),
-                            "hora reg flight": hora_regional_flight
+                            "vuelo": nro_inter_flight,
+                            "fecha": pd.to_datetime(date_inter_flight, errors='coerce'),
+                            "hora": hora_inter_flight
+                        }
+                        vuelos_num += 1  # Incrementar el número de vuelo para el siguiente
+
+                    if pd.notna(nro_domestic_flight):
+                        tripulante_vuelos[f'Vuelo {vuelos_num}'] = {
+                            "vuelo": nro_domestic_flight,
+                            "fecha": pd.to_datetime(date_domestic_flight, errors='coerce'),
+                            "hora": hora_domestic_flight
+                        }
+                        vuelos_num += 1  # Incrementar el número de vuelo para el siguiente
+
+                    if pd.notna(nro_regional_flight):
+                        tripulante_vuelos[f'Vuelo {vuelos_num}'] = {
+                            "vuelo": nro_regional_flight,
+                            "fecha": pd.to_datetime(date_regional_flight, errors='coerce'),
+                            "hora": hora_regional_flight
                         }
 
                     # Incrementar el vuelo_num para buscar el siguiente conjunto
-                    vuelos_num += 1
+                        vuelos_num = 1
                     break
                 else:
                     break  # Detener la búsqueda si no se encuentra una de las columnas
@@ -1021,7 +1101,8 @@ class Controller:
         # Verificar si se encontraron vuelos
         if len(vuelos) == 0:
             print("No se encontraron vuelos en las filas procesadas.")
-        #else:
+        else:
+            print(tripulante_vuelos)
             #print(f"{len(vuelos)} vuelos procesados. ({state})")
             
         return pd.DataFrame(vuelos)
@@ -1114,7 +1195,6 @@ class Controller:
 
             # Agregar una entrada para el tripulante actual, incluso si no se encontraron transportes
             if not tripulante_transports:
-                # Si no se encontraron transportes, agregar un valor por defecto
                 tripulante_transports[f'Transporte {transports_num}'] = {
                     "Transporte": 'Desconocido',
                     "Date Pick Up": 'Desconocido'
@@ -1122,81 +1202,79 @@ class Controller:
 
             # Agregar los transportes del tripulante a la lista final
             transports.append(tripulante_transports)
-        
-        """x=2
-        for transport in transports:
-            print(f"{transport['Transporte 3']} {x}")
-            x+=1"""
 
         # Verificar si se encontraron transportes
         if len(transports) == 0:
             print("No se encontraron transportes en las filas procesadas.")
-            
+
+        # Asegurar que la función retorne la lista de transportes
         return pd.DataFrame(transports)
-    
+        
     def _extract_restaurants(self, excel_data, start_row, state):
         restaurants = []
         
         # Convertir los nombres de las columnas a cadenas y quitar espacios
         restaurant_columns = excel_data.loc[start_row].dropna().str.lower().tolist()
 
-        # Verificar las columnas con las que estamos trabajando
-        #print("Columnas disponibles:", vuelos_columns)  # Imprimir las columnas para verificar qué se está cargando
-
         # Iterar sobre cada fila, comenzando desde la fila indicada
         for i in range(start_row + 1, excel_data.shape[0]):
             tripulante_restaurants = {}
             restaurants_num = 1
             
-            # Iterar sobre las columnas de vuelos hasta que ya no existan
+            # Iterar sobre las columnas de restaurantes hasta que ya no existan
             while True:
                 prefer_alimento = "prefer. aliment"
                 servicio_comida = f'servicio comida {restaurants_num}'
                 fecha_desde = f'fecha desde {restaurants_num}'
                 fecha_hasta = f'fecha hasta {restaurants_num}'
                 restaurante = f'restaurant {restaurants_num}'
-                #print(assist)
-                    
+                        
                 # Verificar si las columnas existen en el DataFrame
-                if prefer_alimento in restaurant_columns and servicio_comida in restaurant_columns and fecha_desde in restaurant_columns and fecha_hasta in restaurant_columns and restaurante in restaurant_columns:
+                if (prefer_alimento in restaurant_columns and
+                    servicio_comida in restaurant_columns and
+                    fecha_desde in restaurant_columns and
+                    fecha_hasta in restaurant_columns and
+                    restaurante in restaurant_columns):
+                    
                     col_idx_prefer_alimento = restaurant_columns.index(prefer_alimento)
                     col_idx_servicio_comida = restaurant_columns.index(servicio_comida)
                     col_idx_fecha_desde = restaurant_columns.index(fecha_desde)
                     col_idx_fecha_hasta = restaurant_columns.index(fecha_hasta)
                     col_idx_restaurante = restaurant_columns.index(restaurante)
 
-                    prefer_alimento_idx = excel_data.iloc[i, col_idx_prefer_alimento]
-                    servicio_comida_idx = excel_data.iloc[i, col_idx_servicio_comida]
-                    fecha_desde_idx = excel_data.iloc[i, col_idx_fecha_desde]
-                    fecha_hasta_idx = excel_data.iloc[i, col_idx_fecha_hasta]
-                    restaurante_idx = excel_data.iloc[i, col_idx_restaurante]
+                    # Obtener los valores, asignando nulo si no hay información
+                    prefer_alimento_idx = excel_data.iloc[i, col_idx_prefer_alimento] if pd.notna(excel_data.iloc[i, col_idx_prefer_alimento]) else None
+                    servicio_comida_idx = excel_data.iloc[i, col_idx_servicio_comida] if pd.notna(excel_data.iloc[i, col_idx_servicio_comida]) else None
+                    fecha_desde_idx = excel_data.iloc[i, col_idx_fecha_desde] if pd.notna(excel_data.iloc[i, col_idx_fecha_desde]) else None
+                    fecha_hasta_idx = excel_data.iloc[i, col_idx_fecha_hasta] if pd.notna(excel_data.iloc[i, col_idx_fecha_hasta]) else None
+                    restaurante_idx = excel_data.iloc[i, col_idx_restaurante] if pd.notna(excel_data.iloc[i, col_idx_restaurante]) else None
 
-                    # Si hay información válida en las columnas, agregarla
-                    if pd.notna(prefer_alimento_idx) or (pd.notna(servicio_comida_idx) and pd.notna(fecha_desde_idx) and pd.notna(fecha_hasta_idx) and pd.notna(restaurante_idx)):
-                        tripulante_restaurants[f'Restaurante {restaurants_num}'] = {
-                            "Preferencia": prefer_alimento_idx,
-                            "Servicio Comida": servicio_comida_idx,
-                            "Fecha desde": fecha_desde_idx,
-                            "Fecha hasta": fecha_hasta_idx,
-                            "Restaurante": restaurante_idx
-                        }
+                    # Agregar la información incluso si algunos campos son nulos
+                    tripulante_restaurants[f'Restaurante {restaurants_num}'] = {
+                        "Preferencia": prefer_alimento_idx,
+                        "Servicio Comida": servicio_comida_idx,
+                        "Fecha desde": fecha_desde_idx,
+                        "Fecha hasta": fecha_hasta_idx,
+                        "Restaurante": restaurante_idx
+                    }
 
-                    # Incrementar el vuelo_num para buscar el siguiente conjunto
+                    # Incrementar el restaurante_num para buscar el siguiente conjunto
                     restaurants_num += 1
                 else:
                     break  # Detener la búsqueda si no se encuentra una de las columnas
 
-            # Solo agregar el vuelo si se encontraron vuelos válidos para el tripulante
+            # Solo agregar el restaurante si se encontraron datos para el tripulante
             if tripulante_restaurants:
                 restaurants.append(tripulante_restaurants)
 
-        # Verificar si se encontraron vuelos
+        # Verificar si se encontraron restaurantes
         if len(restaurants) == 0:
             print("No se encontraron restaurantes en las filas procesadas.")
         else:
             print(f"{len(restaurants)} restaurantes procesados. ({state})")
             
         return pd.DataFrame(restaurants)
+
     
     def _extract_extras(self, excel_data, start_row, state):
         extras = []
