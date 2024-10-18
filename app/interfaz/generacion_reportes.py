@@ -1,6 +1,6 @@
 import pandas as pd
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QTableWidget, QTableWidgetItem, QComboBox, QFileDialog
-from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QTableWidget, QTableWidgetItem, QComboBox, QFileDialog, QDateEdit
+from PyQt6.QtCore import Qt, QDate
 from app.database import get_db_session
 from app.models import Buque, EtaCiudad, Tripulante, Vuelo, TripulanteVuelo, Restaurante, TripulanteRestaurante, Transporte, TripulanteTransporte, Hotel, TripulanteHotel# Asegúrate de que estos modelos se importen correctamente
 from app.controllers import CITY_AIRPORT_CODES
@@ -125,17 +125,38 @@ class RoomListScreen(QWidget):
     def setup_ui(self):
         layout = QVBoxLayout(self)
 
-        # Cuadro de selección de ciudad dentro de AsistenciasScreen
+        # Cuadro de selección de hotel
         self.combo_hoteles = QComboBox()
-        self.combo_hoteles.addItems(["Hotel", "CABO DE HORNOS", "TBC", "DIEGO DE ALMAGRO", "SIN HOTEL", "Holiday Inn", "Lukataia"])  # Agrega las ciudades al combo box
+        self.combo_hoteles.addItems(["Hotel", "CABO DE HORNOS", "TBC", "DIEGO DE ALMAGRO", "SIN HOTEL", "Holiday Inn", "Lukataia"])
         layout.addWidget(self.combo_hoteles)
 
+        # Cuadro de selección de buque
         self.combo_buques = QComboBox()
-        self.combo_buques.addItems(["Buque", "Silver endeavour", "C-GEAI", "C-FMKB", "Silver Cloud", "Fram", "SYLVIA EARLE"])  # Agrega las ciudades al combo box
+        self.combo_buques.addItems(["Buque", "Silver Endeavour", "C-GEAI", "C-FMKB", "Silver Cloud", "Fram", "SYLVIA EARLE"])
         layout.addWidget(self.combo_buques)
 
+        # Layout horizontal para las fechas
+        layout_filtro = QHBoxLayout()
+
+        # Selector de fecha de inicio
+        self.date_start1 = QDateEdit()
+        self.date_start1.setCalendarPopup(True)
+        self.date_start1.setDate(QDate.currentDate())
+        layout_filtro.addWidget(QLabel("Fecha inicio:"))
+        layout_filtro.addWidget(self.date_start1)
+
+        # Selector de fecha de fin
+        self.date_end1 = QDateEdit()
+        self.date_end1.setCalendarPopup(True)
+        self.date_end1.setDate(QDate.currentDate())
+        layout_filtro.addWidget(QLabel("Fecha fin:"))
+        layout_filtro.addWidget(self.date_end1)
+
+        # Agregar el layout horizontal al layout principal
+        layout.addLayout(layout_filtro)
+
         # Label para mostrar asistencias
-        self.label = QLabel()  # Mover el label aquí para que sea un atributo de la clase
+        self.label = QLabel()
         layout.addWidget(self.label)
 
         # Tabla para mostrar datos
@@ -143,17 +164,17 @@ class RoomListScreen(QWidget):
         layout.addWidget(self.table_widget)
 
         # Botón para generar el Excel
-        button_generar_excel = QPushButton("Generar excel")
-        button_generar_excel.clicked.connect(self.generar_excel_con_ciudad)  # Conectar al método de generación de Excel
+        button_generar_excel = QPushButton("Generar Excel")
+        button_generar_excel.clicked.connect(self.generar_excel_con_ciudad)
         layout.addWidget(button_generar_excel)
 
-        # Botón "Volver" para regresar a la pantalla anterior (Generación de Reportes)
+        # Botón "Volver" para regresar a la pantalla anterior
         button_volver = QPushButton("Volver")
         button_volver.setFixedWidth(100)
         button_volver.clicked.connect(self.volver_a_reportes)
         layout.addWidget(button_volver, alignment=Qt.AlignmentFlag.AlignLeft)
 
-        # Conectar el cambio en el QComboBox a un método
+        # Conectar cambios en los QComboBox
         self.combo_hoteles.currentTextChanged.connect(self.actualizar_datos)
         self.combo_buques.currentTextChanged.connect(self.actualizar_datos)
 
@@ -162,7 +183,8 @@ class RoomListScreen(QWidget):
 
     def generar_excel_con_ciudad(self):
         hotel_seleccionado = self.combo_hoteles.currentText()  # Obtener la ciudad seleccionada
-        self.generar_excel(hotel_seleccionado)  # Llamar a generar_excel con la ciudad seleccionada
+        buque_seleccionado = self.combo_buques.currentText()  # Obtener la ciudad seleccionada
+        self.generar_excel(hotel_seleccionado, buque_seleccionado)  # Llamar a generar_excel con la ciudad seleccionada
 
     def actualizar_datos(self):
         hotel_seleccionado = self.combo_hoteles.currentText()  # Obtiene la ciudad seleccionada
@@ -194,12 +216,14 @@ class RoomListScreen(QWidget):
                 Tripulante.sexo.label("Gender"),
                 Tripulante.nacionalidad.label("Nacionalidad"),
                 Tripulante.posicion.label("Position"),
-                Buque.nombre.label("Buque"),
+                #Buque.nombre.label("Buque"),
+                EtaCiudad.eta.label("ETA"),
                 Tripulante.tripulante_id
             )
             .join(TripulanteHotel, Hotel.hotel_id == TripulanteHotel.hotel_id, isouter=True)
             .join(Tripulante, TripulanteHotel.tripulante_id == Tripulante.tripulante_id, isouter=True)
             .join(Buque, Buque.buque_id == Tripulante.buque_id, isouter=True)
+            .join(EtaCiudad, EtaCiudad.buque_id == Tripulante.buque_id, isouter=True)
         )
 
         # Aplicar filtro solo si no está seleccionado "hotel"
@@ -215,9 +239,9 @@ class RoomListScreen(QWidget):
 
         # Limpiar la tabla
         self.table_widget.setRowCount(0)
-        self.table_widget.setColumnCount(9)  # Número correcto de columnas
+        self.table_widget.setColumnCount(8)  # Número correcto de columnas
         self.table_widget.setHorizontalHeaderLabels(
-            ["First Name", "Last Name", "Gender", "Nacionalidad", "Position", "Check In", "Check Out", "Rooms", "Buque"]
+            ["First Name", "Last Name", "Gender", "Nacionalidad", "Position", "Check In", "Check Out", "Rooms", "ETA"]
         )
 
         #print(roomlist_query)
@@ -238,13 +262,13 @@ class RoomListScreen(QWidget):
             # Check Out
             self.table_widget.setItem(row, 6, QTableWidgetItem(str(roomlist.check_out) if roomlist.check_out else "Sin fecha"))
             # Rooms
-            self.table_widget.setItem(row, 7, QTableWidgetItem(str(roomlist.Rooms) if roomlist.Rooms else "Sin fecha"))
-            # Buque
-            self.table_widget.setItem(row, 8, QTableWidgetItem(str(roomlist.Buque)))  # Buque
-            
+            self.table_widget.setItem(row, 7, QTableWidgetItem(str(roomlist.Rooms) if roomlist.Rooms else "Sin habitación"))
 
-    def generar_excel(self, hotel_seleccionado):
-    # Crear un DataFrame con los datos de la tabla
+            self.table_widget.setItem(row, 8, QTableWidgetItem(str(roomlist.ETA)))  # Position
+
+
+    def generar_excel(self, hotel_seleccionado, buque_seleccionado):
+        # Crear un DataFrame con los datos de la tabla
         data = []
 
         for row in range(self.table_widget.rowCount()):
@@ -255,14 +279,24 @@ class RoomListScreen(QWidget):
             data.append(row_data)
 
         # Definir los nombres de las columnas
-        column_names = ["First Name", "Last Name", "Gender", "Nacionalidad", "Position", "Check In", "Check Out", "Rooms"]
+        column_names = [self.table_widget.horizontalHeaderItem(i).text() for i in range(self.table_widget.columnCount())]
 
         # Convertir a DataFrame
         df = pd.DataFrame(data, columns=column_names)
 
-        # Construir el nombre del archivo Excel
-        file_name = f'room_list_{hotel_seleccionado}.xlsx'
-        
+        # Construir el nombre del archivo Excel con condiciones
+        file_name_parts = ["room_list"]
+        print(file_name_parts)
+        print(hotel_seleccionado)
+        print(buque_seleccionado)
+        if hotel_seleccionado.lower() != "hotel" and hotel_seleccionado.lower() not in file_name_parts:
+            file_name_parts.append(hotel_seleccionado)
+        if buque_seleccionado.lower() != "buque" and buque_seleccionado.lower() not in file_name_parts:
+            file_name_parts.append(buque_seleccionado)
+
+        # Unir las partes del nombre del archivo con guiones bajos
+        file_name = "_".join(file_name_parts) + ".xlsx"
+
         # Guardar en un archivo Excel
         file_path, _ = QFileDialog.getSaveFileName(
             self, 
@@ -270,19 +304,32 @@ class RoomListScreen(QWidget):
             file_name,  # Usar el nombre del archivo predefinido
             "Excel Files (*.xlsx);;All Files (*)"
         )
-        
+
         if file_path:
             # Crear un nuevo libro de trabajo de Excel
             wb = Workbook()
             ws = wb.active
 
+            cell = ws.cell(row=1, column=1)
+            cell.value = "VESSEL"
+            cell = ws.cell(row=1, column=2)
+            if buque_seleccionado.lower() != "buque":
+                cell.value = buque_seleccionado
+            else:
+                cell.value = "Todos"
+
+            cell = ws.cell(row=2, column=1)
+            cell.value = "NOMBRE HOTEL"
+            cell = ws.cell(row=2, column=2)
+            if hotel_seleccionado.lower() != "hotel":
+                cell.value = hotel_seleccionado
+            else:
+                cell.value = "Todos"
+
             # Definir el color de relleno para los encabezados (celeste claro)
             header_fill = PatternFill(start_color='ADD8E6', end_color='ADD8E6', fill_type='solid')
             # Definir el color de relleno para los datos (amarillo claro)
             data_fill = PatternFill(start_color='FFFF99', end_color='FFFF99', fill_type='solid')
-
-            cell = ws.cell(row=1, column=1)
-            cell.value = "HOLA"
 
             # Escribir los encabezados del DataFrame manualmente
             for col_num, col_name in enumerate(column_names, 1):
