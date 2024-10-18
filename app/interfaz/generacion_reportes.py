@@ -2,7 +2,7 @@ import pandas as pd
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QTableWidget, QTableWidgetItem, QComboBox, QFileDialog
 from PyQt6.QtCore import Qt
 from app.database import get_db_session
-from app.models import Buque, EtaCiudad, Tripulante, Vuelo, TripulanteVuelo # Asegúrate de que estos modelos se importen correctamente
+from app.models import Buque, EtaCiudad, Tripulante, Vuelo, TripulanteVuelo, Restaurante, TripulanteRestaurante# Asegúrate de que estos modelos se importen correctamente
 from app.controllers import CITY_AIRPORT_CODES
 from openpyxl.styles import PatternFill
 from openpyxl import Workbook
@@ -110,6 +110,23 @@ class AsistenciasScreen(QWidget):
     def cargar_datos(self, ciudad_seleccionada):
         session = get_db_session()  # Obtener la sesión de la base de datos
 
+        # Genera y muestra la consulta
+        query = (
+            session.query(
+                Vuelo.aeropuerto_salida.label("Aeropuerto_Salida"),
+                Vuelo.hora_salida.label("Hora_Salida"),
+                Vuelo.codigo.label("Nro_Vuelo_Salida"),
+                Vuelo.fecha.label("Fecha_Vuelo_Salida"),
+                Tripulante.tripulante_id
+            )
+            .outerjoin(TripulanteVuelo, TripulanteVuelo.tripulante_id == Tripulante.tripulante_id)
+            .outerjoin(Vuelo, TripulanteVuelo.vuelo_id == Vuelo.vuelo_id)
+            .filter(func.lower(Vuelo.aeropuerto_salida) == ciudad_seleccionada)
+        )
+
+        print(str(query))
+        salida_vuelos = query.all()
+
         # Obtener el nombre de la ciudad a partir del código
         ciudad_seleccionada = CITY_AIRPORT_CODES.get(ciudad_seleccionada).lower()  # Convertir a minúsculas
 
@@ -118,93 +135,90 @@ class AsistenciasScreen(QWidget):
             session.query(
                 Buque.nombre.label("Vessel"),
                 Vuelo.aeropuerto_llegada.label("Aeropuerto_Llegada"),
-                EtaCiudad.eta.label("ETA"),  
+                EtaCiudad.eta.label("ETA"),
                 Vuelo.hora_llegada.label("Hora_Arribo"),
                 Tripulante.nombre.label("First_Name"),
                 Tripulante.apellido.label("Last_Name"),
                 Tripulante.estado.label("Type"),
                 Vuelo.codigo.label("Nro_Vuelo_Arribo"),
-                Vuelo.fecha.label("Fecha_Vuelo_Arribo")  # Asegúrate de que este campo exista
+                Tripulante.tripulante_id,
+                Vuelo.fecha.label("Fecha_Vuelo_Arribo")
             )
             .outerjoin(TripulanteVuelo, TripulanteVuelo.tripulante_id == Tripulante.tripulante_id)
             .outerjoin(Vuelo, TripulanteVuelo.vuelo_id == Vuelo.vuelo_id)
-            .outerjoin(Buque, Tripulante.buque_id == Buque.buque_id) 
-            .outerjoin(EtaCiudad, Buque.buque_id == EtaCiudad.buque_id)  # Asegúrate de que Buque tenga un buque_id
-            .filter(func.lower(Vuelo.aeropuerto_llegada) == ciudad_seleccionada)  
+            .outerjoin(Buque, Tripulante.buque_id == Buque.buque_id)
+            .outerjoin(EtaCiudad, Buque.buque_id == EtaCiudad.buque_id)
+            .filter(func.lower(Vuelo.aeropuerto_llegada) == ciudad_seleccionada)
             .all()
         )
+        
         # Obtener datos de vuelos de salida
         salida_vuelos = (
             session.query(
-                Buque.nombre.label("Vessel"),
-                Vuelo.aeropuerto_salida.label("Aeropuerto Salida"),
-                EtaCiudad.eta.label("ETA"),  
+                Vuelo.aeropuerto_salida.label("Aeropuerto_Salida"),
                 Vuelo.hora_salida.label("Hora_Salida"),
-                Tripulante.nombre.label("First_Name"),
-                Tripulante.apellido.label("Last_Name"),
-                Tripulante.estado.label("Type"),
                 Vuelo.codigo.label("Nro_Vuelo_Salida"),
-                Vuelo.fecha.label("Fecha_Vuelo_Salida")  # Asegúrate de que este campo exista
-
+                Vuelo.fecha.label("Fecha_Vuelo_Salida"),
+                Tripulante.tripulante_id  # Incluir el tripulante_id
             )
             .outerjoin(TripulanteVuelo, TripulanteVuelo.tripulante_id == Tripulante.tripulante_id)
             .outerjoin(Vuelo, TripulanteVuelo.vuelo_id == Vuelo.vuelo_id)
-            .outerjoin(Buque, Tripulante.buque_id == Buque.buque_id)  # Ajuste aquí
-            .outerjoin(EtaCiudad, Buque.buque_id == EtaCiudad.buque_id)  # Asegúrate de que Buque tenga un buque_id
-            .filter(func.lower(Vuelo.aeropuerto_salida) == ciudad_seleccionada)  
+            .filter(func.lower(Vuelo.aeropuerto_salida) == ciudad_seleccionada)
             .all()
         )
+
         # Limpiar la tabla
         self.table_widget.setRowCount(0)
-        self.table_widget.setColumnCount(11)  # Número de columnas
+        self.table_widget.setColumnCount(18)  # Número correcto de columnas
         self.table_widget.setHorizontalHeaderLabels(
-            ["Vessel", "ETA", "First Name", "Last Name", "Type",
-            "Nro Vuelo Arribo", "Fecha Vuelo Arribo", "Hora Arribo",
-            "Nro Vuelo Salida", "Fecha Vuelo Salida", "Hora Vuelo Salida"]
+            ["Vessel", "ETA", "First Name", "Last Name", "Type", "Asistencia", "COLACION", 
+            "COMIDAS", "Nro Vuelo Arribo", "Fecha Vuelo Arribo", 
+            "Hora Arribo", "Hotel", "Habitación", "Date Pick Up", 
+            "Hora Pick Up", "Nro Vuelo Salida", "Fecha Vuelo Salida", 
+            "Hora Vuelo Salida"]
         )
 
         # Combinar y llenar la tabla
         for arribo in arribo_vuelos:
-            # Buscar un vuelo de salida correspondiente
-            salida = next((s for s in salida_vuelos if s.First_Name == arribo.First_Name and s.Last_Name == arribo.Last_Name), None)
+            # Buscar un vuelo de salida correspondiente usando el tripulante_id
+            salida = next((s for s in salida_vuelos if s.tripulante_id == arribo.tripulante_id), None)
+            
+            row = self.table_widget.rowCount()
+            self.table_widget.insertRow(row)
+            # Datos de arribo
+            self.table_widget.setItem(row, 0, QTableWidgetItem(str(arribo.Vessel)))  # Vessel
+            self.table_widget.setItem(row, 1, QTableWidgetItem(str(arribo.ETA)))  # ETA
+            self.table_widget.setItem(row, 2, QTableWidgetItem(str(arribo.First_Name)))  # First Name
+            self.table_widget.setItem(row, 3, QTableWidgetItem(str(arribo.Last_Name)))  # Last Name
+            self.table_widget.setItem(row, 4, QTableWidgetItem(str(arribo.Type)))  # Type
+            self.table_widget.setItem(row, 8, QTableWidgetItem(str(arribo.Nro_Vuelo_Arribo)))  # Nro Vuelo Arribo
+            self.table_widget.setItem(row, 9, QTableWidgetItem(str(arribo.Fecha_Vuelo_Arribo)))  # Fecha Vuelo Arribo
+            self.table_widget.setItem(row, 10, QTableWidgetItem(str(arribo.Hora_Arribo)))  # Hora Arribo
+            
+            # Datos de asistencia
+            asistencia = arribo.necesita_asistencia_puq if ciudad_seleccionada == 'puq' else \
+                        arribo.necesita_asistencia_scl if ciudad_seleccionada == 'scl' else \
+                        arribo.necesita_asistencia_wpu if ciudad_seleccionada == 'wpu' else False
+            self.table_widget.setItem(row, 5, QTableWidgetItem("Sí" if asistencia else "No"))  # Asistencia
 
-            self.table_widget.insertRow(self.table_widget.rowCount())
-            self.table_widget.setItem(self.table_widget.rowCount() - 1, 0, QTableWidgetItem(str(arribo.Vessel)))
-            self.table_widget.setItem(self.table_widget.rowCount() - 1, 1, QTableWidgetItem(str(arribo.ETA)))  # Usar la fecha de recalada
-            self.table_widget.setItem(self.table_widget.rowCount() - 1, 2, QTableWidgetItem(str(arribo.First_Name)))
-            self.table_widget.setItem(self.table_widget.rowCount() - 1, 3, QTableWidgetItem(str(arribo.Last_Name)))
-            self.table_widget.setItem(self.table_widget.rowCount() - 1, 4, QTableWidgetItem(str(arribo.Type)))
-            self.table_widget.setItem(self.table_widget.rowCount() - 1, 5, QTableWidgetItem(str(arribo.Nro_Vuelo_Arribo)))
-            self.table_widget.setItem(self.table_widget.rowCount() - 1, 6, QTableWidgetItem(str(arribo.Fecha_Vuelo_Arribo)))
-            self.table_widget.setItem(self.table_widget.rowCount() - 1, 7, QTableWidgetItem(str(arribo.Hora_Arribo)))
+            # Datos de "Comida" y "Hotel"
+            reserva_restaurante = (
+                session.query(TripulanteRestaurante)
+                .join(Restaurante, TripulanteRestaurante.restaurante_id == Restaurante.restaurante_id)
+                .filter(TripulanteRestaurante.tripulante_id == arribo.tripulante_id)
+                .filter(func.lower(Restaurante.ciudad) == ciudad_seleccionada)
+                .first()
+            )
+            self.table_widget.setItem(row, 7, QTableWidgetItem("Sí" if reserva_restaurante else "No"))  # Comidas
 
-            # Si hay un vuelo de salida, añadirlo a la fila
+            # Si hay vuelo de salida, se añaden los detalles
             if salida:
-                self.table_widget.setItem(self.table_widget.rowCount() - 1, 8, QTableWidgetItem(str(salida.Nro_Vuelo_Salida)))
-                self.table_widget.setItem(self.table_widget.rowCount() - 1, 9, QTableWidgetItem(str(salida.Fecha_Vuelo_Salida)))
-                self.table_widget.setItem(self.table_widget.rowCount() - 1, 10, QTableWidgetItem(str(salida.Hora_Salida)))
+                print(f"Vuelo de salida encontrado para {arribo.First_Name} {arribo.Last_Name}: {salida.Nro_Vuelo_Salida}, {salida.Fecha_Vuelo_Salida}, {salida.Hora_Salida}")
+                self.table_widget.setItem(row, 15, QTableWidgetItem(str(salida.Nro_Vuelo_Salida)))  # Nro Vuelo Salida
+                self.table_widget.setItem(row, 16, QTableWidgetItem(str(salida.Fecha_Vuelo_Salida)))  # Fecha Vuelo Salida
+                self.table_widget.setItem(row, 17, QTableWidgetItem(str(salida.Hora_Salida)))  # Hora Salida
             else:
-                # Dejar los campos vacíos si no hay vuelo de salida
-                self.table_widget.setItem(self.table_widget.rowCount() - 1, 8, QTableWidgetItem(""))
-                self.table_widget.setItem(self.table_widget.rowCount() - 1, 9, QTableWidgetItem(""))
-                self.table_widget.setItem(self.table_widget.rowCount() - 1, 10, QTableWidgetItem(""))
-
-        # También puedes agregar los vuelos de salida si no están en arribo
-        for salida in salida_vuelos:
-            # Si no se ha agregado un vuelo de arribo correspondiente
-            if not any(arr.First_Name == salida.First_Name and arr.Last_Name == salida.Last_Name for arr in arribo_vuelos):
-                self.table_widget.insertRow(self.table_widget.rowCount())
-                self.table_widget.setItem(self.table_widget.rowCount() - 1, 0, QTableWidgetItem(str(salida.Vessel)))
-                self.table_widget.setItem(self.table_widget.rowCount() - 1, 1, QTableWidgetItem(""))  # No hay ETA aquí
-                self.table_widget.setItem(self.table_widget.rowCount() - 1, 2, QTableWidgetItem(str(salida.First_Name)))
-                self.table_widget.setItem(self.table_widget.rowCount() - 1, 3, QTableWidgetItem(str(salida.Last_Name)))
-                self.table_widget.setItem(self.table_widget.rowCount() - 1, 4, QTableWidgetItem(str(salida.Type)))
-                self.table_widget.setItem(self.table_widget.rowCount() - 1, 5, QTableWidgetItem(""))
-                self.table_widget.setItem(self.table_widget.rowCount() - 1, 6, QTableWidgetItem(""))
-                self.table_widget.setItem(self.table_widget.rowCount() - 1, 7, QTableWidgetItem(""))
-                self.table_widget.setItem(self.table_widget.rowCount() - 1, 8, QTableWidgetItem(str(salida.Nro_Vuelo_Salida)))
-                self.table_widget.setItem(self.table_widget.rowCount() - 1, 9, QTableWidgetItem(str(salida.Fecha_Vuelo_Salida)))
-                self.table_widget.setItem(self.table_widget.rowCount() - 1, 10, QTableWidgetItem(str(salida.Hora_Salida)))
+                print(f"No se encontró vuelo de salida para {arribo.First_Name} {arribo.Last_Name}")
 
 
     def generar_excel(self, ciudad_seleccionada):

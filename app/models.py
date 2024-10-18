@@ -52,6 +52,8 @@ class Tripulante(Base):
     necesita_asistencia_scl: Mapped[bool] = mapped_column(Boolean, default=False)
     necesita_asistencia_wpu: Mapped[bool] = mapped_column(Boolean, default=False)
     pref_alimenticia: Mapped[Optional[str]] = mapped_column(String, default='NORMAL')
+    estado: Mapped[str] = mapped_column(String, nullable=False)  # Añadido para diferenciar ON/OFF
+
 
     buque_id: Mapped[Optional[int]] = mapped_column(ForeignKey("buques.buque_id"))
     tipo: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
@@ -62,12 +64,13 @@ class Tripulante(Base):
     
     # Relación a través de la tabla intermedia TripulanteHotel
     tripulante_hotels: Mapped[list["TripulanteHotel"]] = relationship("TripulanteHotel", back_populates="tripulante")
+    tripulante_transports: Mapped[list["TripulanteTransporte"]] = relationship("TripulanteTransporte", back_populates="tripulante")
     tripulante_restaurantes: Mapped[list["TripulanteRestaurante"]] = relationship("TripulanteRestaurante", back_populates="tripulante")
     transportes: Mapped[list["Transporte"]] = relationship(back_populates="tripulante")
     viajes: Mapped[list["Viaje"]] = relationship(back_populates="tripulante")
 
     def __repr__(self):
-        return f"Tripulante(id={self.tripulante_id}, nombre={self.nombre}, apellido={self.apellido})"
+        return f"Tripulante(id={self.tripulante_id}, nombre={self.nombre}, apellido={self.apellido}, buque={self.buque_id})"
 
 #-----------  TABLA AÑADIDA PARA MANEJAR MULTIPLES TRIPULANTES POR VUELO ----------
 class TripulanteVuelo(Base):
@@ -162,27 +165,42 @@ class Restaurante(Base):
     def __repr__(self):
         return f"Restaurante(id={self.restaurante_id}, nombre={self.nombre}, ciudad={self.ciudad})"
 
+class TripulanteTransporte(Base):
+    __tablename__ = "tripulante_transporte"
+
+    tripulante_transporte_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    tripulante_id: Mapped[int] = mapped_column(ForeignKey("tripulantes.tripulante_id"), nullable=False)
+    transporte_id: Mapped[int] = mapped_column(ForeignKey("transportes.transporte_id"), nullable=False)
+    
+    ciudad: Mapped[str] = mapped_column(String, nullable=True, default=None)  # Cambiado a String
+    lugar_inicio: Mapped[str] = mapped_column(String, nullable=True, default=None)
+    lugar_final: Mapped[str] = mapped_column(String, nullable=True, default=None)
+    fecha: Mapped[date] = mapped_column(Date, nullable=True, default=None)
+    
+    # Relaciones con Tripulante y Transporte
+    tripulante: Mapped["Tripulante"] = relationship("Tripulante", back_populates="tripulante_transports")
+    transporte: Mapped["Transporte"] = relationship("Transporte", back_populates="tripulante_transports")
+
+    def __repr__(self):
+        return f"TripulanteTransporte(tripulante_id={self.tripulante_id}, transporte_id={self.transporte_id})"
+
 class Transporte(Base):
     __tablename__ = "transportes"
 
     transporte_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    nombre: Mapped[str] = mapped_column(String, nullable=False)
+    nombre: Mapped[str] = mapped_column(String, nullable=True)
     ciudad: Mapped[str] = mapped_column(String, nullable=False)
 
-    tipo: Mapped[str] = mapped_column(String, nullable=True, default=None)
-    empresa: Mapped[str] = mapped_column(String, nullable=True, default=None)
-    capacidad: Mapped[int] = mapped_column(Integer, nullable=True, default=None)
-    fecha_transporte: Mapped[datetime] = mapped_column(nullable=True, default=None)
-    hora_recogida: Mapped[datetime] = mapped_column(nullable=True, default=None)
-    hora_salida: Mapped[datetime] = mapped_column(nullable=True, default=None)
-    hora_llegada: Mapped[datetime] = mapped_column(nullable=True, default=None)
-
     tripulante_id: Mapped[int] = mapped_column(ForeignKey("tripulantes.tripulante_id"), nullable=True)
-
+    
+    # Relación con Tripulante, si se quiere un tripulante asignado directamente
     tripulante: Mapped["Tripulante"] = relationship(back_populates="transportes")
 
+    # Relación con TripulanteTransporte para la relación uno a muchos
+    tripulante_transports: Mapped[list["TripulanteTransporte"]] = relationship("TripulanteTransporte", back_populates="transporte")
+
     def __repr__(self):
-        return f"Transporte(id={self.transporte_id}, tipo={self.tipo}, empresa={self.empresa})"
+        return f"Transporte(id={self.transporte_id}, nombre={self.nombre}, ciudad={self.ciudad})"
 
 class Viaje(Base):
     __tablename__ = "viajes"
