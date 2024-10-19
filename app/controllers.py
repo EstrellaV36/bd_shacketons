@@ -109,6 +109,10 @@ class Controller:
             asistencias_on = self._extract_assists(excel_data_on, start_row=0, state="on")
             asistencias_on.reset_index(drop=True, inplace=True)  # Reiniciar el índice
 
+            #Procesar vuelos ON
+            vuelos_on = self._extract_flights(excel_data_on, start_row=0, state="on")
+            vuelos_on.reset_index(drop=True, inplace=True)  # Reiniciar el índice
+
             #Procesar transportes ON
             transportes_on = self._extract_transports(excel_data_on, start_row=0, state="on")
             transportes_on.reset_index(drop=True, inplace=True)  # Reiniciar el índice
@@ -144,6 +148,10 @@ class Controller:
             asistencias_off = self._extract_assists(excel_data_off, start_row=0, state="off")
             asistencias_off.reset_index(drop=True, inplace=True)  # Reiniciar el índice
 
+            #Procesar vuelos OFF
+            vuelos_off = self._extract_flights(excel_data_off, start_row=0, state="on")
+            vuelos_off.reset_index(drop=True, inplace=True)  # Reiniciar el índice
+
             #Procesar transporte OFF
             transportes_off = self._extract_transports(excel_data_off, start_row=0, state="off")
             transportes_off.reset_index(drop=True, inplace=True)  # Reiniciar el índice
@@ -167,6 +175,8 @@ class Controller:
             self.hoteles_off = hoteles_off
             self.asistencias_on = asistencias_on
             self.asistencias_off = asistencias_off
+            self.vuelos_on = vuelos_on
+            self.vuelos_off = vuelos_off
             self.transportes_on = transportes_on
             self.transportes_off = transportes_off
             self.restaurantes_on = restaurantes_on
@@ -184,8 +194,8 @@ class Controller:
             tripulantes += self._create_tripulantes(tripulantes_off, self.buque_off, self.asistencias_off, "off")
 
             # Crear vuelos ON y OFF
-            vuelos_on = self._create_vuelos(self.vuelos_internacionales_on, self.tripulantes_on, state='on')
-            vuelos_off = self._create_vuelos(self.vuelos_internacionales_off, self.tripulantes_off, state='off')
+            self._create_vuelos(self.vuelos_internacionales_on, self.tripulantes_on, state='on')
+            self._create_vuelos(self.vuelos_internacionales_off, self.tripulantes_off, state='off')
 
             self._create_hotel(self.hoteles_on, self.tripulantes_on)
             self._create_hotel(self.hoteles_off, self.tripulantes_off)
@@ -195,6 +205,9 @@ class Controller:
 
             self._create_transporte(self.transportes_on, self.tripulantes_on)
             self._create_transporte(self.transportes_off, self.tripulantes_off)
+
+            print(vuelos_internacionales_on.head())
+            print(vuelos_on.head())
 
             return self.buque_on, self.buque_off, self.tripulantes_on, self.tripulantes_off
 
