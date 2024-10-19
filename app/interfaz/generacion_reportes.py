@@ -1,12 +1,13 @@
 import pandas as pd
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QTableWidget, QTableWidgetItem, QComboBox, QFileDialog, QDateEdit
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QTableWidget, QTableWidgetItem, QComboBox, QFileDialog, QDateEdit, QCheckBox
 from PyQt6.QtCore import Qt, QDate
 from app.database import get_db_session
 from app.models import Buque, EtaCiudad, Tripulante, Vuelo, TripulanteVuelo, Restaurante, TripulanteRestaurante, Transporte, TripulanteTransporte, Hotel, TripulanteHotel# Asegúrate de que estos modelos se importen correctamente
 from app.controllers import CITY_AIRPORT_CODES
 from openpyxl.styles import PatternFill
 from openpyxl import Workbook
-from sqlalchemy import func
+from datetime import datetime, time
+from sqlalchemy import func, and_
 
 
 class GeneracionReportesScreen(QWidget):
@@ -135,6 +136,11 @@ class RoomListScreen(QWidget):
         self.combo_buques.addItems(["Buque", "Silver Endeavour", "C-GEAI", "C-FMKB", "Silver Cloud", "Fram", "SYLVIA EARLE"])
         layout.addWidget(self.combo_buques)
 
+        self.check_fecha = QCheckBox("Habilitar filtro por fechas")
+        self.check_fecha.setChecked(False)  # Inicialmente deshabilitado
+        self.check_fecha.stateChanged.connect(self.actualizar_datos)  # Conectar evento de cambio de estado
+        layout.addWidget(self.check_fecha)
+
         # Layout horizontal para las fechas
         layout_filtro = QHBoxLayout()
 
@@ -177,6 +183,8 @@ class RoomListScreen(QWidget):
         # Conectar cambios en los QComboBox
         self.combo_hoteles.currentTextChanged.connect(self.actualizar_datos)
         self.combo_buques.currentTextChanged.connect(self.actualizar_datos)
+        self.date_start1.dateChanged.connect(self.actualizar_datos)
+        self.date_end1.dateChanged.connect(self.actualizar_datos)
 
         # Actualizar datos inicialmente
         self.actualizar_datos()
@@ -201,8 +209,9 @@ class RoomListScreen(QWidget):
         hotel_seleccionado = hotel_seleccionado.lower()
         buque_seleccionado = buque_seleccionado.lower()
 
-        #print(hotel_seleccionado)
-        #print(buque_seleccionado)
+        # Obtener las fechas seleccionadas en QDateEdit
+        fecha_inicio = self.date_start1.date().toPyDate()  # Convertir a objeto de fecha de Python
+        fecha_fin = datetime.combine(self.date_end1.date().toPyDate(), time.max)  # Combinar con la hora máxima del día
 
         # Construir la consulta de roomlist
         roomlist_query = (
@@ -216,17 +225,21 @@ class RoomListScreen(QWidget):
                 Tripulante.sexo.label("Gender"),
                 Tripulante.nacionalidad.label("Nacionalidad"),
                 Tripulante.posicion.label("Position"),
-                #Buque.nombre.label("Buque"),
-                EtaCiudad.eta.label("ETA"),
                 Tripulante.tripulante_id
             )
-            .join(TripulanteHotel, Hotel.hotel_id == TripulanteHotel.hotel_id, isouter=True)
-            .join(Tripulante, TripulanteHotel.tripulante_id == Tripulante.tripulante_id, isouter=True)
-            .join(Buque, Buque.buque_id == Tripulante.buque_id, isouter=True)
-            .join(EtaCiudad, EtaCiudad.buque_id == Tripulante.buque_id, isouter=True)
+            .join(Buque, Buque.buque_id == Tripulante.buque_id)
+            .filter(Tripulante.buque_id == EtaCiudad.buque_id)
+            .filter(Tripulante.tripulante_id == EtaCiudad.tripulante_id)
+            .filter(Tripulante.tripulante_id == TripulanteHotel.tripulante_id)
+            .filter(TripulanteHotel.hotel_id == Hotel.hotel_id)
+            .distinct()
         )
 
-        # Aplicar filtro solo si no está seleccionado "hotel"
+        """.join(TripulanteHotel, Hotel.hotel_id == TripulanteHotel.hotel_id, isouter=True)
+        .join(Tripulante, TripulanteHotel.tripulante_id == Tripulante.tripulante_id)
+        .join(Buque, Buque.buque_id == Tripulante.buque_id)"""
+
+        # Aplicar filtro de hotel si se seleccionó uno específico
         if hotel_seleccionado != "hotel":
             roomlist_query = roomlist_query.filter(func.lower(Hotel.nombre) == hotel_seleccionado)
 
@@ -234,17 +247,53 @@ class RoomListScreen(QWidget):
         if buque_seleccionado != "buque":
             roomlist_query = roomlist_query.filter(func.lower(Buque.nombre) == buque_seleccionado)
 
+        # Aplicar filtro de ETA por rango de fechas si está habilitado
+        if self.check_fecha.isChecked():
+            roomlist_query = (
+                roomlist_query
+                .join(EtaCiudad, and_(
+                    Tripulante.buque_id == EtaCiudad.buque_id,
+                    EtaCiudad.eta >= fecha_inicio,
+                    EtaCiudad.eta <= fecha_fin
+                ))
+                .filter(
+                    EtaCiudad.eta >= fecha_inicio,
+                    EtaCiudad.eta <= fecha_fin
+                )
+            )
+
+        """eta_query = (
+            session.query(
+                Tripulante.nombre.label("First_Name"),
+                Tripulante.apellido.label("Last_Name"),
+                Tripulante.buque_id,
+                EtaCiudad.eta.label("ETA"),
+                Buque.nombre.label("Buque")
+            )
+            .join(Buque, Tripulante.buque_id == Buque.buque_id)
+            .join(EtaCiudad, Buque.buque_id == EtaCiudad.buque_id)
+        )"""
+
         # Ejecutar la consulta
-        roomlist_query = roomlist_query.all()
+        #resultados = eta_query.all()
+
+        # Mostrar los resultados
+        # for resultado in resultados:
+        #     print(f"Tripulante: {resultado.First_Name} {resultado.Last_Name} | Buque: {resultado.Buque} | ETA: {resultado.ETA}")
+
+        #print(fecha_fin)
+        #for query in roomlist_query:
+            #print(query)
+
+        # Ejecutar la consulta
+        #roomlist_query = roomlist_query.all()
 
         # Limpiar la tabla
         self.table_widget.setRowCount(0)
         self.table_widget.setColumnCount(8)  # Número correcto de columnas
         self.table_widget.setHorizontalHeaderLabels(
-            ["First Name", "Last Name", "Gender", "Nacionalidad", "Position", "Check In", "Check Out", "Rooms", "ETA"]
+            ["First Name", "Last Name", "Gender", "Nacionalidad", "Position", "Check In", "Check Out", "Rooms"]
         )
-
-        #print(roomlist_query)
 
         # Llenar la tabla con los resultados de la consulta
         for roomlist in roomlist_query:
@@ -264,8 +313,8 @@ class RoomListScreen(QWidget):
             # Rooms
             self.table_widget.setItem(row, 7, QTableWidgetItem(str(roomlist.Rooms) if roomlist.Rooms else "Sin habitación"))
 
-            self.table_widget.setItem(row, 8, QTableWidgetItem(str(roomlist.ETA)))  # Position
-
+            # ETA
+            #self.table_widget.setItem(row, 8, QTableWidgetItem(str(roomlist.ETA) if roomlist.ETA else "Sin ETA"))
 
     def generar_excel(self, hotel_seleccionado, buque_seleccionado):
         # Crear un DataFrame con los datos de la tabla
@@ -278,17 +327,20 @@ class RoomListScreen(QWidget):
                 row_data.append(item.text() if item else "")
             data.append(row_data)
 
-        # Definir los nombres de las columnas
-        column_names = [self.table_widget.horizontalHeaderItem(i).text() for i in range(self.table_widget.columnCount())]
+        # Definir los nombres de las columnas, manejando el caso donde el encabezado puede ser None
+        column_names = []
+        for i in range(self.table_widget.columnCount()):
+            header_item = self.table_widget.horizontalHeaderItem(i)
+            if header_item is not None:
+                column_names.append(header_item.text())
+            else:
+                column_names.append(f"Column {i + 1}")  # Usar un nombre genérico si está vacío
 
         # Convertir a DataFrame
         df = pd.DataFrame(data, columns=column_names)
 
         # Construir el nombre del archivo Excel con condiciones
         file_name_parts = ["room_list"]
-        print(file_name_parts)
-        print(hotel_seleccionado)
-        print(buque_seleccionado)
         if hotel_seleccionado.lower() != "hotel" and hotel_seleccionado.lower() not in file_name_parts:
             file_name_parts.append(hotel_seleccionado)
         if buque_seleccionado.lower() != "buque" and buque_seleccionado.lower() not in file_name_parts:
@@ -299,8 +351,8 @@ class RoomListScreen(QWidget):
 
         # Guardar en un archivo Excel
         file_path, _ = QFileDialog.getSaveFileName(
-            self, 
-            "Guardar archivo Excel", 
+            self,
+            "Guardar archivo Excel",
             file_name,  # Usar el nombre del archivo predefinido
             "Excel Files (*.xlsx);;All Files (*)"
         )
@@ -325,6 +377,21 @@ class RoomListScreen(QWidget):
                 cell.value = hotel_seleccionado
             else:
                 cell.value = "Todos"
+
+            if self.check_fecha.isChecked():
+                fecha_inicio = self.date_start1.date().toPyDate()  # Convertir a objeto de fecha de Python
+                fecha_fin = datetime.combine(self.date_end1.date().toPyDate(), time.max)  # Combinar con la hora máxima del día
+            else:
+                fecha_inicio = None
+                fecha_fin = None
+
+            cell = ws.cell(row=3, column=1)
+            cell.value = "FECHA"
+            cell = ws.cell(row=3, column=2)
+            if fecha_inicio != None:
+                cell.value = f"{fecha_inicio} - {fecha_fin}"
+            else:
+                cell.value = ""
 
             # Definir el color de relleno para los encabezados (celeste claro)
             header_fill = PatternFill(start_color='ADD8E6', end_color='ADD8E6', fill_type='solid')
@@ -420,7 +487,7 @@ class TransportesScreen(QWidget):
 
         # Obtener el nombre de la ciudad a partir del código
         ciudad_seleccionada = CITY_AIRPORT_CODES.get(ciudad_seleccionada).lower()  # Convertir a minúsculas
-        print(ciudad_seleccionada)
+        #print(ciudad_seleccionada)
 
         # Obtener datos de vuelos de arribo
         arribo_vuelos = (
@@ -461,7 +528,7 @@ class TransportesScreen(QWidget):
             ["First Name", "Last Name", "Type", "Ciudad", "Tramo", "Fecha"]
         )
 
-        print(arribo_vuelos)
+        #print(arribo_vuelos)
 
         # Combinar y llenar la tabla
         for arribo in arribo_vuelos:
@@ -612,7 +679,7 @@ class AsistenciasScreen(QWidget):
             .filter(func.lower(Vuelo.aeropuerto_salida) == ciudad_seleccionada)
         )
 
-        print(str(query))
+        #print(str(query))
         salida_vuelos = query.all()
 
         # Obtener el nombre de la ciudad a partir del código
@@ -701,12 +768,12 @@ class AsistenciasScreen(QWidget):
 
             # Si hay vuelo de salida, se añaden los detalles
             if salida:
-                print(f"Vuelo de salida encontrado para {arribo.First_Name} {arribo.Last_Name}: {salida.Nro_Vuelo_Salida}, {salida.Fecha_Vuelo_Salida}, {salida.Hora_Salida}")
+                #print(f"Vuelo de salida encontrado para {arribo.First_Name} {arribo.Last_Name}: {salida.Nro_Vuelo_Salida}, {salida.Fecha_Vuelo_Salida}, {salida.Hora_Salida}")
                 self.table_widget.setItem(row, 15, QTableWidgetItem(str(salida.Nro_Vuelo_Salida)))  # Nro Vuelo Salida
                 self.table_widget.setItem(row, 16, QTableWidgetItem(str(salida.Fecha_Vuelo_Salida)))  # Fecha Vuelo Salida
                 self.table_widget.setItem(row, 17, QTableWidgetItem(str(salida.Hora_Salida)))  # Hora Salida
-            else:
-                print(f"No se encontró vuelo de salida para {arribo.First_Name} {arribo.Last_Name}")
+            #else:
+                #print(f"No se encontró vuelo de salida para {arribo.First_Name} {arribo.Last_Name}")
 
 
     def generar_excel(self, ciudad_seleccionada):
