@@ -210,9 +210,9 @@ class Controller:
             self._create_transporte(self.transportes_on, self.tripulantes_on)
             self._create_transporte(self.transportes_off, self.tripulantes_off)
 
-            #self._create_vuelos(self.vuelos_internacionales_on, self.tripulantes_on, 'ON', 'INTERNACIONAL')
+            self._create_vuelos(self.vuelos_internacionales_on, self.tripulantes_on, 'ON', 'INTERNACIONAL')
             #self._create_vuelos(self.vuelos_internacionales_off, self.tripulantes_off, 'OFF', 'INTERNACIONAL') #AHORA LOS VUELOS INTERNACIONALES OFF SE TOMAN DESDE FUNCION EXTRACT FLIGHTS PORQUE EN OFF NO CONSIDERAN EL TRAYECTO ENTERO
-            #self._create_vuelos(self.vuelos_domesticos_on, self.tripulantes_on, 'ON', 'DOMESTICO')
+            self._create_vuelos(self.vuelos_domesticos_on, self.tripulantes_on, 'ON', 'DOMESTICO')
             #self._create_vuelos(self.vuelos_domesticos_off, self.tripulantes_off, 'OFF', 'DOMESTICO')
             self._create_vuelos(self.vuelos_regionales_on, self.tripulantes_on, 'ON', 'REGIONAL')
             print(self.vuelos_regionales_on.head())
@@ -288,21 +288,18 @@ class Controller:
                 print("Vuelo es NaN o None. Omitiendo...")
                 return None  
             
-            # Utilizar expresión regular para capturar el código de vuelo y las ciudades
-            expresion_vuelo = r'^([A-Z\s]{2,12})\s([A-Z]{3})-([A-Z]{3})$'
-            match = re.match(expresion_vuelo, vuelo_info)            
-            
+            # Utilizar una expresión regular para capturar el código de vuelo y los aeropuertos
+            expresion_vuelo = r'^(.+)\s([A-Z]{3})-([A-Z]{3})$'
+            match = re.match(expresion_vuelo, vuelo)
+
             if match:
-                codigo_vuelo = match.group(1)  # Código de vuelo (puede ser solo letras o con número)
-                aeropuerto_salida = match.group(2)  # Ciudad de origen
-                aeropuerto_llegada = match.group(3)  # Ciudad de destino
-                
-                print(f"Código de vuelo: {codigo_vuelo}")
-                print(f"Ciudad de origen: {aeropuerto_salida}")
-                print(f"Ciudad de destino: {aeropuerto_llegada}")
-                print("-" * 40)
+                codigo_vuelo = match.group(1).strip()  # Código de vuelo (puede ser solo letras o con número)
+                aeropuerto_salida = match.group(2)     # Ciudad de origen
+                aeropuerto_llegada = match.group(3)    # Ciudad de destino
+
             else:
                 print(f"Formato de vuelo inválido: {vuelo_info}")
+                return None
 
             # Obtener la fecha y las horas como objetos datetime
             fecha_vuelo = vuelo_info['fecha']  # Se espera que sea un objeto Timestamp
