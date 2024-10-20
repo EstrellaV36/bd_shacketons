@@ -163,10 +163,6 @@ class Controller:
             extras_off = self._extract_extras(excel_data_off, start_row=0, state="off")
             extras_off.reset_index(drop=True, inplace=True)  # Reiniciar el índice
 
-            vuelos_domesticos_on, vuelos_regionales_on = self.generar_vuelos(vuelos_on)
-            vuelos_domesticos_off, vuelos_regionales_off = self.generar_vuelos(vuelos_off)
-            print(f"Vuelos OFF domesticos desde funcion generar_vuelosl: {vuelos_domesticos_off}")
-
             # Almacenar los datos
             self.tripulantes_on = tripulantes_on
             self.tripulantes_off = tripulantes_off
@@ -174,14 +170,12 @@ class Controller:
             self.buque_off = buque_off
             self.vuelos_internacionales_on = vuelos_internacionales_on
             self.vuelos_internacionales_off = vuelos_internacionales_off
-            self.vuelos_domesticos_on = vuelos_domesticos_on
-            self.vuelos_domesticos_off = vuelos_domesticos_off
-            self.vuelos_regionales_on = vuelos_regionales_on
-            self.vuelos_regionales_off = vuelos_regionales_off
             self.hoteles_on = hoteles_on
             self.hoteles_off = hoteles_off
             self.asistencias_on = asistencias_on
             self.asistencias_off = asistencias_off
+            self.vuelos_on = vuelos_on
+            self.vuelos_off = vuelos_off
             self.transportes_on = transportes_on
             self.transportes_off = transportes_off
             self.restaurantes_on = restaurantes_on
@@ -198,19 +192,6 @@ class Controller:
             tripulantes += self._create_tripulantes(tripulantes_on, self.buque_on, self.asistencias_on, "ON")
             tripulantes += self._create_tripulantes(tripulantes_off, self.buque_off, self.asistencias_off, "ON")
 
-
-            # Crear vuelos ON y OFF
-            #self._create_vuelos(self.vuelos_internacionales_on, self.tripulantes_on, state='ON', tipo='INTERNACIONAL')
-            #self._create_vuelos(self.vuelos_internacionales_off, self.tripulantes_off, state='OFF',tipo='INTERNACIONAL')
-
-            print(vuelos_internacionales_off.dtypes)
-            #print(vuelos_internacionales_on)
-            #self._create_vuelos(self.vuelos_domesticos_on, self.tripulantes_on, state='ON', tipo='DOMESTICO')
-            self._create_vuelos(self.vuelos_domesticos_off, self.tripulantes_off, state='Off', tipo='DOMESTICO')
-            #self._create_vuelos(self.vuelos_regionales_on, self.tripulantes_on, state='ON', tipo='REGIONAL')
-            #self._create_vuelos(self.vuelos_regionales_off, self.tripulantes_off, state='OFF',tipo='REGIONAL')
-
-
             self._create_hotel(self.hoteles_on, self.tripulantes_on)
             self._create_hotel(self.hoteles_off, self.tripulantes_off)
 
@@ -220,62 +201,13 @@ class Controller:
             self._create_transporte(self.transportes_on, self.tripulantes_on)
             self._create_transporte(self.transportes_off, self.tripulantes_off)
 
+            print(vuelos_internacionales_on.head())
+            print(vuelos_on.head())
+
             return self.buque_on, self.buque_off, self.tripulantes_on, self.tripulantes_off
 
         except Exception as e:
             raise Exception(f"Error al procesar el archivo: {e}")
-
-    def generar_vuelos(self, dataframe):
-        # Expandir los datos de vuelos desde la columna 'Vuelo 1'
-        vuelos_expandido = pd.json_normalize(dataframe['Vuelo 1'])
-
-        # Inicializar listas para vuelos domésticos y regionales
-        vuelos_domesticos_list = []
-        vuelos_regionales_list = []
-
-        # Filtrar y crear una lista de diccionarios para vuelos domésticos
-        if all(col in vuelos_expandido.columns for col in ['nro dom flight', 'date dom flight', 'hora dom flight']):
-            vuelos_domesticos = vuelos_expandido[['nro dom flight', 'date dom flight', 'hora dom flight']].copy()
-            vuelos_domesticos.columns = ['vuelo', 'fecha', 'hora']  # Renombrar columnas
-
-            # Asegúrate de que las fechas sean válidas
-            vuelos_domesticos['fecha'] = pd.to_datetime(vuelos_domesticos['fecha'], errors='coerce')
-
-            # Convertir a lista de diccionarios
-            for _, row in vuelos_domesticos.iterrows():
-                vuelo_info = {
-                    'vuelo': row['vuelo'],
-                    'fecha': row['fecha'].strftime('%Y-%m-%d') if pd.notna(row['fecha']) else None,  # Formato de fecha
-                    'hora': row['hora']
-                }
-                vuelos_domesticos_list.append(vuelo_info)
-        else:
-            print("Columnas de vuelos domésticos no encontradas.")
-
-        # Filtrar y crear una lista de diccionarios para vuelos regionales
-        if all(col in vuelos_expandido.columns for col in ['nro reg flight', 'date reg flight', 'hora reg flight']):
-            vuelos_regionales = vuelos_expandido[['nro reg flight', 'date reg flight', 'hora reg flight']].copy()
-            vuelos_regionales.columns = ['vuelo', 'fecha', 'hora']  # Renombrar columnas
-
-            # Asegúrate de que las fechas sean válidas
-            vuelos_regionales['fecha'] = pd.to_datetime(vuelos_regionales['fecha'], errors='coerce', dayfirst=True)
-
-            # Convertir a lista de diccionarios
-            for _, row in vuelos_regionales.iterrows():
-                vuelo_info = {
-                    'vuelo': row['vuelo'],
-                    'fecha': row['fecha'].strftime('%Y-%m-%d') if pd.notna(row['fecha']) else None,  # Formato de fecha
-                    'hora': row['hora']
-                }
-                vuelos_regionales_list.append(vuelo_info)
-        else:
-            print("Columnas de vuelos regionales no encontradas.")
-
-        # Retornar ambas listas como diccionarios #NO DEBERIA SER UN DICCIONARIO
-        return {
-            'vuelos_domesticos': vuelos_domesticos_list,
-            'vuelos_regionales': vuelos_regionales_list
-        }
 
     def _extraer_hoteles_fechas(self, hotel_df):
         # Inicializa una lista vacía para almacenar información de hoteles
@@ -409,9 +341,7 @@ class Controller:
                 # Buscar si el tripulante ya existe en la base de datos por pasaporte
                 tripulante_existente = self.db_session.query(Tripulante).filter_by(pasaporte=row['Pasaporte']).first()
 
-                if tripulante_existente:
-                    continue
-                else:
+                if not tripulante_existente:
                     # Si el tripulante no existe, lo creamos
                     tripulante = Tripulante(
                         nombre=row['First name'],
@@ -425,10 +355,22 @@ class Controller:
                         buque_id=buque_id,
                         estado=estado
                     )
+
                     self.db_session.add(tripulante)
-                    self.db_session.commit()  # Confirmar la creación del tripulante
+                    self.db_session.flush()  # Genera el tripulante_id sin hacer commit
 
                     tripulante_existente = tripulante  # Asignar el nuevo tripulante a la variable existente
+
+                # Ahora que tenemos el tripulante (ya sea nuevo o existente), creamos la ETA
+                eta = EtaCiudad(
+                    tripulante_id=tripulante_existente.tripulante_id,  # Usamos el tripulante_id ya generado
+                    buque_id=buque_id,
+                    ciudad=buque_df.loc[i]['Puerto'],
+                    eta=buque_df.loc[i]['ETA Vessel'],
+                    etd=buque_df.loc[i]['ETD Vessel']
+                )
+
+                self.db_session.add(eta)
 
                 # Asignar asistencias al tripulante
                 asistencias_tripulante = asistencias_df.iloc[i]  # Obtener la fila de asistencias correspondiente
@@ -442,7 +384,7 @@ class Controller:
                 tripulante_existente.necesita_asistencia_wpu = 'Asistencia WPU' in asistencias_lista
 
                 # Confirmar los cambios en la base de datos
-                self.db_session.commit()
+                self.db_session.commit()  # Confirmar el tripulante y la ETA juntos
 
                 tripulantes.append(tripulante_existente)  # Agregar a la lista
 
@@ -468,39 +410,7 @@ class Controller:
                 # Verificar si el buque ya existe
                 buque_existente = self.db_session.query(Buque).filter(func.lower(Buque.nombre) == vessel_name).first()
 
-                if buque_existente:
-                    #print(f"Buque {buque_existente.nombre} ya existente")
-
-                    # Normalizar las fechas ETA y ETD truncando los microsegundos
-                    eta_fecha = pd.to_datetime(row['ETA Vessel']).replace(microsecond=0)
-                    etd_fecha = pd.to_datetime(row['ETD Vessel']).replace(microsecond=0)
-
-                    # Verificar si ya existe una ETA similar para este buque
-                    eta_existente = self.db_session.query(EtaCiudad).filter_by(
-                        buque_id=buque_existente.buque_id,
-                        ciudad=row['Puerto']
-                    ).filter(
-                        func.date(EtaCiudad.eta) == eta_fecha.date(),
-                        func.date(EtaCiudad.etd) == etd_fecha.date()
-                    ).first()
-
-                    if eta_existente:
-                        #print(f"ETA ya existente para buque {buque_existente.nombre} en {row['Puerto']} con ETA {eta_existente.eta} y ETD {eta_existente.etd}")
-                        continue
-                    else:
-                        # Si no existe una ETA igual, agregarla
-                        nueva_eta = EtaCiudad(
-                            buque=buque_existente,
-                            ciudad=row['Puerto'],
-                            eta=eta_fecha,
-                            etd=etd_fecha
-                        )
-                        buque_existente.etas.append(nueva_eta)
-                        self.db_session.add(nueva_eta)
-                        self.db_session.flush()  # Asegurar que la nueva ETA esté en la BD
-                        #print(f"Nueva ETA añadida a buque existente: {buque_existente.nombre}, ETA: {nueva_eta.eta}, ETD: {nueva_eta.etd}")
-                else:
-                    # Crear un nuevo buque
+                if not buque_existente:
                     nuevo_buque = Buque(
                         nombre=row['Vessel'].strip(),
                         empresa=row['Owner'] if pd.notna(row['Owner']) else "Empresa Desconocida",
@@ -508,21 +418,9 @@ class Controller:
                     )
                     self.db_session.add(nuevo_buque)
                     self.db_session.flush()  # Generar el ID del nuevo buque
-
-                    # Añadir la ETA al nuevo buque
-                    nueva_eta = EtaCiudad(
-                        buque=nuevo_buque,
-                        ciudad=row['Puerto'],
-                        eta=pd.to_datetime(row['ETA Vessel']).replace(microsecond=0),
-                        etd=pd.to_datetime(row['ETD Vessel']).replace(microsecond=0)
-                    )
-                    nuevo_buque.etas.append(nueva_eta)
-                    self.db_session.add(nueva_eta)
-                    self.db_session.flush()  # Asegurar que la nueva ETA esté en la BD
-                    #print(f"Nuevo buque creado: {nuevo_buque.nombre}, ETA: {nueva_eta.eta}, ETD: {nueva_eta.etd}")
-
-            # Confirmar todos los cambios al final
-            self.db_session.commit()
+                
+                # Confirmar todos los cambios al final
+                self.db_session.commit()
 
         except Exception as e:
             self.db_session.rollback()  # Revertir cambios en caso de error

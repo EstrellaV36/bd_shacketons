@@ -12,10 +12,12 @@ class EtaCiudad(Base):
 
     eta_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     buque_id: Mapped[int] = mapped_column(ForeignKey("buques.buque_id"))
+    tripulante_id: Mapped[int] = mapped_column(ForeignKey("tripulantes.tripulante_id"))
     ciudad: Mapped[str] = mapped_column(String, nullable=False)  # PUQ, SCL, WPU, etc.
     eta: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     etd: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     buque: Mapped["Buque"] = relationship(back_populates="etas")
+    tripulante: Mapped["Tripulante"] = relationship("Tripulante", back_populates="etas_ciudades")
 
     def __repr__(self):
         return f"id={self.eta_id}, buque={self.buque}, ciudad={self.ciudad}, eta={self.eta}, etd={self.etd})"
@@ -55,15 +57,14 @@ class Tripulante(Base):
     pref_alimenticia: Mapped[Optional[str]] = mapped_column(String, default='NORMAL')
     estado: Mapped[str] = mapped_column(String, nullable=False)  # Añadido para diferenciar ON/OFF
 
-
     buque_id: Mapped[Optional[int]] = mapped_column(ForeignKey("buques.buque_id"))
-    tipo: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
+    tipo: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)  #Este no se si se mantiene porque es algo del viaje
 
     vuelos_asociados: Mapped[list["TripulanteVuelo"]] = relationship("TripulanteVuelo", back_populates="tripulante")
 
     buque: Mapped["Buque"] = relationship(back_populates="tripulantes")
     
-    # Relación a través de la tabla intermedia TripulanteHotel
+    etas_ciudades: Mapped[list["EtaCiudad"]] = relationship("EtaCiudad", back_populates="tripulante")
     tripulante_hotels: Mapped[list["TripulanteHotel"]] = relationship("TripulanteHotel", back_populates="tripulante")
     tripulante_transports: Mapped[list["TripulanteTransporte"]] = relationship("TripulanteTransporte", back_populates="tripulante")
     tripulante_restaurantes: Mapped[list["TripulanteRestaurante"]] = relationship("TripulanteRestaurante", back_populates="tripulante")
