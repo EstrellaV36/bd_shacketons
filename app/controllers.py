@@ -211,12 +211,11 @@ class Controller:
             self._create_transporte(self.transportes_off, self.tripulantes_off)
 
             self._create_vuelos(self.vuelos_internacionales_on, self.tripulantes_on, 'ON', 'INTERNACIONAL')
-            #self._create_vuelos(self.vuelos_internacionales_off, self.tripulantes_off, 'OFF', 'INTERNACIONAL') #AHORA LOS VUELOS INTERNACIONALES OFF SE TOMAN DESDE FUNCION EXTRACT FLIGHTS PORQUE EN OFF NO CONSIDERAN EL TRAYECTO ENTERO
+            self._create_vuelos(self.vuelos_internacionales_off, self.tripulantes_off, 'OFF', 'INTERNACIONAL') #AHORA LOS VUELOS INTERNACIONALES OFF SE TOMAN DESDE FUNCION EXTRACT FLIGHTS PORQUE EN OFF NO CONSIDERAN EL TRAYECTO ENTERO
             self._create_vuelos(self.vuelos_domesticos_on, self.tripulantes_on, 'ON', 'DOMESTICO')
-            #self._create_vuelos(self.vuelos_domesticos_off, self.tripulantes_off, 'OFF', 'DOMESTICO')
+            self._create_vuelos(self.vuelos_domesticos_off, self.tripulantes_off, 'OFF', 'DOMESTICO')
             self._create_vuelos(self.vuelos_regionales_on, self.tripulantes_on, 'ON', 'REGIONAL')
-            print(self.vuelos_regionales_on.head())
-            #self._create_vuelos(self.vuelos_regionales_off, self.tripulantes_off, 'OFF', 'REGIONAL')
+            self._create_vuelos(self.vuelos_regionales_off, self.tripulantes_off, 'OFF', 'REGIONAL')
 
             return self.buque_on, self.buque_off, self.tripulantes_on, self.tripulantes_off
 
