@@ -94,6 +94,7 @@ class Vuelo(Base):
     vuelo_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     codigo: Mapped[str] = mapped_column(String, nullable=False)
     fecha: Mapped[datetime] = mapped_column(nullable=False)
+    tipo: Mapped[str] = mapped_column(String, nullable=False)
     hora_salida: Mapped[datetime] = mapped_column(nullable=False)
     hora_llegada: Mapped[datetime] = mapped_column(nullable=False)
     aeropuerto_salida: Mapped[str] = mapped_column(String, nullable=False)

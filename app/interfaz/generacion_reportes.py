@@ -2,12 +2,12 @@ import pandas as pd
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QTableWidget, QTableWidgetItem, QComboBox, QFileDialog, QDateEdit, QCheckBox
 from PyQt6.QtCore import Qt, QDate
 from app.database import get_db_session
-from app.models import Buque, EtaCiudad, Tripulante, Vuelo, TripulanteVuelo, Restaurante, TripulanteRestaurante, Transporte, TripulanteTransporte, Hotel, TripulanteHotel# Asegúrate de que estos modelos se importen correctamente
+from app.models import Buque, EtaCiudad, Tripulante, Vuelo, TripulanteVuelo, Restaurante, TripulanteRestaurante, Transporte, TripulanteTransporte, Hotel, TripulanteHotel, Viaje # Asegúrate de que estos modelos se importen correctamente
 from app.controllers import CITY_AIRPORT_CODES
 from openpyxl.styles import PatternFill
 from openpyxl import Workbook
-from datetime import datetime, time
-from sqlalchemy import func, and_
+from datetime import datetime, time, timedelta
+from sqlalchemy import func, and_, or_
 
 
 class GeneracionReportesScreen(QWidget):
@@ -486,23 +486,43 @@ class TransportesScreen(QWidget):
         #salida_vuelos = query.all()
 
         # Obtener el nombre de la ciudad a partir del código
+        ciudad_hotel = ciudad_seleccionada
         ciudad_seleccionada = CITY_AIRPORT_CODES.get(ciudad_seleccionada).lower()  # Convertir a minúsculas
-        #print(ciudad_seleccionada)
+        #print(ciudad_hotel)
 
         # Obtener datos de vuelos de arribo
         arribo_vuelos = (
             session.query(
+                Tripulante.estado.label("Estado"),
+                Transporte.nombre.label("Transporte"),
+                Hotel.ciudad.label("Hotel_Ciudad"),
+                Hotel.nombre.label("Nombre_Hotel"),
+                Vuelo.codigo.label("codigo"),
+                Vuelo.aeropuerto_salida.label("aeropuerto_salida"),
+                Vuelo.aeropuerto_llegada.label("aeropuerto_llegada"),
+                Vuelo.hora_llegada.label("fecha"),
+
                 Transporte.ciudad.label("Ciudad"),
-                Transporte.nombre.label("Tramo"),
                 Tripulante.nombre.label("First_Name"),
                 Tripulante.apellido.label("Last_Name"),
-                Tripulante.estado.label("Type"),
                 TripulanteTransporte.fecha.label("Fecha"),
                 Tripulante.tripulante_id
             )
             .join(TripulanteTransporte, Transporte.transporte_id == TripulanteTransporte.transporte_id, isouter=True)
             .join(Tripulante, TripulanteTransporte.tripulante_id == Tripulante.tripulante_id, isouter=True)
             .filter(func.lower(Transporte.ciudad) == ciudad_seleccionada)
+            .filter(or_(
+                func.lower(Hotel.ciudad) == f"hotel {ciudad_hotel}".lower(),
+                func.lower(Hotel.ciudad) == f"day use {ciudad_hotel}".lower()
+            ))
+            .filter(or_(
+                #func.lower(Vuelo.aeropuerto_salida) == ciudad_seleccionada,
+                func.lower(Vuelo.aeropuerto_llegada) == ciudad_seleccionada
+            ))
+            .filter(Vuelo.vuelo_id == TripulanteVuelo.vuelo_id)
+            .filter(TripulanteVuelo.tripulante_id == Tripulante.tripulante_id)
+            .filter(Hotel.hotel_id == TripulanteHotel.hotel_id)
+            .filter(TripulanteHotel.tripulante_id == Tripulante.tripulante_id)
             .all()
         )
         
@@ -523,12 +543,14 @@ class TransportesScreen(QWidget):
 
         # Limpiar la tabla
         self.table_widget.setRowCount(0)
-        self.table_widget.setColumnCount(6)  # Número correcto de columnas
+        self.table_widget.setColumnCount(17)  # Número correcto de columnas
         self.table_widget.setHorizontalHeaderLabels(
-            ["First Name", "Last Name", "Type", "Ciudad", "Tramo", "Fecha"]
+            ["Estado", "Transporte", "Hotel Ciudad", "Nombre Hotel", "Domestic Llegada", "Date Llegada", "Hora Llegada", "Hora Pick up", "Lugar Pick up", "First Name", "Last Name", "Ciudad", "Fecha"]
         )
 
-        #print(arribo_vuelos)
+        CITY_TO_AIRPORT_CODES = {city: code for code, city in CITY_AIRPORT_CODES.items()}
+
+        #print(CITY_TO_AIRPORT_CODES)
 
         # Combinar y llenar la tabla
         for arribo in arribo_vuelos:
@@ -537,13 +559,40 @@ class TransportesScreen(QWidget):
             
             row = self.table_widget.rowCount()
             self.table_widget.insertRow(row)
+            aeropuerto_salida = CITY_TO_AIRPORT_CODES.get(str(arribo.aeropuerto_salida))
+            aeropuerto_llegada = CITY_TO_AIRPORT_CODES.get(str(arribo.aeropuerto_llegada))
+
+            fecha, hora = str(arribo.fecha).split(" ", 1)
+
+            if aeropuerto_salida == 'PUQ':
+                h = datetime.strptime(hora, "%H:%M:%S")
+                hora_pick_up = h - timedelta(hours=2, minutes=30)
+                hora_pick_up = str(hora_pick_up.time())
+
+            transporte1, transporte2 = str(arribo.Transporte).split(" ", 1)
+            lugar_pick_up1,  lugar_pick_up2= transporte2.split("-", 1)
+
+            print(lugar_pick_up1)
+
+            domestic_llegada = f"{str(arribo.codigo)} {aeropuerto_salida}-{aeropuerto_llegada}"
+            # print(str(arribo.codigo))
+            # print(str(arribo.aeropuerto_salida))
+            # print(str(arribo.aeropuerto_llegada))
+
             # Datos de arribo
-            self.table_widget.setItem(row, 0, QTableWidgetItem(str(arribo.First_Name)))  # First Name
-            self.table_widget.setItem(row, 1, QTableWidgetItem(str(arribo.Last_Name)))  # Last Name
-            self.table_widget.setItem(row, 2, QTableWidgetItem(str(arribo.Type)))  # Type
-            self.table_widget.setItem(row, 3, QTableWidgetItem(str(arribo.Ciudad)))  # Nro Vuelo Arribo
-            self.table_widget.setItem(row, 4, QTableWidgetItem(str(arribo.Tramo)))  # Fecha Vuelo Arribo
-            self.table_widget.setItem(row, 5, QTableWidgetItem(str(arribo.Fecha)))  # Fecha Vuelo Arribo
+            self.table_widget.setItem(row, 0, QTableWidgetItem(str(arribo.Estado)))  # Estado
+            self.table_widget.setItem(row, 1, QTableWidgetItem(str(arribo.Transporte)))  # Tramo
+            self.table_widget.setItem(row, 2, QTableWidgetItem(str(arribo.Hotel_Ciudad)))  # Tramo
+            self.table_widget.setItem(row, 3, QTableWidgetItem(str(arribo.Nombre_Hotel)))  # Tramo
+            self.table_widget.setItem(row, 4, QTableWidgetItem(domestic_llegada))  # Tramo
+            self.table_widget.setItem(row, 5, QTableWidgetItem(fecha))  # Fecha llegada
+            self.table_widget.setItem(row, 6, QTableWidgetItem(hora))  # Hora llegada
+            self.table_widget.setItem(row, 7, QTableWidgetItem(hora_pick_up))  # Hora llegada
+            self.table_widget.setItem(row, 8, QTableWidgetItem(lugar_pick_up1))  # Hora llegada
+            self.table_widget.setItem(row, 10, QTableWidgetItem(str(arribo.First_Name)))  # First Name
+            self.table_widget.setItem(row, 11, QTableWidgetItem(str(arribo.Last_Name)))  # Last Name
+            self.table_widget.setItem(row, 12, QTableWidgetItem(str(arribo.Ciudad)))  # Nro Vuelo Arribo
+            self.table_widget.setItem(row, 13, QTableWidgetItem(str(arribo.Fecha)))  # Fecha Vuelo Arribo
 
             # Si hay vuelo de salida, se añaden los detalles
             """
@@ -567,7 +616,7 @@ class TransportesScreen(QWidget):
             data.append(row_data)
 
         # Definir los nombres de las columnas
-        column_names = ["First Name", "Last Name", "Type", "Ciudad", "Tramo", "Fecha"]
+        column_names = ["First Name", "Last Name", "Ciudad", "Tramo", "Fecha"]
 
         # Convertir a DataFrame
         df = pd.DataFrame(data, columns=column_names)
