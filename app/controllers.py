@@ -211,12 +211,12 @@ class Controller:
             self._create_transporte(self.transportes_off, self.tripulantes_off)
 
             #self._create_vuelos(self.vuelos_internacionales_on, self.tripulantes_on, 'ON', 'INTERNACIONAL')
-            self._create_vuelos(self.vuelos_internacionales_off, self.tripulantes_off, 'OFF', 'INTERNACIONAL')
-            print(vuelos_internacionales_off.head())
+            #self._create_vuelos(self.vuelos_internacionales_off, self.tripulantes_off, 'OFF', 'INTERNACIONAL') #AHORA LOS VUELOS INTERNACIONALES OFF SE TOMAN DESDE FUNCION EXTRACT FLIGHTS PORQUE EN OFF NO CONSIDERAN EL TRAYECTO ENTERO
             #self._create_vuelos(self.vuelos_domesticos_on, self.tripulantes_on, 'ON', 'DOMESTICO')
-            self._create_vuelos(self.vuelos_domesticos_off, self.tripulantes_off, 'OFF', 'DOMESTICO')
-            #self._create_vuelos(self.vuelos_regionales_on, self.tripulantes_on, 'ON', 'REGIONAL')
-            self._create_vuelos(self.vuelos_regionales_off, self.tripulantes_off, 'OFF', 'REGIONAL')
+            #self._create_vuelos(self.vuelos_domesticos_off, self.tripulantes_off, 'OFF', 'DOMESTICO')
+            self._create_vuelos(self.vuelos_regionales_on, self.tripulantes_on, 'ON', 'REGIONAL')
+            print(self.vuelos_regionales_on.head())
+            #self._create_vuelos(self.vuelos_regionales_off, self.tripulantes_off, 'OFF', 'REGIONAL')
 
             return self.buque_on, self.buque_off, self.tripulantes_on, self.tripulantes_off
 
@@ -280,59 +280,70 @@ class Controller:
         return hoteles_df
 
     def _extraer_ciudades_y_horarios(self, vuelo_info, tipo_vuelo):        
-        vuelo = vuelo_info['vuelo']
+        try:
+            vuelo = vuelo_info['vuelo']
 
-        # Verifica si el vuelo es NaN o None
-        if vuelo is None or pd.isna(vuelo):
-            print("Vuelo es NaN o None. Omitiendo...")
-            return None  # O puedes lanzar un error, dependiendo de cómo manejes esto
+            # Verifica si el vuelo es NaN o None
+            if vuelo is None or pd.isna(vuelo):
+                print("Vuelo es NaN o None. Omitiendo...")
+                return None  
+            
+            # Utilizar expresión regular para capturar el código de vuelo y las ciudades
+            expresion_vuelo = r'^([A-Z\s]{2,12})\s([A-Z]{3})-([A-Z]{3})$'
+            match = re.match(expresion_vuelo, vuelo_info)            
+            
+            if match:
+                codigo_vuelo = match.group(1)  # Código de vuelo (puede ser solo letras o con número)
+                aeropuerto_salida = match.group(2)  # Ciudad de origen
+                aeropuerto_llegada = match.group(3)  # Ciudad de destino
+                
+                print(f"Código de vuelo: {codigo_vuelo}")
+                print(f"Ciudad de origen: {aeropuerto_salida}")
+                print(f"Ciudad de destino: {aeropuerto_llegada}")
+                print("-" * 40)
+            else:
+                print(f"Formato de vuelo inválido: {vuelo_info}")
 
-        # Dividir la cadena del vuelo en partes
-        partes = vuelo.split()
-        
-        if len(partes) < 2:
-            raise ValueError(f"Formato de vuelo inválido: {vuelo_info[vuelo]}")
+            # Obtener la fecha y las horas como objetos datetime
+            fecha_vuelo = vuelo_info['fecha']  # Se espera que sea un objeto Timestamp
+            hora_salida, hora_llegada = vuelo_info['hora'].split('-')
 
-        codigo_vuelo = partes[0]  # 'AF178' o 'KL702'
-        aeropuertos = partes[1]  # 'CDG' o 'SCL'
-        aeropuerto_salida, aeropuerto_llegada = aeropuertos.split("-")
+            # Eliminar espacios en blanco antes de convertir a datetime
+            hora_salida = hora_salida.strip()
+            hora_llegada = hora_llegada.strip()
 
-        # Obtener la fecha y las horas como objetos datetime
-        fecha_vuelo = vuelo_info['fecha']  # Se espera que sea un objeto Timestamp
-        hora_salida, hora_llegada = vuelo_info['hora'].split('-')
+            # Verifica si la hora de llegada contiene un '+1' y ajusta la hora
+            if '+1' in hora_llegada:
+                hora_llegada = hora_llegada.replace('+1', '').strip()  # Eliminar '+1' de la hora de llegada
 
-        # Eliminar espacios en blanco antes de convertir a datetime
-        hora_salida = hora_salida.strip()
-        hora_llegada = hora_llegada.strip()
+            # Convertir las horas de salida y llegada a objetos datetime
+            hora_salida = datetime.combine(fecha_vuelo.date(), datetime.strptime(hora_salida, "%H:%M").time())
+            
+            # Convertir la hora de llegada
+            hora_llegada = datetime.combine(fecha_vuelo.date(), datetime.strptime(hora_llegada, "%H:%M").time())
+            
+            # Si la hora de llegada era originalmente pasada la medianoche, ajusta para mostrarlo como un día más
+            if '+1' in vuelo_info['hora']:
+                hora_llegada += pd.Timedelta(days=1)
 
-        # Verifica si la hora de llegada contiene un '+1' y ajusta la hora
-        if '+1' in hora_llegada:
-            hora_llegada = hora_llegada.replace('+1', '').strip()  # Eliminar '+1' de la hora de llegada
-            # Aquí no se modifica la fecha_vuelo, solo se ajusta la hora_llegada
+            # Buscar las ciudades en el diccionario de aeropuertos
+            ciudad_salida = CITY_AIRPORT_CODES.get(aeropuerto_salida, "Desconocido")
+            ciudad_llegada = CITY_AIRPORT_CODES.get(aeropuerto_llegada, "Desconocido")
 
-        # Convertir las horas de salida y llegada a objetos datetime
-        hora_salida = datetime.combine(fecha_vuelo.date(), datetime.strptime(hora_salida, "%H:%M").time())
-        
-        # Convertir la hora de llegada
-        hora_llegada = datetime.combine(fecha_vuelo.date(), datetime.strptime(hora_llegada, "%H:%M").time())
-        
-        # Si la hora de llegada era originalmente pasada la medianoche, ajusta para mostrarlo como un día más
-        if '+1' in vuelo_info['hora']:
-            hora_llegada += pd.Timedelta(days=1)  # Esto es solo para el cálculo, pero puedes ajustar el formato al mostrarlo.
+            return {
+                'codigo_vuelo': codigo_vuelo,
+                'ciudad_salida': ciudad_salida,
+                'ciudad_llegada': ciudad_llegada,
+                'fecha': fecha_vuelo,  # Retornar como objeto Timestamp
+                'hora_salida': hora_salida,  # Retornar como objeto datetime
+                'hora_llegada': hora_llegada   # Retornar como objeto datetime
+            }
 
-        # Buscar las ciudades en el diccionario de aeropuertos
-        ciudad_salida = CITY_AIRPORT_CODES.get(aeropuerto_salida, "Desconocido")
-        ciudad_llegada = CITY_AIRPORT_CODES.get(aeropuerto_llegada, "Desconocido")
+        except Exception as e:
+            print(f"Error al procesar el vuelo: {e}")
+            traceback.print_exc()  # Imprime el seguimiento completo del error
+            return None
 
-        return {
-            'codigo_vuelo': codigo_vuelo,
-            'ciudad_salida': ciudad_salida,
-            'ciudad_llegada': ciudad_llegada,
-            'fecha': fecha_vuelo,  # Retornar como objeto Timestamp
-            'hora_salida': hora_salida,  # Retornar como objeto datetime
-            'hora_llegada': hora_llegada   # Retornar como objeto datetime
-        }
-    
     def _create_tripulantes(self, tripulantes_df, buque_df, asistencias_df, estado):
         tripulantes = []  # Lista para almacenar los tripulantes creados
         vuelos_tripulante = []  # Lista para almacenar los vuelos asociados a cada tripulante
