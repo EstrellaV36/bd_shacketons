@@ -278,11 +278,11 @@ class RoomListScreen(QWidget):
             self.table_widget.setItem(row, 4, QTableWidgetItem(str(roomlist.Position)))  # Position
             
             # Check In
-            self.table_widget.setItem(row, 5, QTableWidgetItem(str(roomlist.check_in) if roomlist.check_in else "Sin fecha"))
+            self.table_widget.setItem(row, 5, QTableWidgetItem(str(roomlist.check_in) if roomlist.check_in else ""))
             # Check Out
-            self.table_widget.setItem(row, 6, QTableWidgetItem(str(roomlist.check_out) if roomlist.check_out else "Sin fecha"))
+            self.table_widget.setItem(row, 6, QTableWidgetItem(str(roomlist.check_out) if roomlist.check_out else ""))
             # Rooms
-            self.table_widget.setItem(row, 7, QTableWidgetItem(str(roomlist.Rooms) if roomlist.Rooms else "Sin habitación"))
+            self.table_widget.setItem(row, 7, QTableWidgetItem(str(roomlist.Rooms) if roomlist.Rooms else ""))
 
     def generar_excel(self, hotel_seleccionado, buque_seleccionado):
         def incrementar_grupo(group_counter):
@@ -322,8 +322,12 @@ class RoomListScreen(QWidget):
             else:
                 column_names.append(f"Column {i + 1}")  # Usar un nombre genérico si está vacío
 
-        # Convertir a DataFrame
         df = pd.DataFrame(data, columns=column_names)
+
+        df['Check In'] = pd.to_datetime(df['Check In'], errors='coerce')
+        df = df.sort_values(by=["Position", "Check In", "Gender"])
+        df['Check In'] = df['Check In'].dt.strftime('%Y-%m-%d')
+        
         df.insert(0, "Nro", range(1, len(df) + 1))
 
         # Inicializar contadores y asignaciones
@@ -720,8 +724,16 @@ class TransportesScreen(QWidget):
         # Definir los nombres de las columnas
         column_names = ["Estado", "Transporte", "Hotel Ciudad", "Nombre Hotel", "Código Vuelo Llegada", "Date Llegada", "Hora Llegada", "Hora Pick Up", "Lugar Pick Up", "Código Vuelo Salida", "Date Salida", "Fecha Salida", "Nave", "ETA", "First Name", "Last Name", "Nacionalidad"]
 
-        # Convertir a DataFrame
         df = pd.DataFrame(data, columns=column_names)
+
+        # Convertir "Hora Pick Up" a datetime para una ordenación correcta
+        df['Hora Pick Up'] = pd.to_datetime(df['Hora Pick Up'], format='%H:%M:%S', errors='coerce')
+
+        # Ordenar el DataFrame por "Hora Pick Up", "Lugar Pick Up" y "Nombre Hotel"
+        df = df.sort_values(by=["Hora Pick Up", "Lugar Pick Up", "Nombre Hotel"])
+
+        # Convertir "Hora Pick Up" de nuevo a solo hora para el Excel
+        df['Hora Pick Up'] = df['Hora Pick Up'].dt.strftime('%H:%M:%S')
 
         # Construir el nombre del archivo Excel
         file_name = f'requerimiento_transportes_{ciudad_seleccionada}.xlsx'
