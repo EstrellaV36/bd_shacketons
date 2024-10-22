@@ -53,6 +53,8 @@ CITY_AIRPORT_CODES = {
     'FCO': "ROMA",  # Aeropuerto Internacional Leonardo da Vinci
 }
 
+CITY_TO_AIRPORT_CODES = {city: code for code, city in CITY_AIRPORT_CODES.items()}
+
 # Definir los nombres de las columnas antes de llamar al método
 buque_on_columns = ['Owner', 'Vessel', 'Date arrive CL', 'ETA Vessel', 'ETD Vessel', 'Puerto a embarcar', 'Condicion']
 buque_off_columns = ['Owner', 'Vessel', 'Date First flight', 'ETA Vessel', 'ETD Vessel', 'Puerto a desembarcar', 'Condicion']
@@ -766,6 +768,7 @@ class Controller:
                                 tripulante_transporte_existente = self.db_session.query(TripulanteTransporte).filter_by(
                                     tripulante_id=tripulante.tripulante_id,
                                     transporte_id=transporte.transporte_id,
+                                    fecha=_transporte['fecha']
                                 ).first()
 
                                 if not tripulante_transporte_existente:

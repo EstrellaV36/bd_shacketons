@@ -211,7 +211,7 @@ class Viaje(Base):
     viaje_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     equipaje_perdido: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True, default=False)
     asistencia_medica: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True, default=False)
-    estado: Mapped[str] = mapped_column(String, nullable=False)  # Añadido para diferenciar ON/OFF
+    #estado: Mapped[str] = mapped_column(String, nullable=False)  # Añadido para diferenciar ON/OFF
 
     tripulante_id: Mapped[int] = mapped_column(ForeignKey("tripulantes.tripulante_id"))
     buque_id: Mapped[int] = mapped_column(ForeignKey("buques.buque_id"))
