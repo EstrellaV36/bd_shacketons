@@ -6,6 +6,19 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 class Base(DeclarativeBase):
     pass
 
+class TripulanteAsistencia(Base):
+    __tablename__ = 'tripulante_asistencia' 
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    tripulante_id: Mapped[int] = mapped_column(ForeignKey("tripulantes.tripulante_id"))
+    necesita_asistencia_puq: Mapped[bool] = mapped_column(Boolean, default=False)
+    necesita_asistencia_scl: Mapped[bool] = mapped_column(Boolean, default=False)
+    necesita_asistencia_wpu: Mapped[bool] = mapped_column(Boolean, default=False)
+    proveedor_puq: Mapped[str] = mapped_column(String, nullable=True)
+    proveedor_scl: Mapped[str] = mapped_column(String, nullable=True)
+    proveedor_wpu: Mapped[str] = mapped_column(String, nullable=True)
+
+    tripulante: Mapped["Tripulante"] = relationship("Tripulante", back_populates="asistencia")
+
 #-----------  TABLA AÑADIDA PARA MANEJAR MULTIPLES ETAS POR CIUDAD PARA BUQUES-----------
 class EtaCiudad(Base):
     __tablename__ = "etas_ciudades"
@@ -51,9 +64,6 @@ class Tripulante(Base):
     posicion: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     condicion: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     puerto_desembarque: Mapped[str] = mapped_column(String, nullable=True)
-    necesita_asistencia_puq: Mapped[bool] = mapped_column(Boolean, default=False)
-    necesita_asistencia_scl: Mapped[bool] = mapped_column(Boolean, default=False)
-    necesita_asistencia_wpu: Mapped[bool] = mapped_column(Boolean, default=False)
     pref_alimenticia: Mapped[Optional[str]] = mapped_column(String, default='NORMAL')
     estado: Mapped[str] = mapped_column(String, nullable=False)  # Añadido para diferenciar ON/OFF
 
@@ -70,6 +80,7 @@ class Tripulante(Base):
     tripulante_restaurantes: Mapped[list["TripulanteRestaurante"]] = relationship("TripulanteRestaurante", back_populates="tripulante")
     transportes: Mapped[list["Transporte"]] = relationship(back_populates="tripulante")
     viajes: Mapped[list["Viaje"]] = relationship(back_populates="tripulante")
+    asistencia: Mapped["TripulanteAsistencia"] = relationship("TripulanteAsistencia", back_populates="tripulante")
 
     def __repr__(self):
         return f"Tripulante(id={self.tripulante_id}, nombre={self.nombre}, apellido={self.apellido}, buque={self.buque_id})"
@@ -146,6 +157,7 @@ class TripulanteRestaurante(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)  # ID único para la relación
     fecha_reserva: Mapped[datetime] = mapped_column(nullable=True, default=None)  # Campo nulo permitido
     tipo_comida: Mapped[str] = mapped_column(nullable=True, default=None)
+    pref_alimenticia: Mapped[str] = mapped_column(nullable=True, default=None)
     tripulante_id: Mapped[int] = mapped_column(ForeignKey("tripulantes.tripulante_id"), nullable=False)
     restaurante_id: Mapped[int] = mapped_column(ForeignKey("restaurantes.restaurante_id"), nullable=False)
 
@@ -211,7 +223,7 @@ class Viaje(Base):
     viaje_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     equipaje_perdido: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True, default=False)
     asistencia_medica: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True, default=False)
-    #estado: Mapped[str] = mapped_column(String, nullable=False)  # Añadido para diferenciar ON/OFF
+    estado: Mapped[str] = mapped_column(String, nullable=False)  # Añadido para diferenciar ON/OFF
 
     tripulante_id: Mapped[int] = mapped_column(ForeignKey("tripulantes.tripulante_id"))
     buque_id: Mapped[int] = mapped_column(ForeignKey("buques.buque_id"))

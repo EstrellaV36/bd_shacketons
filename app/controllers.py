@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 import traceback
 from sqlalchemy import func
 from PyQt6.QtWidgets import QMessageBox
-from app.models import Buque, Tripulante, Vuelo, EtaCiudad, Viaje, TripulanteVuelo, Hotel, TripulanteHotel, Restaurante, TripulanteRestaurante, Transporte, TripulanteTransporte
+from app.models import Buque, Tripulante, Vuelo, EtaCiudad, Viaje, TripulanteVuelo, Hotel, TripulanteHotel, Restaurante, TripulanteRestaurante, Transporte, TripulanteTransporte, TripulanteAsistencia
 
 CITY_AIRPORT_CODES = {
     'PUQ': "PUNTA ARENAS",
@@ -15,6 +15,7 @@ CITY_AIRPORT_CODES = {
     'ZAL': "VALDIVIA",
     'WPU': "PUERTO WILLIAMS",
     'CDG': 'PARIS',
+    'VALP': 'VALPARAISO',
     'NY': 'NUEVA YORK',
     'SPU': 'SPLIT',
     'ZAG': 'ZAGREB',
@@ -62,6 +63,8 @@ buque_off_columns = ['Owner', 'Vessel', 'Date First flight', 'ETA Vessel', 'ETD 
 tripulante_columns = ['First name', 'Last name', 'Gender', 'Nacionalidad', 'Position', 'Pasaporte', 'DOB']
 
 domestic_columns = ['Nro Domestic Flight', 'Date Domestic Flight', 'Hora Domestic Flight']
+
+asistencia_columns = ['Proveedor SCL', 'Asistencia 1', 'Proveedor PUQ', 'Asistencia 2', 'Proveedor WPU', 'Asistencia 3']
 
 def buscar_buque_id(nombre_buque, session):
     buque = session.query(Buque).filter(Buque.nombre.ilike(nombre_buque)).first()  # Usando ilike para coincidencias sin distinción entre mayúsculas y minúsculas
@@ -116,7 +119,7 @@ class Controller:
             hoteles_on.reset_index(drop=True, inplace=True)  # Reiniciar el índice
 
             #Procesar asistencias ON
-            asistencias_on = self._extract_assists(excel_data_on, start_row=0, state="on")
+            asistencias_on = self._extract_assist(excel_data_on, start_row=1, column_range=slice(41,47), column_names=asistencia_columns)
             asistencias_on.reset_index(drop=True, inplace=True)  # Reiniciar el índice
 
             #Procesar transportes ON
@@ -157,7 +160,7 @@ class Controller:
             vuelos_regionales_off.reset_index(drop=True, inplace=True)  # Reiniciar el índice
 
             #Procesar asistencias OFF
-            asistencias_off = self._extract_assists(excel_data_off, start_row=0, state="off")
+            asistencias_off = self._extract_assist(excel_data_off, start_row=1, column_range=slice(29,35), column_names=asistencia_columns)
             asistencias_off.reset_index(drop=True, inplace=True)  # Reiniciar el índice
 
             #Procesar transporte OFF
@@ -201,12 +204,12 @@ class Controller:
             # Crear tripulantes ON y OFF
             tripulantes = []
             tripulantes += self._create_tripulantes(tripulantes_on, self.buque_on, self.asistencias_on, "ON")
-            tripulantes += self._create_tripulantes(tripulantes_off, self.buque_off, self.asistencias_off, "OFF")
+            tripulantes += self._create_tripulantes(tripulantes_off, self.buque_off, self.asistencias_off, "ON")
 
             self._create_hotel(self.hoteles_on, self.tripulantes_on)
             self._create_hotel(self.hoteles_off, self.tripulantes_off)
 
-            self._create_restaurantes(self.restaurantes_on,self.tripulantes_on)
+            #self._create_restaurantes(self.restaurantes_on,self.tripulantes_on)
             self._create_restaurantes(self.restaurantes_off,self.tripulantes_off)
 
             self._create_transporte(self.transportes_on, self.tripulantes_on)
@@ -239,25 +242,18 @@ class Controller:
             # Procesar cada hotel en la fila
             for hotel_key in row.index:
                 hotel_info = row[hotel_key]
-                if isinstance(hotel_info, dict) and hotel_info.get('hotel') == "Day use PUQ":
-                    print(hotel_info)
 
                 if isinstance(hotel_info, dict):
                     # Crear un diccionario para la información del hotel
                     hotel_entry = {
                         'nombre_hotel': hotel_info.get('nombre_hotel'),
                         'categoria': hotel_info.get('categoria'),
-                        'ciudad': hotel_info.get('hotel') if 'hotel' in hotel_info else 'Desconocida',
+                        'ciudad': hotel_info.get('hotel').split()[-1] if 'hotel' in hotel_info else 'Desconocida',
                         'check_in': hotel_info.get('check_in'),
                         'check_out': hotel_info.get('check_out'),
                         'numero_noches': (pd.to_datetime(hotel_info.get('check_out')) - pd.to_datetime(hotel_info.get('check_in'))).days if pd.notna(hotel_info.get('check_in')) and pd.notna(hotel_info.get('check_out')) else 0,
                         'habitacion': hotel_info.get('habitacion')
                     }
-
-                    if isinstance(hotel_info, dict) and hotel_info.get('hotel') == "Day use PUQ":
-                        print(hotel_entry)
-
-                    #print(hotel_entry['nombre_hotel'])
 
                     # Agrega la entrada del hotel a la lista
                     hotel_entries.append(hotel_entry)
@@ -406,12 +402,22 @@ class Controller:
                 asistencias_tripulante = asistencias_df.iloc[i]  # Obtener la fila de asistencias correspondiente
 
                 # Extraer los valores de asistencia como una lista
-                asistencias_lista = [asistencia['asistencia'] for asistencia in asistencias_tripulante]
+                asistencias_lista = [asistencias_tripulante['Asistencia 1'], asistencias_tripulante['Asistencia 2'], asistencias_tripulante['Asistencia 3']]
+                proveedores_lista = [asistencias_tripulante['Proveedor SCL'], asistencias_tripulante['Proveedor PUQ'], asistencias_tripulante['Proveedor WPU']]
 
-                # Asignar booleanos según la presencia de cada asistencia
-                tripulante_existente.necesita_asistencia_scl = 'Asistencia SCL' in asistencias_lista
-                tripulante_existente.necesita_asistencia_puq = 'Asistencia PUQ' in asistencias_lista
-                tripulante_existente.necesita_asistencia_wpu = 'Asistencia WPU' in asistencias_lista
+                # Crear la instancia de TripulanteAsistencia
+                tripulante_asistencia = TripulanteAsistencia(
+                    tripulante_id=tripulante_existente.tripulante_id,
+                    necesita_asistencia_scl='Asistencia SCL' in asistencias_lista,
+                    necesita_asistencia_puq='Asistencia PUQ' in asistencias_lista,
+                    necesita_asistencia_wpu='Asistencia WPU' in asistencias_lista,
+                    proveedor_scl=proveedores_lista[0] if 'Asistencia SCL' in asistencias_lista else None,
+                    proveedor_puq=proveedores_lista[1] if 'Asistencia PUQ' in asistencias_lista else None,
+                    proveedor_wpu=proveedores_lista[2] if 'Asistencia WPU' in asistencias_lista else None
+                )
+
+                # Agregar la asistencia a la sesión
+                self.db_session.add(tripulante_asistencia)
 
                 # Confirmar los cambios en la base de datos
                 self.db_session.commit()  # Confirmar el tripulante y la ETA juntos
@@ -572,27 +578,22 @@ class Controller:
 
                         # Verificar si el nombre del hotel es NaN
                         hotel_nombre = hotel_info['nombre_hotel']
-                        hotel_ciudad = hotel_info['ciudad']
                         if pd.isna(hotel_nombre):
                             #print(f"Nombre de hotel no disponible para el tripulante ID {tripulante.tripulante_id}.")
                             continue  # Omitir si el nombre del hotel es NaN
 
                         # Normalizar el nombre del hotel para la búsqueda
                         hotel_nombre_normalizado = hotel_nombre.strip().lower()
-                        hotel_ciudad_normalizado = hotel_ciudad.strip().lower()
                         #print(f"Verificando existencia del hotel: {hotel_nombre_normalizado}")  # Para depuración
 
                         # Comprobar si el hotel ya existe en la base de datos
                         existing_hotel = self.db_session.query(Hotel).filter(
-                            func.lower(Hotel.nombre) == hotel_nombre_normalizado,
-                            func.lower(Hotel.ciudad) == hotel_ciudad_normalizado
+                            func.lower(Hotel.nombre) == hotel_nombre_normalizado
                         ).first()
-
-                        #print(hotel_nombre)
 
                         if existing_hotel:
                             hotel = existing_hotel
-                            print(f"Hotel existente encontrado: {hotel.nombre}")  # Para depuración
+                            #print(f"Hotel existente encontrado: {hotel.nombre}")  # Para depuración
                         else:
                             # Crear nuevo hotel si no existe
                             hotel = Hotel(
@@ -601,7 +602,7 @@ class Controller:
                             )
                             self.db_session.add(hotel)
                             self.db_session.flush()  # Para obtener el ID del hotel recién creado
-                            print(f"Nuevo hotel creado: {hotel.nombre}")  # Para depuración
+                            #print(f"Nuevo hotel creado: {hotel.nombre}")  # Para depuración
 
                         # Crear relación Tripulante-Hotel, asegurándose de que los valores no sean NaN
                         nuevo_tripulante_hotel = TripulanteHotel(
@@ -630,8 +631,6 @@ class Controller:
     def _create_restaurantes(self, restaurantes_df, tripulantes_df):
         try:
             for index in range(len(restaurantes_df)):
-                #print(f"Procesando índice: {index}")  # Línea de depuración para el índice actual
-
                 restaurante_row = restaurantes_df.iloc[index]
 
                 # Obtener el pasaporte del tripulante basado en la fila actual
@@ -692,7 +691,7 @@ class Controller:
 
                     # Asignar preferencia alimenticia al tripulante si no se ha establecido
                     if preferencia_alimenticia_set:
-                        preferencia_alimenticia = next(iter(preferencia_alimenticia_set))  # Elegir una preferencia (puedes modificar esto según tus reglas)
+                        preferencia_alimenticia = next(iter(preferencia_alimenticia_set)) 
                         # Aquí debes asegurar que el `restaurante` no sea None
                         if restaurante is not None:  # Crea la relación entre el tripulante y el restaurante
                             relacion = TripulanteRestaurante(
@@ -759,7 +758,7 @@ class Controller:
                                 if not transporte:
                                     transporte = Transporte(
                                         nombre=_transporte['tramo'],
-                                        ciudad=_transporte['ciudad'],
+                                        ciudad="A",
                                     )
                                     self.db_session.add(transporte)
                                     self.db_session.flush()  # Asegurar que el vuelo esté disponible en la base de datos
@@ -768,7 +767,6 @@ class Controller:
                                 tripulante_transporte_existente = self.db_session.query(TripulanteTransporte).filter_by(
                                     tripulante_id=tripulante.tripulante_id,
                                     transporte_id=transporte.transporte_id,
-                                    fecha=_transporte['fecha']
                                 ).first()
 
                                 if not tripulante_transporte_existente:
@@ -811,8 +809,6 @@ class Controller:
             ciudad, resto = tramo.split(" ", 1)
             lugar_inicio, lugar_final = resto.split("-", 1)
             fecha = transporte_info['Date Pick Up']
-
-            ciudad = CITY_AIRPORT_CODES.get(ciudad)
 
             transportes_info.append({
                 'tramo': tramo,
@@ -1063,53 +1059,6 @@ class Controller:
         
         return pd.DataFrame(vuelos)
 
-
-    def _extract_assists(self, excel_data, start_row, state):
-        assists = []
-        
-        # Convertir los nombres de las columnas a cadenas y quitar espacios
-        assist_columns = excel_data.loc[start_row].dropna().str.lower().tolist()
-
-        # Iterar sobre cada fila, comenzando desde la fila indicada
-        for i in range(start_row + 1, excel_data.shape[0]):
-            tripulante_assists = {}
-            assist_num = 1
-            
-            # Iterar sobre las columnas de vuelos hasta que ya no existan
-            while True:
-                assist = f'asistencia {assist_num}'
-                    
-                # Verificar si las columnas existen en el DataFrame
-                if assist in assist_columns:
-                    col_idx_assist = assist_columns.index(assist)
-
-                    assist_idx = excel_data.iloc[i, col_idx_assist]
-
-                    # Si hay información válida en las columnas, agregarla
-                    if pd.notna(assist_idx):
-                        tripulante_assists[f'Asistencia {assist_num}'] = {
-                            "asistencia": assist_idx,
-                        }
-                    else:
-                        # Si el campo está vacío, agregar un valor predeterminado
-                        tripulante_assists[f'Asistencia {assist_num}'] = {
-                            "asistencia": "NO",  # o cualquier valor que consideres apropiado
-                        }
-
-                    # Incrementar el vuelo_num para buscar el siguiente conjunto
-                    assist_num += 1
-                else:
-                    break  # Detener la búsqueda si no se encuentra una de las columnas
-
-            # Agregar el tripulante_assists, incluso si está vacío
-            assists.append(tripulante_assists)
-
-        # Verificar si se encontraron asistencias
-        if len(assists) == 0:
-            print("No se encontraron asistencias en las filas procesadas.")
-            
-        return pd.DataFrame(assists)
-
     def _extract_transports(self, excel_data, start_row, state):
         transports = []
 
@@ -1229,10 +1178,9 @@ class Controller:
             print("No se encontraron restaurantes en las filas procesadas.")
         else:
             print(f"{len(restaurants)} restaurantes procesados. ({state})")
-            
+
         return pd.DataFrame(restaurants)
 
-    
     def _extract_extras(self, excel_data, start_row, state):
         extras = []
         
@@ -1313,6 +1261,32 @@ class Controller:
                 break  # Detener si la fila está completamente vacía
             
             # Agregar los datos de la fila al bloque
+            data_block.append(row_data)
+            current_row += 1
+
+        # Convertir el bloque de datos en un DataFrame
+        result_df = pd.DataFrame(data_block)
+        
+        # Asignar nombres de columnas si se proporcionan
+        if column_names:
+            if len(column_names) != result_df.shape[1]:
+                raise ValueError(f"Length mismatch: Se esperaban {len(column_names)} columnas, pero se detectaron {result_df.shape[1]}")
+            result_df.columns = column_names
+        
+        return result_df
+
+    def _extract_assist(self, data, start_row, column_range, column_names):
+        # Leer todas las filas desde una fila específica hasta que no haya más datos,
+        # incluso si las filas tienen valores nulos.
+        
+        data_block = []
+        current_row = start_row
+
+        while current_row < len(data):
+            # Leer una fila completa del DataFrame, sin detenerse por nulos
+            row_data = data.iloc[current_row, column_range]
+
+            # Agregar los datos de la fila al bloque, incluso si hay nulos
             data_block.append(row_data)
             current_row += 1
 
