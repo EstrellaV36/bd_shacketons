@@ -44,6 +44,8 @@ class BasicApp(QMainWindow):
             self.hotel_widget, self.transporte_widget, self.restaurant_widget
         )
         self.generacion_reportes_screen = GeneracionReportesScreen(self)
+        # Guardar el índice de la pantalla de reportes
+        self.menu_reportes_index = self.stacked_widget.addWidget(self.generacion_reportes_screen)
 
         # Add screens to stacked_widget
         self.stacked_widget.addWidget(self.carga_masiva_screen)

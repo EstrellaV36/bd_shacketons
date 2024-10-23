@@ -15,6 +15,7 @@ CITY_AIRPORT_CODES = {
     'ZAL': "VALDIVIA",
     'WPU': "PUERTO WILLIAMS",
     'CDG': 'PARIS',
+    'VALP': 'VALPARAISO',
     'NY': 'NUEVA YORK',
     'SPU': 'SPLIT',
     'ZAG': 'ZAGREB',
@@ -52,6 +53,8 @@ CITY_AIRPORT_CODES = {
     'AKL': "AUCKLAND",  # Auckland Airport
     'FCO': "ROMA",  # Aeropuerto Internacional Leonardo da Vinci
 }
+
+CITY_TO_AIRPORT_CODES = {city: code for code, city in CITY_AIRPORT_CODES.items()}
 
 # Definir los nombres de las columnas antes de llamar al método
 buque_on_columns = ['Owner', 'Vessel', 'Date arrive CL', 'ETA Vessel', 'ETD Vessel', 'Puerto a embarcar', 'Condicion']
@@ -204,7 +207,7 @@ class Controller:
             self._create_hotel(self.hoteles_on, self.tripulantes_on)
             self._create_hotel(self.hoteles_off, self.tripulantes_off)
 
-            self._create_restaurantes(self.restaurantes_on,self.tripulantes_on)
+            #self._create_restaurantes(self.restaurantes_on,self.tripulantes_on)
             self._create_restaurantes(self.restaurantes_off,self.tripulantes_off)
 
             self._create_transporte(self.transportes_on, self.tripulantes_on)
@@ -616,8 +619,6 @@ class Controller:
     def _create_restaurantes(self, restaurantes_df, tripulantes_df):
         try:
             for index in range(len(restaurantes_df)):
-                #print(f"Procesando índice: {index}")  # Línea de depuración para el índice actual
-
                 restaurante_row = restaurantes_df.iloc[index]
 
                 # Obtener el pasaporte del tripulante basado en la fila actual
@@ -678,7 +679,7 @@ class Controller:
 
                     # Asignar preferencia alimenticia al tripulante si no se ha establecido
                     if preferencia_alimenticia_set:
-                        preferencia_alimenticia = next(iter(preferencia_alimenticia_set))  # Elegir una preferencia (puedes modificar esto según tus reglas)
+                        preferencia_alimenticia = next(iter(preferencia_alimenticia_set)) 
                         # Aquí debes asegurar que el `restaurante` no sea None
                         if restaurante is not None:  # Crea la relación entre el tripulante y el restaurante
                             relacion = TripulanteRestaurante(
@@ -1212,10 +1213,9 @@ class Controller:
             print("No se encontraron restaurantes en las filas procesadas.")
         else:
             print(f"{len(restaurants)} restaurantes procesados. ({state})")
-            
+
         return pd.DataFrame(restaurants)
 
-    
     def _extract_extras(self, excel_data, start_row, state):
         extras = []
         

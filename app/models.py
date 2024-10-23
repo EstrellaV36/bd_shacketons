@@ -146,6 +146,7 @@ class TripulanteRestaurante(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)  # ID único para la relación
     fecha_reserva: Mapped[datetime] = mapped_column(nullable=True, default=None)  # Campo nulo permitido
     tipo_comida: Mapped[str] = mapped_column(nullable=True, default=None)
+    pref_alimenticia: Mapped[str] = mapped_column(nullable=True, default=None)
     tripulante_id: Mapped[int] = mapped_column(ForeignKey("tripulantes.tripulante_id"), nullable=False)
     restaurante_id: Mapped[int] = mapped_column(ForeignKey("restaurantes.restaurante_id"), nullable=False)
 
