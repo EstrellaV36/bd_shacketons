@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 import traceback
 from sqlalchemy import func
 from PyQt6.QtWidgets import QMessageBox
-from app.models import Buque, Tripulante, Vuelo, EtaCiudad, Viaje, TripulanteVuelo, Hotel, TripulanteHotel, Restaurante, TripulanteRestaurante, Transporte, TripulanteTransporte
+from app.models import Buque, Tripulante, Vuelo, EtaCiudad, Viaje, TripulanteVuelo, Hotel, TripulanteHotel, Restaurante, TripulanteRestaurante, Transporte, TripulanteTransporte, TripulanteAsistencia
 
 CITY_AIRPORT_CODES = {
     'PUQ': "PUNTA ARENAS",
@@ -64,6 +64,8 @@ tripulante_columns = ['First name', 'Last name', 'Gender', 'Nacionalidad', 'Posi
 
 domestic_columns = ['Nro Domestic Flight', 'Date Domestic Flight', 'Hora Domestic Flight']
 
+asistencia_columns = ['Proveedor SCL', 'Asistencia 1', 'Proveedor PUQ', 'Asistencia 2', 'Proveedor WPU', 'Asistencia 3']
+
 def buscar_buque_id(nombre_buque, session):
     buque = session.query(Buque).filter(Buque.nombre.ilike(nombre_buque)).first()  # Usando ilike para coincidencias sin distinción entre mayúsculas y minúsculas
     if buque:
@@ -117,7 +119,7 @@ class Controller:
             hoteles_on.reset_index(drop=True, inplace=True)  # Reiniciar el índice
 
             #Procesar asistencias ON
-            asistencias_on = self._extract_assists(excel_data_on, start_row=0, state="on")
+            asistencias_on = self._extract_assist(excel_data_on, start_row=1, column_range=slice(41,47), column_names=asistencia_columns)
             asistencias_on.reset_index(drop=True, inplace=True)  # Reiniciar el índice
 
             #Procesar transportes ON
@@ -158,7 +160,7 @@ class Controller:
             vuelos_regionales_off.reset_index(drop=True, inplace=True)  # Reiniciar el índice
 
             #Procesar asistencias OFF
-            asistencias_off = self._extract_assists(excel_data_off, start_row=0, state="off")
+            asistencias_off = self._extract_assist(excel_data_off, start_row=1, column_range=slice(29,35), column_names=asistencia_columns)
             asistencias_off.reset_index(drop=True, inplace=True)  # Reiniciar el índice
 
             #Procesar transporte OFF
@@ -400,12 +402,22 @@ class Controller:
                 asistencias_tripulante = asistencias_df.iloc[i]  # Obtener la fila de asistencias correspondiente
 
                 # Extraer los valores de asistencia como una lista
-                asistencias_lista = [asistencia['asistencia'] for asistencia in asistencias_tripulante]
+                asistencias_lista = [asistencias_tripulante['Asistencia 1'], asistencias_tripulante['Asistencia 2'], asistencias_tripulante['Asistencia 3']]
+                proveedores_lista = [asistencias_tripulante['Proveedor SCL'], asistencias_tripulante['Proveedor PUQ'], asistencias_tripulante['Proveedor WPU']]
 
-                # Asignar booleanos según la presencia de cada asistencia
-                tripulante_existente.necesita_asistencia_scl = 'Asistencia SCL' in asistencias_lista
-                tripulante_existente.necesita_asistencia_puq = 'Asistencia PUQ' in asistencias_lista
-                tripulante_existente.necesita_asistencia_wpu = 'Asistencia WPU' in asistencias_lista
+                # Crear la instancia de TripulanteAsistencia
+                tripulante_asistencia = TripulanteAsistencia(
+                    tripulante_id=tripulante_existente.tripulante_id,
+                    necesita_asistencia_scl='Asistencia SCL' in asistencias_lista,
+                    necesita_asistencia_puq='Asistencia PUQ' in asistencias_lista,
+                    necesita_asistencia_wpu='Asistencia WPU' in asistencias_lista,
+                    proveedor_scl=proveedores_lista[0] if 'Asistencia SCL' in asistencias_lista else None,
+                    proveedor_puq=proveedores_lista[1] if 'Asistencia PUQ' in asistencias_lista else None,
+                    proveedor_wpu=proveedores_lista[2] if 'Asistencia WPU' in asistencias_lista else None
+                )
+
+                # Agregar la asistencia a la sesión
+                self.db_session.add(tripulante_asistencia)
 
                 # Confirmar los cambios en la base de datos
                 self.db_session.commit()  # Confirmar el tripulante y la ETA juntos
@@ -1047,53 +1059,6 @@ class Controller:
         
         return pd.DataFrame(vuelos)
 
-
-    def _extract_assists(self, excel_data, start_row, state):
-        assists = []
-        
-        # Convertir los nombres de las columnas a cadenas y quitar espacios
-        assist_columns = excel_data.loc[start_row].dropna().str.lower().tolist()
-
-        # Iterar sobre cada fila, comenzando desde la fila indicada
-        for i in range(start_row + 1, excel_data.shape[0]):
-            tripulante_assists = {}
-            assist_num = 1
-            
-            # Iterar sobre las columnas de vuelos hasta que ya no existan
-            while True:
-                assist = f'asistencia {assist_num}'
-                    
-                # Verificar si las columnas existen en el DataFrame
-                if assist in assist_columns:
-                    col_idx_assist = assist_columns.index(assist)
-
-                    assist_idx = excel_data.iloc[i, col_idx_assist]
-
-                    # Si hay información válida en las columnas, agregarla
-                    if pd.notna(assist_idx):
-                        tripulante_assists[f'Asistencia {assist_num}'] = {
-                            "asistencia": assist_idx,
-                        }
-                    else:
-                        # Si el campo está vacío, agregar un valor predeterminado
-                        tripulante_assists[f'Asistencia {assist_num}'] = {
-                            "asistencia": "NO",  # o cualquier valor que consideres apropiado
-                        }
-
-                    # Incrementar el vuelo_num para buscar el siguiente conjunto
-                    assist_num += 1
-                else:
-                    break  # Detener la búsqueda si no se encuentra una de las columnas
-
-            # Agregar el tripulante_assists, incluso si está vacío
-            assists.append(tripulante_assists)
-
-        # Verificar si se encontraron asistencias
-        if len(assists) == 0:
-            print("No se encontraron asistencias en las filas procesadas.")
-            
-        return pd.DataFrame(assists)
-
     def _extract_transports(self, excel_data, start_row, state):
         transports = []
 
@@ -1309,3 +1274,30 @@ class Controller:
             result_df.columns = column_names
         
         return result_df
+
+    def _extract_assist(self, data, start_row, column_range, column_names):
+        # Leer todas las filas desde una fila específica hasta que no haya más datos,
+        # incluso si las filas tienen valores nulos.
+        
+        data_block = []
+        current_row = start_row
+
+        while current_row < len(data):
+            # Leer una fila completa del DataFrame, sin detenerse por nulos
+            row_data = data.iloc[current_row, column_range]
+
+            # Agregar los datos de la fila al bloque, incluso si hay nulos
+            data_block.append(row_data)
+            current_row += 1
+
+        # Convertir el bloque de datos en un DataFrame
+        result_df = pd.DataFrame(data_block)
+        
+        # Asignar nombres de columnas si se proporcionan
+        if column_names:
+            if len(column_names) != result_df.shape[1]:
+                raise ValueError(f"Length mismatch: Se esperaban {len(column_names)} columnas, pero se detectaron {result_df.shape[1]}")
+            result_df.columns = column_names
+        
+        return result_df
+

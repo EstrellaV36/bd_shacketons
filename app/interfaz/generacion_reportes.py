@@ -2,7 +2,7 @@ import pandas as pd
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QTableWidget, QTableWidgetItem, QComboBox, QFileDialog, QDateEdit, QCheckBox
 from PyQt6.QtCore import Qt, QDate
 from app.database import get_db_session
-from app.models import Buque, EtaCiudad, Tripulante, Vuelo, TripulanteVuelo, Restaurante, TripulanteRestaurante, Transporte, TripulanteTransporte, Hotel, TripulanteHotel, Buque # Asegúrate de que estos modelos se importen correctamente
+from app.models import Buque, EtaCiudad, Tripulante, Vuelo, TripulanteVuelo, Restaurante, TripulanteRestaurante, Transporte, TripulanteTransporte, Hotel, TripulanteHotel, Buque, TripulanteAsistencia
 from app.controllers import CITY_AIRPORT_CODES, CITY_TO_AIRPORT_CODES
 from openpyxl.styles import PatternFill
 from openpyxl import Workbook
@@ -1145,24 +1145,8 @@ class AsistenciasScreen(QWidget):
     def cargar_datos(self, ciudad_seleccionada):
         session = get_db_session()  # Obtener la sesión de la base de datos
 
-        # Genera y muestra la consulta
-        query = (
-            session.query(
-                Vuelo.aeropuerto_salida.label("Aeropuerto_Salida"),
-                Vuelo.hora_salida.label("Hora_Salida"),
-                Vuelo.codigo.label("Nro_Vuelo_Salida"),
-                Vuelo.fecha.label("Fecha_Vuelo_Salida"),
-                Tripulante.tripulante_id
-            )
-            .outerjoin(TripulanteVuelo, TripulanteVuelo.tripulante_id == Tripulante.tripulante_id)
-            .outerjoin(Vuelo, TripulanteVuelo.vuelo_id == Vuelo.vuelo_id)
-            .filter(func.lower(Vuelo.aeropuerto_salida) == ciudad_seleccionada)
-        )
-
-        #print(str(query))
-        salida_vuelos = query.all()
-
         # Obtener el nombre de la ciudad a partir del código
+        codigo_ciudad = ciudad_seleccionada
         ciudad_seleccionada = CITY_AIRPORT_CODES.get(ciudad_seleccionada).lower()  # Convertir a minúsculas
 
         # Obtener datos de vuelos de arribo
@@ -1174,6 +1158,7 @@ class AsistenciasScreen(QWidget):
                 Vuelo.hora_llegada.label("Hora_Arribo"),
                 Tripulante.nombre.label("First_Name"),
                 Tripulante.apellido.label("Last_Name"),
+                Tripulante.condicion.label("Condition"),
                 Tripulante.estado.label("Type"),
                 Vuelo.codigo.label("Nro_Vuelo_Arribo"),
                 Tripulante.tripulante_id,
@@ -1194,7 +1179,8 @@ class AsistenciasScreen(QWidget):
                 Vuelo.hora_salida.label("Hora_Salida"),
                 Vuelo.codigo.label("Nro_Vuelo_Salida"),
                 Vuelo.fecha.label("Fecha_Vuelo_Salida"),
-                Tripulante.tripulante_id  # Incluir el tripulante_id
+                Tripulante.tripulante_id,
+                Tripulante.estado.label("Estado")
             )
             .outerjoin(TripulanteVuelo, TripulanteVuelo.tripulante_id == Tripulante.tripulante_id)
             .outerjoin(Vuelo, TripulanteVuelo.vuelo_id == Vuelo.vuelo_id)
@@ -1202,6 +1188,58 @@ class AsistenciasScreen(QWidget):
             .all()
         )
 
+        # Construir la consulta de transporte
+        transporte_necesario = (
+            session.query(
+                Tripulante.tripulante_id,
+                Tripulante.estado.label("Estado"),
+                Transporte.nombre.label("Ciudad_Transporte"),
+                TripulanteTransporte.fecha.label("Fecha")
+            )
+            .join(TripulanteTransporte, Tripulante.tripulante_id == TripulanteTransporte.tripulante_id)
+            .filter(Transporte.transporte_id == TripulanteTransporte.transporte_id)
+            .filter(func.lower(TripulanteTransporte.ciudad) == codigo_ciudad.lower())
+            .all()
+        )
+        tripulantes_con_transporte = {transporte.tripulante_id for transporte in transporte_necesario}
+
+        # Obtener la información de asistencia y proveedores según la ciudad seleccionada
+        if codigo_ciudad == "SCL":
+            asistencia_data = (
+                session.query(
+                    TripulanteAsistencia.tripulante_id,
+                    TripulanteAsistencia.necesita_asistencia_scl.label("Necesita_Asistencia"),
+                    TripulanteAsistencia.proveedor_scl.label("Proveedor")
+                )
+                .all()
+            )
+        elif codigo_ciudad == "PUQ":
+            asistencia_data = (
+                session.query(
+                    TripulanteAsistencia.tripulante_id,
+                    TripulanteAsistencia.necesita_asistencia_puq.label("Necesita_Asistencia"),
+                    TripulanteAsistencia.proveedor_puq.label("Proveedor")
+                )
+                .all()
+            )
+        elif codigo_ciudad == "WPU":
+            asistencia_data = (
+                session.query(
+                    TripulanteAsistencia.tripulante_id,
+                    TripulanteAsistencia.necesita_asistencia_wpu.label("Necesita_Asistencia"),
+                    TripulanteAsistencia.proveedor_wpu.label("Proveedor")
+                )
+                .all()
+            )
+
+        """
+        # Imprimir datos de transporte necesario
+        print("Datos de Transporte Necesario:")
+        for tripulante in session.query(Tripulante).all():  # Obtener todos los tripulantes
+            requiere_transporte = "Sí" if tripulante.tripulante_id in tripulantes_con_transporte else "No"
+            print(f"ID Tripulante: {tripulante.tripulante_id}, Estado: {tripulante.estado}, Requiere Transporte: {requiere_transporte}")
+
+        
         # Limpiar la tabla
         self.table_widget.setRowCount(0)
         self.table_widget.setColumnCount(18)  # Número correcto de columnas
@@ -1254,7 +1292,7 @@ class AsistenciasScreen(QWidget):
                 self.table_widget.setItem(row, 17, QTableWidgetItem(str(salida.Hora_Salida)))  # Hora Salida
             #else:
                 #print(f"No se encontró vuelo de salida para {arribo.First_Name} {arribo.Last_Name}")
-
+        """
     def generar_excel(self, ciudad_seleccionada):
     # Crear un DataFrame con los datos de la tabla
         data = []
