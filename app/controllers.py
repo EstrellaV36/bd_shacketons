@@ -405,24 +405,32 @@ class Controller:
                 asistencias_lista = [asistencias_tripulante['Asistencia 1'], asistencias_tripulante['Asistencia 2'], asistencias_tripulante['Asistencia 3']]
                 proveedores_lista = [asistencias_tripulante['Proveedor SCL'], asistencias_tripulante['Proveedor PUQ'], asistencias_tripulante['Proveedor WPU']]
 
-                # Crear la instancia de TripulanteAsistencia
-                tripulante_asistencia = TripulanteAsistencia(
-                    tripulante_id=tripulante_existente.tripulante_id,
-                    necesita_asistencia_scl='Asistencia SCL' in asistencias_lista,
-                    necesita_asistencia_puq='Asistencia PUQ' in asistencias_lista,
-                    necesita_asistencia_wpu='Asistencia WPU' in asistencias_lista,
-                    proveedor_scl=proveedores_lista[0] if 'Asistencia SCL' in asistencias_lista else None,
-                    proveedor_puq=proveedores_lista[1] if 'Asistencia PUQ' in asistencias_lista else None,
-                    proveedor_wpu=proveedores_lista[2] if 'Asistencia WPU' in asistencias_lista else None
-                )
+                # Verificar si ya existe una entrada de TripulanteAsistencia
+                existing_asistencia = self.db_session.query(TripulanteAsistencia).filter_by(
+                    tripulante_id=tripulante_existente.tripulante_id
+                ).first()
 
-                # Agregar la asistencia a la sesión
-                self.db_session.add(tripulante_asistencia)
+                if existing_asistencia:
+                    print(f"Ya existe una asistencia para el tripulante ID {tripulante_existente.tripulante_id}.")
+                else:
+                    # Crear la instancia de TripulanteAsistencia
+                    tripulante_asistencia = TripulanteAsistencia(
+                        tripulante_id=tripulante_existente.tripulante_id,
+                        necesita_asistencia_scl='Asistencia SCL' in asistencias_lista,
+                        necesita_asistencia_puq='Asistencia PUQ' in asistencias_lista,
+                        necesita_asistencia_wpu='Asistencia WPU' in asistencias_lista,
+                        proveedor_scl=proveedores_lista[0] if 'Asistencia SCL' in asistencias_lista else None,
+                        proveedor_puq=proveedores_lista[1] if 'Asistencia PUQ' in asistencias_lista else None,
+                        proveedor_wpu=proveedores_lista[2] if 'Asistencia WPU' in asistencias_lista else None
+                    )
+
+                    # Agregar la asistencia a la sesión
+                    self.db_session.add(tripulante_asistencia)
 
                 # Confirmar los cambios en la base de datos
-                self.db_session.commit()  # Confirmar el tripulante y la ETA juntos
+                self.db_session.commit()  # Confirmar el tripulante, ETA, y asistencia juntos
 
-                tripulantes.append(tripulante_existente)  # Agregar a la lista
+                tripulantes.append(tripulante_existente)
 
             # Retornar la lista de tripulantes y vuelos asociados
             return tripulantes, vuelos_tripulante
@@ -578,17 +586,23 @@ class Controller:
 
                         # Verificar si el nombre del hotel es NaN
                         hotel_nombre = hotel_info['nombre_hotel']
+                        hotel_ciudad = hotel_info['ciudad']
                         if pd.isna(hotel_nombre):
                             #print(f"Nombre de hotel no disponible para el tripulante ID {tripulante.tripulante_id}.")
                             continue  # Omitir si el nombre del hotel es NaN
 
                         # Normalizar el nombre del hotel para la búsqueda
                         hotel_nombre_normalizado = hotel_nombre.strip().lower()
+                        hotel_ciudad_normalizado = hotel_ciudad.strip().lower()
+
+                        if hotel_ciudad_normalizado == "hotel":
+                            continue
                         #print(f"Verificando existencia del hotel: {hotel_nombre_normalizado}")  # Para depuración
 
                         # Comprobar si el hotel ya existe en la base de datos
                         existing_hotel = self.db_session.query(Hotel).filter(
-                            func.lower(Hotel.nombre) == hotel_nombre_normalizado
+                            func.lower(Hotel.nombre) == hotel_nombre_normalizado,
+                            func.lower(Hotel.ciudad) == hotel_ciudad_normalizado
                         ).first()
 
                         if existing_hotel:
@@ -605,6 +619,18 @@ class Controller:
                             #print(f"Nuevo hotel creado: {hotel.nombre}")  # Para depuración
 
                         # Crear relación Tripulante-Hotel, asegurándose de que los valores no sean NaN
+                        existing_tripulante_hotel = self.db_session.query(TripulanteHotel).filter(
+                            TripulanteHotel.tripulante_id == tripulante.tripulante_id,
+                            TripulanteHotel.hotel_id == hotel.hotel_id,
+                            TripulanteHotel.fecha_entrada == hotel_info['check_in'],
+                            TripulanteHotel.fecha_salida == hotel_info['check_out']
+                        ).first()
+
+                        if existing_tripulante_hotel:
+                            print(f"Ya existe una relación para Tripulante ID {tripulante.tripulante_id} con el Hotel ID {hotel.hotel_id}.")
+                            continue  # Omitir la creación de una nueva relación si ya existe
+
+                        # Crear nueva relación Tripulante-Hotel si no existe
                         nuevo_tripulante_hotel = TripulanteHotel(
                             tripulante_id=tripulante.tripulante_id,
                             hotel_id=hotel.hotel_id,
@@ -616,6 +642,7 @@ class Controller:
                             day_room=False  # O ajusta según sea necesario
                         )
                         self.db_session.add(nuevo_tripulante_hotel)
+                        self.db_session.flush()  # Para obtener el ID del hotel recién creado
                         #print(f"Nueva relación Tripulante-Hotel creada: Tripulante ID {tripulante.tripulante_id}, Hotel ID {hotel.hotel_id}")  HAY QUE REVISAR ESTA PARTE PORQUE NO SE SUPONE QUE CREE SIEMPRE LAS MISMAS RELACIONES PERO MIENTRAS SIRVE
                 else:
                     print(f"No hay hotel válido asignado para el tripulante ID {tripulante.tripulante_id}.")
