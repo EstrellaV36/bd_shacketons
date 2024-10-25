@@ -155,7 +155,8 @@ class TripulanteRestaurante(Base):
     __tablename__ = "tripulante_restaurante"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)  # ID único para la relación
-    fecha_reserva: Mapped[datetime] = mapped_column(nullable=True, default=None)  # Campo nulo permitido
+    fecha_desde: Mapped[datetime] = mapped_column(nullable=True, default=None)  # Campo nulo permitido
+    fecha_hasta: Mapped[datetime] = mapped_column(nullable=True, default=None)  # Campo nulo permitido
     tipo_comida: Mapped[str] = mapped_column(nullable=True, default=None)
     pref_alimenticia: Mapped[str] = mapped_column(nullable=True, default=None)
     tripulante_id: Mapped[int] = mapped_column(ForeignKey("tripulantes.tripulante_id"), nullable=False)
@@ -166,7 +167,7 @@ class TripulanteRestaurante(Base):
     restaurante: Mapped["Restaurante"] = relationship("Restaurante", back_populates="tripulante_restaurantes")
 
     def __repr__(self):
-        return f"TripulanteRestaurante(id={self.id}, tripulante_id={self.tripulante_id}, restaurante_id={self.restaurante_id}, fecha_reserva={self.fecha_reserva})"
+        return f"TripulanteRestaurante(id={self.id}, tripulante_id={self.tripulante_id}, restaurante_id={self.restaurante_id}, fecha_reserva={self.fecha_desde})"
 
 class Restaurante(Base):
     __tablename__ = "restaurantes"

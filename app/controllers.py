@@ -405,24 +405,33 @@ class Controller:
                 asistencias_lista = [asistencias_tripulante['Asistencia 1'], asistencias_tripulante['Asistencia 2'], asistencias_tripulante['Asistencia 3']]
                 proveedores_lista = [asistencias_tripulante['Proveedor SCL'], asistencias_tripulante['Proveedor PUQ'], asistencias_tripulante['Proveedor WPU']]
 
-                # Crear la instancia de TripulanteAsistencia
-                tripulante_asistencia = TripulanteAsistencia(
-                    tripulante_id=tripulante_existente.tripulante_id,
-                    necesita_asistencia_scl='Asistencia SCL' in asistencias_lista,
-                    necesita_asistencia_puq='Asistencia PUQ' in asistencias_lista,
-                    necesita_asistencia_wpu='Asistencia WPU' in asistencias_lista,
-                    proveedor_scl=proveedores_lista[0] if 'Asistencia SCL' in asistencias_lista else None,
-                    proveedor_puq=proveedores_lista[1] if 'Asistencia PUQ' in asistencias_lista else None,
-                    proveedor_wpu=proveedores_lista[2] if 'Asistencia WPU' in asistencias_lista else None
-                )
+                # Verificar si ya existe una entrada de TripulanteAsistencia
+                existing_asistencia = self.db_session.query(TripulanteAsistencia).filter_by(
+                    tripulante_id=tripulante_existente.tripulante_id
+                ).first()
 
-                # Agregar la asistencia a la sesión
-                self.db_session.add(tripulante_asistencia)
+                if existing_asistencia:
+                    #print(f"Ya existe una asistencia para el tripulante ID {tripulante_existente.tripulante_id}.")
+                    continue
+                else:
+                    # Crear la instancia de TripulanteAsistencia
+                    tripulante_asistencia = TripulanteAsistencia(
+                        tripulante_id=tripulante_existente.tripulante_id,
+                        necesita_asistencia_scl='Asistencia SCL' in asistencias_lista,
+                        necesita_asistencia_puq='Asistencia PUQ' in asistencias_lista,
+                        necesita_asistencia_wpu='Asistencia WPU' in asistencias_lista,
+                        proveedor_scl=proveedores_lista[0] if 'Asistencia SCL' in asistencias_lista else None,
+                        proveedor_puq=proveedores_lista[1] if 'Asistencia PUQ' in asistencias_lista else None,
+                        proveedor_wpu=proveedores_lista[2] if 'Asistencia WPU' in asistencias_lista else None
+                    )
+
+                    # Agregar la asistencia a la sesión
+                    self.db_session.add(tripulante_asistencia)
 
                 # Confirmar los cambios en la base de datos
-                self.db_session.commit()  # Confirmar el tripulante y la ETA juntos
+                self.db_session.commit()  # Confirmar el tripulante, ETA, y asistencia juntos
 
-                tripulantes.append(tripulante_existente)  # Agregar a la lista
+                tripulantes.append(tripulante_existente)
 
             # Retornar la lista de tripulantes y vuelos asociados
             return tripulantes, vuelos_tripulante
@@ -578,17 +587,23 @@ class Controller:
 
                         # Verificar si el nombre del hotel es NaN
                         hotel_nombre = hotel_info['nombre_hotel']
+                        hotel_ciudad = hotel_info['ciudad']
                         if pd.isna(hotel_nombre):
                             #print(f"Nombre de hotel no disponible para el tripulante ID {tripulante.tripulante_id}.")
                             continue  # Omitir si el nombre del hotel es NaN
 
                         # Normalizar el nombre del hotel para la búsqueda
                         hotel_nombre_normalizado = hotel_nombre.strip().lower()
+                        hotel_ciudad_normalizado = hotel_ciudad.strip().lower()
+
+                        if hotel_ciudad_normalizado == "hotel":
+                            continue
                         #print(f"Verificando existencia del hotel: {hotel_nombre_normalizado}")  # Para depuración
 
                         # Comprobar si el hotel ya existe en la base de datos
                         existing_hotel = self.db_session.query(Hotel).filter(
-                            func.lower(Hotel.nombre) == hotel_nombre_normalizado
+                            func.lower(Hotel.nombre) == hotel_nombre_normalizado,
+                            func.lower(Hotel.ciudad) == hotel_ciudad_normalizado
                         ).first()
 
                         if existing_hotel:
@@ -605,6 +620,18 @@ class Controller:
                             #print(f"Nuevo hotel creado: {hotel.nombre}")  # Para depuración
 
                         # Crear relación Tripulante-Hotel, asegurándose de que los valores no sean NaN
+                        existing_tripulante_hotel = self.db_session.query(TripulanteHotel).filter(
+                            TripulanteHotel.tripulante_id == tripulante.tripulante_id,
+                            TripulanteHotel.hotel_id == hotel.hotel_id,
+                            TripulanteHotel.fecha_entrada == hotel_info['check_in'],
+                            TripulanteHotel.fecha_salida == hotel_info['check_out']
+                        ).first()
+
+                        if existing_tripulante_hotel:
+                            #print(f"Ya existe una relación para Tripulante ID {tripulante.tripulante_id} con el Hotel ID {hotel.hotel_id}.")
+                            continue  # Omitir la creación de una nueva relación si ya existe
+
+                        # Crear nueva relación Tripulante-Hotel si no existe
                         nuevo_tripulante_hotel = TripulanteHotel(
                             tripulante_id=tripulante.tripulante_id,
                             hotel_id=hotel.hotel_id,
@@ -616,6 +643,7 @@ class Controller:
                             day_room=False  # O ajusta según sea necesario
                         )
                         self.db_session.add(nuevo_tripulante_hotel)
+                        self.db_session.flush()  # Para obtener el ID del hotel recién creado
                         #print(f"Nueva relación Tripulante-Hotel creada: Tripulante ID {tripulante.tripulante_id}, Hotel ID {hotel.hotel_id}")  HAY QUE REVISAR ESTA PARTE PORQUE NO SE SUPONE QUE CREE SIEMPRE LAS MISMAS RELACIONES PERO MIENTRAS SIRVE
                 else:
                     print(f"No hay hotel válido asignado para el tripulante ID {tripulante.tripulante_id}.")
@@ -632,73 +660,80 @@ class Controller:
         try:
             for index in range(len(restaurantes_df)):
                 restaurante_row = restaurantes_df.iloc[index]
-
-                # Obtener el pasaporte del tripulante basado en la fila actual
-                pasaporte_tripulante = tripulantes_df.iloc[index]['Pasaporte']  # Asegúrate de que esta columna exista
+                # Obtener el pasaporte del tripulante
+                pasaporte_tripulante = tripulantes_df.iloc[index]['Pasaporte']
                 tripulante = self.db_session.query(Tripulante).filter_by(pasaporte=pasaporte_tripulante).first()
 
-                # Comprobar si se encontró el tripulante
                 if not tripulante:
-                    #print(f"Tripulante no encontrado para el pasaporte: {pasaporte_tripulante}, continuando...")  # Línea de depuración
                     continue
 
-                # Obtener preferencia alimenticia de cada restaurante
+                # Obtener preferencias alimenticias y nombres de restaurantes
                 preferencia_alimenticia_set = set(
                     restaurante_row[f'Restaurante {i}']['Preferencia']
                     for i in range(1, 4)
                     if f'Restaurante {i}' in restaurante_row and restaurante_row[f'Restaurante {i}'] is not None
                 )
-                #print(f"Tripulante ID: {tripulante.tripulante_id}, Preferencias Alimenticias: {preferencia_alimenticia_set}")  # Línea de depuración
-
-                # Obtener los nombres de los restaurantes a partir del DataFrame
                 nombre_restaurantes = [
                     restaurante_row[f'Restaurante {i}']['Restaurante']
                     for i in range(1, 4)
                     if f'Restaurante {i}' in restaurante_row and restaurante_row[f'Restaurante {i}'] is not None
                 ]
-                #print(f"Nombres de Restaurantes: {nombre_restaurantes}")  # Línea de depuración para los restaurantes
 
-                # Procesar cada servicio de comida
+                # Procesar cada restaurante en la fila
                 for i in range(1, 4):
-                    # Asegúrate de que el nombre del restaurante no sea None
-                    if not nombre_restaurantes[i - 1]:
-                        #print(f"No hay nombre de restaurante para Restaurante {i}, continuando...")
+                    # Comprobar que el restaurante tenga información válida
+                    if f'Restaurante {i}' not in restaurante_row or restaurante_row[f'Restaurante {i}'] is None:
                         continue
+                    
+                    # Extraer la información del restaurante
+                    restaurante_info = restaurante_row[f'Restaurante {i}']
+                    nombre_restaurante = restaurante_info.get('Restaurante')
+                    servicio_comida = restaurante_info.get('Servicio Comida')
 
-                    servicio_comida = restaurante_row[f'Restaurante {i}']['Servicio Comida']
-                    if pd.isna(servicio_comida):
-                        #print(f"No hay servicio de comida en {nombre_restaurantes[i-1]}, continuando...")  # Línea de depuración
+                    if not nombre_restaurante or pd.isna(servicio_comida):
                         continue
 
                     # Extraer ciudad y tipo de comida
-                    ciudad_tipo = servicio_comida.split(" ")  # Separar "PUQ Cena" en ["PUQ", "Cena"]
+                    ciudad_tipo = servicio_comida.split(" ")
                     ciudad = ciudad_tipo[0] if len(ciudad_tipo) > 0 else None
                     tipo_comida = ciudad_tipo[1] if len(ciudad_tipo) > 1 else None
-                    #print(f"Servicio Comida en {nombre_restaurantes[i-1]}: Ciudad = {ciudad}, Tipo de Comida = {tipo_comida}")  # Línea de depuración
 
                     # Crear o recuperar el restaurante
-                    nombre_restaurante = nombre_restaurantes[i - 1]
                     restaurante = self.db_session.query(Restaurante).filter_by(nombre=nombre_restaurante).first()
-                    
                     if not restaurante:
-                        #print(f"Creando nuevo restaurante: {nombre_restaurante} en {ciudad}")  # Línea de depuración
                         restaurante = Restaurante(nombre=nombre_restaurante, ciudad=ciudad)
                         self.db_session.add(restaurante)
-                        self.db_session.flush()  # Asegúrate de que el ID se genere antes de continuar
-                    else:
-                        #print(f"Restaurante existente encontrado: {nombre_restaurante}")  # Línea de depuración
-                        continue
+                        self.db_session.flush()
 
-                    # Asignar preferencia alimenticia al tripulante si no se ha establecido
+                    # Extraer fecha desde y fecha hasta del restaurante actual
+                    fecha_desde = pd.to_datetime(restaurante_info.get('Fecha desde'), format='%d-%m-%Y', errors='coerce')
+                    fecha_hasta = pd.to_datetime(restaurante_info.get('Fecha hasta'), format='%d-%m-%Y', errors='coerce')
+                    #print(f"Restaurante: {nombre_restaurante}, Fecha desde: {fecha_desde}, Fecha hasta: {fecha_hasta}")
+
                     if preferencia_alimenticia_set:
-                        preferencia_alimenticia = next(iter(preferencia_alimenticia_set)) 
-                        # Aquí debes asegurar que el `restaurante` no sea None
-                        if restaurante is not None:  # Crea la relación entre el tripulante y el restaurante
+                        preferencia_alimenticia = next(iter(preferencia_alimenticia_set))
+
+                        # Verificar si ya existe una relación
+                        relacion_existente = (
+                            self.db_session.query(TripulanteRestaurante)
+                            .filter_by(
+                                tripulante_id=tripulante.tripulante_id,
+                                restaurante_id=restaurante.restaurante_id,
+                                fecha_desde=fecha_desde,
+                                fecha_hasta=fecha_hasta
+                            )
+                            .first()
+                        )
+
+                        # Si no existe, crear una nueva relación
+                        if not relacion_existente:
                             relacion = TripulanteRestaurante(
-                                fecha_reserva=datetime.now(),
                                 tipo_comida=tipo_comida,
                                 tripulante_id=tripulante.tripulante_id,
-                                restaurante_id=restaurante.restaurante_id  # Usa el ID del restaurante existente
+                                restaurante_id=restaurante.restaurante_id,
+                                pref_alimenticia=preferencia_alimenticia,
+                                fecha_desde=fecha_desde,
+                                fecha_hasta=fecha_hasta
                             )
                             self.db_session.add(relacion)
 
@@ -1045,7 +1080,7 @@ class Controller:
             # Incluso si los valores son nulos, agregar los vuelos con 'NaN' o entradas vacías
             tripulante_vuelos[f'Vuelo {vuelos_num}'] = {
                 "vuelo": nro_flight_value if pd.notna(nro_flight_value) else 'No disponible',
-                "fecha": pd.to_datetime(date_flight_value, errors='coerce') if pd.notna(date_flight_value) else 'No disponible',
+                "fecha": pd.to_datetime(date_flight_value, errors='coerce', dayfirst=True) if pd.notna(date_flight_value) else 'No disponible',
                 "hora": hora_flight_value if pd.notna(hora_flight_value) else 'No disponible'
             }
             vuelos_num += 1  # Incrementar el número de vuelo para el siguiente
@@ -1300,4 +1335,3 @@ class Controller:
             result_df.columns = column_names
         
         return result_df
-
