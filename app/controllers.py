@@ -16,7 +16,6 @@ CITY_AIRPORT_CODES = {
     'ZAL': "VALDIVIA",
     'WPU': "PUERTO WILLIAMS",
     'CDG': 'PARIS',
-    'VLP': 'VALPARAISO',
     'NY': 'NUEVA YORK',
     'SPU': 'SPLIT',
     'ZAG': 'ZAGREB',
@@ -528,6 +527,8 @@ class Controller:
                         # Buscar el vuelo por código y fecha
                         vuelo = self.db_session.query(Vuelo).filter_by(
                             codigo=vuelo_info['codigo_vuelo'],
+                            aeropuerto_salida=vuelo_info['ciudad_salida'],
+                            aeropuerto_llegada=vuelo_info['ciudad_llegada'],
                             fecha=vuelo_info['fecha'],
                             hora_salida=vuelo_info['hora_salida']
                         ).first()
@@ -551,6 +552,8 @@ class Controller:
                         tripulante_vuelo_existente = self.db_session.query(TripulanteVuelo).filter_by(
                             tripulante_id=tripulante.tripulante_id, vuelo_id=vuelo.vuelo_id
                         ).first()
+
+                        print(f"{vuelo_info} | {vuelo.vuelo_id}")
 
                         if not tripulante_vuelo_existente:
                             # Asociar el tripulante al vuelo si no existe la asociación
@@ -738,7 +741,7 @@ class Controller:
                     ciudad_tipo = servicio_comida.split(" ")  # Separar "PUQ Cena" en ["PUQ", "Cena"]
                     ciudad = ciudad_tipo[0] if len(ciudad_tipo) > 0 else None
                     tipo_comida = ciudad_tipo[1] if len(ciudad_tipo) > 1 else None
-                    print(f"{tripulante.tripulante_id} | Servicio Comida en {nombre_restaurantes[i-1]}: Ciudad = {ciudad}, Tipo de Comida = {tipo_comida}, Fecha desde = {fecha_desde}")  # Línea de depuración
+                    #print(f"{tripulante.tripulante_id} | Servicio Comida en {nombre_restaurantes[i-1]}: Ciudad = {ciudad}, Tipo de Comida = {tipo_comida}, Fecha desde = {fecha_desde}")  # Línea de depuración
 
                     # Crear o recuperar el restaurante
                     nombre_restaurante = nombre_restaurantes[i - 1]
@@ -773,7 +776,7 @@ class Controller:
                         .first()
                     )
 
-                    print(tripulante_restaurante)
+                    #print(tripulante_restaurante)
 
                     if not tripulante_restaurante:
                         print("No existente")
