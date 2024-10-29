@@ -230,7 +230,7 @@ class Controller:
             self._create_hotel(self.hoteles_on, self.tripulantes_on)
             self._create_hotel(self.hoteles_off, self.tripulantes_off)
 
-            #self._create_restaurantes(self.restaurantes_on,self.tripulantes_on)
+            self._create_restaurantes(self.restaurantes_on,self.tripulantes_on)
             self._create_restaurantes(self.restaurantes_off,self.tripulantes_off)
 
             self._create_transporte(self.transportes_on, self.tripulantes_on)
@@ -682,6 +682,7 @@ class Controller:
             self.db_session.rollback()
 
     def _create_restaurantes(self, restaurantes_df, tripulantes_df):
+        #print(restaurantes_df)
         try:
             for index in range(len(restaurantes_df)):
                 restaurante_row = restaurantes_df.iloc[index]
@@ -696,17 +697,21 @@ class Controller:
                     continue
 
                 # Obtener preferencia alimenticia de cada restaurante
-                preferencia_alimenticia_set = set(
-                    restaurante_row[f'Restaurante {i}']['Preferencia']
-                    for i in range(1, 4)
-                    if f'Restaurante {i}' in restaurante_row and restaurante_row[f'Restaurante {i}'] is not None
-                )
-                #print(f"Tripulante ID: {tripulante.tripulante_id}, Preferencias Alimenticias: {preferencia_alimenticia_set}")  # Línea de depuración
+                # preferencia_alimenticia_set = [
+                #     restaurante_row[f'Restaurante {i}']['Preferencia']
+                #     for i in range(1, len(restaurantes_df))
+                #     if f'Restaurante {i}' in restaurante_row and restaurante_row[f'Restaurante {i}'] is not None
+                # ]
+                # print(f"Tripulante ID: {tripulante.tripulante_id}, Preferencias Alimenticias: {preferencia_alimenticia_set}")  # Línea de depuración
+
+                #print(restaurante_row[f'Restaurante {1}']['Preferencia'])
+                preferencia_alimenticia = restaurante_row[f'Restaurante {1}']['Preferencia']
 
                 # Obtener los nombres de los restaurantes a partir del DataFrame
+                #print(restaurante_row[f'Restaurante {1}'])
                 nombre_restaurantes = [
                     restaurante_row[f'Restaurante {i}']['Restaurante']
-                    for i in range(1, 4)
+                    for i in range(1, len(restaurantes_df))
                     if f'Restaurante {i}' in restaurante_row and restaurante_row[f'Restaurante {i}'] is not None
                 ]
                 #print(f"Nombres de Restaurantes: {nombre_restaurantes}")  # Línea de depuración para los restaurantes
@@ -723,37 +728,66 @@ class Controller:
                         #print(f"No hay servicio de comida en {nombre_restaurantes[i-1]}, continuando...")  # Línea de depuración
                         continue
 
+                    fecha_desde = restaurante_row[f'Restaurante {i}']['Fecha desde']
+                    if pd.isna(fecha_desde):
+                        #print(f"No hay servicio de comida en {nombre_restaurantes[i-1]}, continuando...")  # Línea de depuración
+                        continue
+
+
                     # Extraer ciudad y tipo de comida
                     ciudad_tipo = servicio_comida.split(" ")  # Separar "PUQ Cena" en ["PUQ", "Cena"]
                     ciudad = ciudad_tipo[0] if len(ciudad_tipo) > 0 else None
                     tipo_comida = ciudad_tipo[1] if len(ciudad_tipo) > 1 else None
-                    #print(f"Servicio Comida en {nombre_restaurantes[i-1]}: Ciudad = {ciudad}, Tipo de Comida = {tipo_comida}")  # Línea de depuración
+                    print(f"{tripulante.tripulante_id} | Servicio Comida en {nombre_restaurantes[i-1]}: Ciudad = {ciudad}, Tipo de Comida = {tipo_comida}, Fecha desde = {fecha_desde}")  # Línea de depuración
 
                     # Crear o recuperar el restaurante
                     nombre_restaurante = nombre_restaurantes[i - 1]
-                    restaurante = self.db_session.query(Restaurante).filter_by(nombre=nombre_restaurante).first()
+                    #restaurante = self.db_session.query(Restaurante).filter_by(nombre=nombre_restaurante).first()
+                    restaurante = (
+                        self.db_session.query(Restaurante)
+                        .filter(
+                            and_(
+                                Restaurante.nombre == nombre_restaurante,
+                                Restaurante.ciudad == ciudad
+                            )
+                        )
+                        .first()
+                    )
                     
                     if not restaurante:
                         #print(f"Creando nuevo restaurante: {nombre_restaurante} en {ciudad}")  # Línea de depuración
                         restaurante = Restaurante(nombre=nombre_restaurante, ciudad=ciudad)
                         self.db_session.add(restaurante)
                         self.db_session.flush()  # Asegúrate de que el ID se genere antes de continuar
-                    else:
-                        #print(f"Restaurante existente encontrado: {nombre_restaurante}")  # Línea de depuración
-                        continue
 
-                    # Asignar preferencia alimenticia al tripulante si no se ha establecido
-                    if preferencia_alimenticia_set:
-                        preferencia_alimenticia = next(iter(preferencia_alimenticia_set)) 
-                        # Aquí debes asegurar que el `restaurante` no sea None
+                    tripulante_restaurante = (
+                        self.db_session.query(TripulanteRestaurante)
+                        .filter(
+                            and_(
+                                TripulanteRestaurante.tripulante_id == tripulante.tripulante_id,
+                                TripulanteRestaurante.restaurante_id == restaurante.restaurante_id,
+                                TripulanteRestaurante.fecha_reserva == fecha_desde,
+                                TripulanteRestaurante.tipo_comida == tipo_comida
+                            )
+                        )
+                        .first()
+                    )
+
+                    print(tripulante_restaurante)
+
+                    if not tripulante_restaurante:
+                        print("No existente")
+                        # Asignar preferencia alimenticia al tripulante si no se ha establecido
                         if restaurante is not None:  # Crea la relación entre el tripulante y el restaurante
                             relacion = TripulanteRestaurante(
-                                fecha_reserva=datetime.now(),
-                                tipo_comida=tipo_comida,
                                 tripulante_id=tripulante.tripulante_id,
-                                restaurante_id=restaurante.restaurante_id  # Usa el ID del restaurante existente
+                                restaurante_id=restaurante.restaurante_id,
+                                fecha_reserva=fecha_desde,
+                                tipo_comida=tipo_comida,
+                                pref_alimenticia = preferencia_alimenticia if preferencia_alimenticia is not None else 'Desconocido'
                             )
                             self.db_session.add(relacion)
+                            self.db_session.flush()
 
             # Guardar cambios en la base de datos
             self.db_session.commit()
@@ -770,7 +804,6 @@ class Controller:
                 print("No hay vuelos o tripulantes para procesar.")
                 return []
 
-            x=1
             # Iterar sobre cada fila del DataFrame de vuelos
             for i, row in transportes_df.iterrows():
                 # Verificar que la fila de tripulantes tenga un índice válido
@@ -801,17 +834,31 @@ class Controller:
 
                         for _transporte in transporte_info:
                             # Verificar que el valor de 'tramo' no sea 'Desconocido'
-                            if _transporte['tramo'] != 'Desconocido':
-                                if transporte_info is None or 'tramo' not in _transporte:
+                            if _transporte['City In'] != 'Desconocido':
+                                if transporte_info is None or 'City In' not in _transporte:
                                     print(f"Omitiendo transporte {transporte_info} en la fila {i} debido a datos faltantes.")
                                     continue
 
-                                transporte = self.db_session.query(Transporte).filter_by(nombre=_transporte['tramo']).first()
+                                #transporte = self.db_session.query(Transporte).filter_by(city_in=_transporte['City In']).filter_by(city_end=_transporte['City End']).first()
+                                transporte = (
+                                    self.db_session.query(Transporte)
+                                    .filter(
+                                        and_(
+                                            Transporte.city_in == _transporte['City In'],
+                                            Transporte.place_in == _transporte['Place In'],
+                                            Transporte.city_end == _transporte['City End'],
+                                            Transporte.place_end == _transporte['Place End']
+                                        )
+                                    )
+                                    .first()
+                                )
                                 
                                 if not transporte:
                                     transporte = Transporte(
-                                        nombre=_transporte['tramo'],
-                                        ciudad="A",
+                                        city_in=_transporte['City In'],
+                                        place_in=_transporte['Place In'],
+                                        city_end=_transporte['City End'],
+                                        place_end=_transporte['Place End'],
                                     )
                                     self.db_session.add(transporte)
                                     self.db_session.flush()  # Asegurar que el vuelo esté disponible en la base de datos
@@ -823,18 +870,14 @@ class Controller:
                                 ).first()
 
                                 if not tripulante_transporte_existente:
-                                    ciudad = _transporte['ciudad']
-                                    lugar_inicio = _transporte['lugar_inicio']
-                                    lugar_final = _transporte['lugar_final']
-                                    fecha = _transporte['fecha']
+                                    date_pickup = _transporte['Date Pickup']
+                                    hours_pickup = _transporte['Hours Pickup']
                                     # Asociar el tripulante al vuelo en la tabla intermedia TripulanteVuelo
                                     tripulante_vuelo = TripulanteTransporte(
                                         tripulante_id=tripulante.tripulante_id,
                                         transporte_id=transporte.transporte_id,
-                                        ciudad=ciudad,
-                                        lugar_inicio=lugar_inicio,
-                                        lugar_final=lugar_final,
-                                        fecha=fecha
+                                        date_pickup=date_pickup,
+                                        hours_pickup=hours_pickup
                                     )
                                     self.db_session.add(tripulante_vuelo)
                                     self.db_session.flush()
@@ -857,18 +900,21 @@ class Controller:
             print("Transporte es NaN o None. Omitiendo...")
             return None
         
-        if transporte_info['Transporte'] != 'Desconocido':
-            tramo = transporte_info['Transporte']
-            ciudad, resto = tramo.split(" ", 1)
-            lugar_inicio, lugar_final = resto.split("-", 1)
-            fecha = transporte_info['Date Pick Up']
+        if transporte_info['City In'] != 'Desconocido':
+            city_in = transporte_info['City In']
+            place_in = transporte_info['Place In']
+            city_end = transporte_info['City End']
+            place_end = transporte_info['Place End']
+            date_pickup = transporte_info['Date Pickup']
+            hours_pickup = transporte_info['Hours Pickup']
 
             transportes_info.append({
-                'tramo': tramo,
-                'ciudad': ciudad,
-                'lugar_inicio': lugar_inicio,
-                'lugar_final': lugar_final,
-                'fecha': fecha
+                'City In': city_in,
+                'Place In': place_in,
+                'City End': city_end,
+                'Place End': place_end,
+                'Date Pickup': date_pickup,
+                'Hours Pickup': hours_pickup,
             })
         
         return transportes_info
@@ -1000,8 +1046,6 @@ class Controller:
                 rooms = f'rooms {hotel_num}'
                 hotel_name = f'nombre hotel {hotel_num}'
 
-                print(hotels_columns)
-
                 # Verificar si las columnas existen en el DataFrame
                 if (category in hotels_columns and hotel_col in hotels_columns and 
                     check_in_col in hotels_columns and check_out_col in hotels_columns and 
@@ -1022,7 +1066,7 @@ class Controller:
                     habitacion = excel_data.iloc[i, col_idx_rooms]
                     nombre_hotel = excel_data.iloc[i, col_idx_hotel_name]
 
-                    print(check_out)
+                    #print(check_out)
 
                     # Si hay información válida en las columnas, agregarla
                     if pd.notna(categoria) and pd.notna(hotel):

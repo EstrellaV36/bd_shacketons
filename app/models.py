@@ -1,6 +1,6 @@
 from datetime import datetime, date
 from typing import Optional
-from sqlalchemy import ForeignKey, String, DateTime, Date, Integer, Boolean
+from sqlalchemy import ForeignKey, String, DateTime, Date, Integer, Boolean, Time
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 class Base(DeclarativeBase):
@@ -78,7 +78,6 @@ class Tripulante(Base):
     tripulante_hotels: Mapped[list["TripulanteHotel"]] = relationship("TripulanteHotel", back_populates="tripulante")
     tripulante_transports: Mapped[list["TripulanteTransporte"]] = relationship("TripulanteTransporte", back_populates="tripulante")
     tripulante_restaurantes: Mapped[list["TripulanteRestaurante"]] = relationship("TripulanteRestaurante", back_populates="tripulante")
-    transportes: Mapped[list["Transporte"]] = relationship(back_populates="tripulante")
     viajes: Mapped[list["Viaje"]] = relationship(back_populates="tripulante")
     asistencia: Mapped["TripulanteAsistencia"] = relationship("TripulanteAsistencia", back_populates="tripulante")
 
@@ -155,11 +154,11 @@ class TripulanteRestaurante(Base):
     __tablename__ = "tripulante_restaurante"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)  # ID único para la relación
+    tripulante_id: Mapped[int] = mapped_column(ForeignKey("tripulantes.tripulante_id"), nullable=False)
+    restaurante_id: Mapped[int] = mapped_column(ForeignKey("restaurantes.restaurante_id"), nullable=False)
     fecha_reserva: Mapped[datetime] = mapped_column(nullable=True, default=None)  # Campo nulo permitido
     tipo_comida: Mapped[str] = mapped_column(nullable=True, default=None)
     pref_alimenticia: Mapped[str] = mapped_column(nullable=True, default=None)
-    tripulante_id: Mapped[int] = mapped_column(ForeignKey("tripulantes.tripulante_id"), nullable=False)
-    restaurante_id: Mapped[int] = mapped_column(ForeignKey("restaurantes.restaurante_id"), nullable=False)
 
     # Relaciones
     tripulante: Mapped["Tripulante"] = relationship("Tripulante", back_populates="tripulante_restaurantes")
@@ -187,10 +186,8 @@ class TripulanteTransporte(Base):
     tripulante_id: Mapped[int] = mapped_column(ForeignKey("tripulantes.tripulante_id"), nullable=False)
     transporte_id: Mapped[int] = mapped_column(ForeignKey("transportes.transporte_id"), nullable=False)
     
-    ciudad: Mapped[str] = mapped_column(String, nullable=True, default=None)  # Cambiado a String
-    lugar_inicio: Mapped[str] = mapped_column(String, nullable=True, default=None)
-    lugar_final: Mapped[str] = mapped_column(String, nullable=True, default=None)
-    fecha: Mapped[date] = mapped_column(Date, nullable=True, default=None)
+    date_pickup: Mapped[date] = mapped_column(Date, nullable=True, default=None)
+    hours_pickup: Mapped[Time] = mapped_column(Time, nullable=True, default=None)
     
     # Relaciones con Tripulante y Transporte
     tripulante: Mapped["Tripulante"] = relationship("Tripulante", back_populates="tripulante_transports")
@@ -203,13 +200,11 @@ class Transporte(Base):
     __tablename__ = "transportes"
 
     transporte_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    nombre: Mapped[str] = mapped_column(String, nullable=True)
-    ciudad: Mapped[str] = mapped_column(String, nullable=False)
 
-    tripulante_id: Mapped[int] = mapped_column(ForeignKey("tripulantes.tripulante_id"), nullable=True)
-    
-    # Relación con Tripulante, si se quiere un tripulante asignado directamente
-    tripulante: Mapped["Tripulante"] = relationship(back_populates="transportes")
+    city_in: Mapped[str] = mapped_column(String, nullable=True)
+    place_in: Mapped[str] = mapped_column(String, nullable=True)
+    city_end: Mapped[str] = mapped_column(String, nullable=True)
+    place_end: Mapped[str] = mapped_column(String, nullable=True)
 
     # Relación con TripulanteTransporte para la relación uno a muchos
     tripulante_transports: Mapped[list["TripulanteTransporte"]] = relationship("TripulanteTransporte", back_populates="transporte")
