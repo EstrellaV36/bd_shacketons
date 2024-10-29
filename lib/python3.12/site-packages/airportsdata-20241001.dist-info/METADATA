@@ -1,0 +1,194 @@
+Metadata-Version: 2.1
+Name: airportsdata
+Version: 20241001
+Summary: Extensive database of location and timezone data for nearly every airport and landing strip in the world.
+Author-email: Mike Borsetti <mike+airportsdata@borsetti.com>
+Maintainer-email: Mike Borsetti <mike+airportsdata@borsetti.com>
+License: The MIT License (MIT)
+        
+        Copyright (c) 2020- Mike Borsetti <mike@borsetti.com>
+        
+        This project includes data from https://github.com/mwgg/Airports Copyright
+        (c) 2014 mwgg
+        
+        Permission is hereby granted, free of charge, to any person obtaining a copy
+        of this software and associated documentation files (the "Software"), to deal
+        in the Software without restriction, including without limitation the rights
+        to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+        copies of the Software, and to permit persons to whom the Software is
+        furnished to do so, subject to the following conditions:
+        
+        The above copyright notice and this permission notice shall be included in all
+        copies or substantial portions of the Software.
+        
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+        IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+        FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+        AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+        LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+        OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+        SOFTWARE.
+        
+Project-URL: Documentation, https://github.com/mborsetti/airportsdata/blob/main/README.rst
+Project-URL: Repository, https://github.com/mborsetti/airportsdata/
+Project-URL: Database (csv), https://github.com/mborsetti/airportsdata/blob/main/airportsdata/airports.csv
+Project-URL: Changelog, https://github.com/mborsetti/airportsdata/blob/main/CHANGELOG.rst
+Project-URL: Issues, https://github.com/mborsetti/airportsdata/issues
+Project-URL: CI, https://github.com/mborsetti/airportsdata/actions
+Keywords: airports,aerodromes,ICAO,IATA
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Operating System :: OS Independent
+Classifier: Topic :: Database
+Classifier: Intended Audience :: Developers
+Classifier: Typing :: Typed
+Requires-Python: >=3.9
+Description-Content-Type: text/x-rst
+License-File: LICENSE
+
+========================
+airportsdata |downloads|
+========================
+
+.. |ICAO| replace:: 28,237
+
+.. |IATA| replace:: 7,876
+
+.. |LID| replace:: 12,604
+
+.. |pyversion| image:: https://img.shields.io/pypi/v/airportsdata.svg
+    :target: https://pypi.org/project/airportsdata/
+    :alt: pypi version
+.. |support| image:: https://img.shields.io/pypi/pyversions/airportsdata.svg
+    :target: https://pypi.org/project/airportsdata/
+    :alt: supported Python version
+.. |pypi_version| image:: https://img.shields.io/pypi/v/airportsdata.svg?label=
+    :target: https://pypi.org/project/airportsdata/
+    :alt: PyPI version
+.. |format| image:: https://img.shields.io/pypi/format/airportsdata.svg
+    :target: https://pypi.org/project/airportsdata/
+    :alt: Kit format
+.. |downloads| image:: https://static.pepy.tech/badge/airportsdata
+    :target: https://www.pepy.tech/project/airportsdata
+    :alt: PyPI downloads
+.. |license| image:: https://img.shields.io/pypi/l/airportsdata.svg
+    :target: https://pypi.org/project/airportsdata/
+    :alt: license
+.. |issues| image:: https://img.shields.io/github/issues-raw/mborsetti/airportsdata
+    :target: https://github.com/mborsetti/airportsdata/issues
+    :alt: issues
+.. |CI| image:: https://github.com/mborsetti/airportsdata/actions/workflows/ci-cd.yaml/badge.svg?event=push
+    :target: https://github.com/mborsetti/airportsdata/actions
+    :alt: CI testing status
+.. |coveralls| image:: https://coveralls.io/repos/github/mborsetti/airportsdata/badge.svg?branch=main
+    :target: https://coveralls.io/github/mborsetti/airportsdata?branch=main
+    :alt: code coverage by Coveralls
+.. |status| image:: https://img.shields.io/pypi/status/airportsdata.svg
+    :target: https://pypi.org/project/airportsdata/
+    :alt: Package stability
+.. |security| image:: https://img.shields.io/badge/security-bandit-yellow.svg
+    :target: https://github.com/PyCQA/bandit
+    :alt: Security Status
+
+Extensive database of location and timezone data for nearly every operational airport and landing strip in the world,
+with |ICAO| entries.
+
+Each entry consists of the following data:
+
+* ``icao``: ICAO 4-letter Location Indicator (Doc 7910) or (if none) an internal Pseudo-ICAO Identifier [#]_ (|ICAO|
+  entries);
+* ``iata``: IATA 3-letter Location Code (|IATA| entries) or an empty string [#]_;
+* ``name``: Official name (diacritized latin script);
+* ``city``: City (diacritized latin script), ideally using the local language;
+* ``subd``: Subdivision (e.g. state, province, region, etc.), ideally using the local-language or English names of
+  `ISO 3166-2 <https://en.wikipedia.org/wiki/ISO_3166-2#Current_codes>`__;
+* ``country``: `ISO 3166-1 <https://en.wikipedia.org/wiki/ISO_3166-1#Current_codes>`__ alpha-2 country code
+  (plus ``XK`` for Kosovo);
+* ``elevation``: MSL elevation of the highest point of the landing area, in feet (warning: it is often wrong);
+* ``lat``: Latitude (decimal) of the `airport reference point
+  <https://en.wikipedia.org/wiki/Airport_reference_point>`__ (max 5 decimal digits);
+* ``lon``: Longitude (decimal) of the `airport reference point
+  <https://en.wikipedia.org/wiki/Airport_reference_point>`__ (max 5 decimal digits);
+* ``tz``: Timezone expressed as a `tz database name <https://en.wikipedia.org/wiki/List_of_tz_database_time_zones>`__
+  (IANA-compliant);
+* ``lid``: U.S. FAA Location Identifier (|LID| entries), or an empty string.
+
+.. [#] See `here <https://github.com/mborsetti/airportsdata/blob/main/README_identifiers.rst>`__ for an explanation on
+   how the Pseudo-ICAO Identifier is generated for airports and seaplane bases without an ICAO 4-letter Location
+   Indicator.
+
+.. [#] IATA Multi Airport Cities are not not airports and therfore not included, but we provide a database and a Python
+   function that returns the above data for all the airports of a IATA MAC. Please see documentation `here
+   <https://github.com/mborsetti/airportsdata/blob/main/README_IATA.rst>`__.
+
+Best efforts are placed to review all contributions for accuracy, but accuracy cannot be guaranteed nor should be
+expected by users.
+
+Important notes:
+
+* Timezone was originally sourced from `TimeZoneDB <https://timezonedb.com>`__;
+* No historical data (closed airports are removed).
+
+Please report any issues you may find `here
+<https://github.com/mborsetti/airportsdata/blob/main/CONTRIBUTING.rst>`__.
+
+This project is a fork of https://github.com/mwgg/Airports. All new data submitted in this fork have been validated
+against national `Aeronautical Information Publications (AIP) or equivalent
+<https://github.com/mborsetti/airportsdata/blob/main/README_AIP.rst>`__ (or
+ARINC database) and `IATA <https://www.iata.org/en/publications/directories/code-search/>`__ before publishing.
+
+Raw data
+========
+
+A CSV (comma separated values) file, with headers and encoded in UTF-8, is downloadable from GitHub `here
+<https://github.com/mborsetti/airportsdata/raw/main/airportsdata/airports.csv>`__.
+
+Python
+======
+|pyversion| |support| |format| |status| |security| |CI| |coveralls| |issues|
+
+Install from `PyPi <https://pypi.org/project/airportsdata/>`__  using pip:
+
+.. code-block:: bash
+
+  pip install -U airportsdata
+
+Once installed, to load the data into a dict:
+
+.. code-block:: python
+
+   import airportsdata
+   airports = airportsdata.load()  # key is the ICAO identifier (the default)
+   print(airports['KJFK'])
+
+or
+
+.. code-block:: python
+
+   import airportsdata
+   airports = airportsdata.load('IATA')  # key is the IATA location code
+   print(airports['JFK'])
+
+or
+
+.. code-block:: python
+
+   import airportsdata
+   airports = airportsdata.load('LID')  # key is the FAA LID
+   print(airports['01AA'])
+
+Older Python versions are supported for 3 years after being obsoleted by a new major release (i.e. about 4 years
+since their original release).
+
+License |license|
+=================
+
+Released under the `MIT License <https://opensource.org/licenses/MIT>`__ (see license `here
+<https://github.com/mborsetti/airportsdata/blob/main/LICENSE>`__).
