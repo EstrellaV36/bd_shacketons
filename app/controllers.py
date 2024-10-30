@@ -86,8 +86,13 @@ domestic_columns = ['Nro Domestic Flight', 'Date Domestic Flight', 'Hora Domesti
 
 asistencia_columns = ['Proveedor SCL', 'Asistencia 1', 'Proveedor PUQ', 'Asistencia 2', 'Proveedor WPU', 'Asistencia 3']
 
-def buscar_buque_id(nombre_buque, session):
-    buque = session.query(Buque).filter(Buque.nombre.ilike(nombre_buque)).first()  # Usando ilike para coincidencias sin distinción entre mayúsculas y minúsculas
+def buscar_buque_id(nombre_buque, nombre_empresa, session):
+    buque = session.query(Buque).filter(
+        and_(
+            Buque.nombre.ilike(nombre_buque),
+            Buque.empresa.ilike(nombre_empresa)
+        )
+    ).first()
     if buque:
         #print(f"Buque encontrado: {nombre_buque} con ID: {buque.buque_id}")
         return buque.buque_id
@@ -381,8 +386,9 @@ class Controller:
 
                 # Obtener el nombre del buque correspondiente
                 nombre_buque = buque_df.loc[i]['Vessel']
+                nombre_empresa = buque_df.loc[i]['Owner']
                 condicion = buque_df.loc[i]['Condicion'] 
-                buque_id = buscar_buque_id(nombre_buque, self.db_session)
+                buque_id = buscar_buque_id(nombre_buque, nombre_empresa, self.db_session)
 
                 # Buscar si el tripulante ya existe en la base de datos por pasaporte
                 tripulante_existente = self.db_session.query(Tripulante).filter_by(pasaporte=row['Pasaporte']).first()
