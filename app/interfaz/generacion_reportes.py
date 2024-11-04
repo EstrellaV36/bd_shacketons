@@ -515,11 +515,9 @@ class TransportesScreen(QWidget):
             )
             .join(TripulanteTransporte, Tripulante.tripulante_id == TripulanteTransporte.tripulante_id)
             .filter(Transporte.transporte_id == TripulanteTransporte.transporte_id)
-        )
-
-        if ciudad_seleccionada != "ciudad":
-            transporte_necesario = transporte_necesario.filter(and_(func.lower(Transporte.city_in) == ciudad_seleccionada),
+            .filter(and_(func.lower(Transporte.city_in) == ciudad_seleccionada),
                                                                Transporte.transporte_id == TripulanteTransporte.transporte_id)
+        )
 
         if self.check_fecha.isChecked():
             transporte_necesario = transporte_necesario.filter(
@@ -539,12 +537,11 @@ class TransportesScreen(QWidget):
             )
             .join(TripulanteHotel, Tripulante.tripulante_id == TripulanteHotel.tripulante_id)
             .filter(Hotel.hotel_id == TripulanteHotel.hotel_id)
+            .filter(func.lower(Hotel.ciudad) == ciudad_seleccionada)
             .distinct()
         )
 
-        if ciudad_seleccionada != "ciudad":
-            hotel_necesario = hotel_necesario.filter(func.lower(Hotel.ciudad) == ciudad_seleccionada)
-            
+        if ciudad_seleccionada != "ciudad":    
             ciudad_seleccionada = CITY_AIRPORT_CODES.get(ciudad_seleccionada.upper())
 
         vuelo_necesario = (
@@ -562,14 +559,12 @@ class TransportesScreen(QWidget):
             )
             .join(TripulanteVuelo, Tripulante.tripulante_id == TripulanteVuelo.tripulante_id)
             .filter(Vuelo.vuelo_id == TripulanteVuelo.vuelo_id)
-            .distinct()
-        )
-
-        if ciudad_seleccionada != "ciudad":
-            vuelo_necesario = vuelo_necesario.filter(or_(
+            .filter(or_(
                 func.lower(Vuelo.aeropuerto_salida) == ciudad_seleccionada.lower(),
                 func.lower(Vuelo.aeropuerto_llegada) == ciudad_seleccionada.lower()
             ))
+            .distinct()
+        )
 
         buque_necesario = (
             session.query(
@@ -603,7 +598,7 @@ class TransportesScreen(QWidget):
         hotel_dict = {hotel.tripulante_id: hotel for hotel in hotel_necesario}
         buque_dict = {buque.tripulante_id: (buque.Owner, buque.Nombre_Buque, buque.Eta) for buque in buque_necesario}
 
-        headers = ["Estado", "Transporte", "Hotel Ciudad", "Nombre Hotel", "Código Vuelo Llegada", "Date Llegada", "Hora Llegada", "Hora Pick Up", "Lugar Pick Up", "Código Vuelo Salida", "Date Salida", "Fecha Salida", "Owner", "Nave", "ETA", "First Name", "Last Name", "Nacionalidad"]
+        headers = ["Estado", "Desde Ciudad Lugar", "Desde Ciudad Destino", "Hasta Ciudad Lugar", "Hasta Ciudad Destino", "Nombre Hotel", "Código Vuelo Llegada", "Date Llegada", "Hora Llegada", "Hora Pick Up", "Lugar Pick Up", "Código Vuelo Salida", "Date Salida", "Fecha Salida", "Owner", "Nave", "ETA", "First Name", "Last Name", "Nacionalidad"]
         self.table_widget.setColumnCount(len(headers))
         self.table_widget.setHorizontalHeaderLabels(headers)
         self.table_widget.setRowCount(0)
@@ -625,8 +620,8 @@ class TransportesScreen(QWidget):
                     city_select = CITY_AIRPORT_CODES.get(self.combo_ciudades.currentText())
 
                 if 'ATO-HOTEL' == tramo:  # Transporte hacia el hotel
-                    if ciudad_seleccionada == "ciudad":
-                        city_select = str(vuelo.Aeropuerto_Llegada).lower()
+                    # if ciudad_seleccionada == "ciudad":
+                    #     city_select = str(vuelo.Aeropuerto_Llegada).lower()
 
                     vuelos_llegada = [v for v in vuelos if v.Aeropuerto_Llegada.lower() == city_select.lower()]
                     for vuelo in vuelos_llegada:
@@ -642,15 +637,18 @@ class TransportesScreen(QWidget):
                         codigo = f"{str(vuelo.Codigo)} {a1}-{a2}"
 
                         self.table_widget.setItem(row, 0, QTableWidgetItem(transporte.Estado))
-                        self.table_widget.setItem(row, 1, QTableWidgetItem(tramo))
+                        self.table_widget.setItem(row, 1, QTableWidgetItem(transporte.Ciudad_Transporte_in))
+                        self.table_widget.setItem(row, 2, QTableWidgetItem(transporte.Lugar_Transporte_in))
+                        self.table_widget.setItem(row, 3, QTableWidgetItem(transporte.Ciudad_Transporte_end))
+                        self.table_widget.setItem(row, 4, QTableWidgetItem(transporte.Lugar_Transporte_end))
                         #self.table_widget.setItem(row, 2, QTableWidgetItem(str(transporte.Fecha)))
-                        self.table_widget.setItem(row, 2, QTableWidgetItem(f"Hotel {hotel.Ciudad_Hotel}" if hotel else f"Hotel {transporte.Ciudad_Transporte_in}"))
-                        self.table_widget.setItem(row, 3, QTableWidgetItem(hotel.Nombre_Hotel if hotel else "Sin hotel"))
-                        self.table_widget.setItem(row, 4, QTableWidgetItem(codigo))
-                        self.table_widget.setItem(row, 5, QTableWidgetItem(str(vuelo.Fecha.date())))
-                        self.table_widget.setItem(row, 6, QTableWidgetItem(str(vuelo.Hora_Llegada.time())))
-                        self.table_widget.setItem(row, 7, QTableWidgetItem(str(vuelo.Hora_Llegada.time())))
-                        self.table_widget.setItem(row, 8, QTableWidgetItem(transporte.Lugar_Transporte_in))
+                        #self.table_widget.setItem(row, 5, QTableWidgetItem(f"Hotel {hotel.Ciudad_Hotel}" if hotel else f"Hotel {transporte.Ciudad_Transporte_in}"))
+                        self.table_widget.setItem(row, 5, QTableWidgetItem(hotel.Nombre_Hotel if hotel else "Sin hotel"))
+                        self.table_widget.setItem(row, 6, QTableWidgetItem(codigo))
+                        self.table_widget.setItem(row, 7, QTableWidgetItem(str(vuelo.Fecha.date())))
+                        self.table_widget.setItem(row, 8, QTableWidgetItem(str(vuelo.Hora_Llegada.time())))
+                        self.table_widget.setItem(row, 9, QTableWidgetItem(str(vuelo.Hora_Llegada.time())))
+                        self.table_widget.setItem(row, 10, QTableWidgetItem(transporte.Lugar_Transporte_in))
                         #self.table_widget.setItem(row, 7, QTableWidgetItem(aeropuerto_llegada))
                         self.table_widget.setItem(row, 12, QTableWidgetItem(owner))
                         self.table_widget.setItem(row, 13, QTableWidgetItem(buque))
@@ -660,8 +658,8 @@ class TransportesScreen(QWidget):
                         self.table_widget.setItem(row, 17, QTableWidgetItem(transporte.Nacionalidad))
 
                 elif 'HOTEL-ATO' in tramo:  # Transporte desde el hotel
-                    if ciudad_seleccionada == "ciudad":
-                        city_select = str(vuelo.Aeropuerto_Salida).lower()
+                    # if ciudad_seleccionada == "ciudad":
+                    #     city_select = str(vuelo.Aeropuerto_Salida).lower()
                     vuelos_salida = [v for v in vuelos if v.Aeropuerto_Salida.lower() == city_select.lower()]
                     for vuelo in vuelos_salida:
                         #print(vuelo)
@@ -695,15 +693,18 @@ class TransportesScreen(QWidget):
                         hora_pick_up = (vuelo.Hora_Salida - tiempo_a_restar).time()
 
                         self.table_widget.setItem(row, 0, QTableWidgetItem(transporte.Estado))
-                        self.table_widget.setItem(row, 1, QTableWidgetItem(tramo))
+                        self.table_widget.setItem(row, 1, QTableWidgetItem(transporte.Ciudad_Transporte_in))
+                        self.table_widget.setItem(row, 2, QTableWidgetItem(transporte.Lugar_Transporte_in))
+                        self.table_widget.setItem(row, 3, QTableWidgetItem(transporte.Ciudad_Transporte_end))
+                        self.table_widget.setItem(row, 4, QTableWidgetItem(transporte.Lugar_Transporte_end))
                         #self.table_widget.setItem(row, 2, QTableWidgetItem(str(transporte.Fecha)))
-                        self.table_widget.setItem(row, 2, QTableWidgetItem(f"Hotel {hotel.Ciudad_Hotel}" if hotel else f"NO"))
-                        self.table_widget.setItem(row, 3, QTableWidgetItem(hotel.Nombre_Hotel if hotel else "Sin hotel"))
-                        self.table_widget.setItem(row, 9, QTableWidgetItem(codigo))
-                        self.table_widget.setItem(row, 10, QTableWidgetItem(str(vuelo.Fecha.date())))
-                        self.table_widget.setItem(row, 11, QTableWidgetItem(str(vuelo.Hora_Salida.time())))
-                        self.table_widget.setItem(row, 7, QTableWidgetItem(str(hora_pick_up)))
-                        self.table_widget.setItem(row, 8, QTableWidgetItem(lugar_pick_up))
+                        #self.table_widget.setItem(row, 2, QTableWidgetItem(f"Hotel {hotel.Ciudad_Hotel}" if hotel else f"NO"))
+                        self.table_widget.setItem(row, 5, QTableWidgetItem(hotel.Nombre_Hotel if hotel else "Sin hotel"))
+                        self.table_widget.setItem(row, 6, QTableWidgetItem(codigo))
+                        self.table_widget.setItem(row, 7, QTableWidgetItem(str(vuelo.Fecha.date())))
+                        self.table_widget.setItem(row, 8, QTableWidgetItem(str(vuelo.Hora_Salida.time())))
+                        self.table_widget.setItem(row, 9, QTableWidgetItem(str(hora_pick_up)))
+                        self.table_widget.setItem(row, 10, QTableWidgetItem(lugar_pick_up))
                         #self.table_widget.setItem(row, 7, QTableWidgetItem(aeropuerto_llegada))
                         self.table_widget.setItem(row, 12, QTableWidgetItem(owner))
                         self.table_widget.setItem(row, 13, QTableWidgetItem(buque))
@@ -714,8 +715,8 @@ class TransportesScreen(QWidget):
                         self.table_widget.setItem(row, 17, QTableWidgetItem(transporte.Nacionalidad))
                 
                 elif 'HOTEL-VESSEL' == tramo:  # Transporte desde el hotel
-                    if ciudad_seleccionada == "ciudad":
-                        city_select = str(vuelo.Aeropuerto_Salida).lower()
+                    # if ciudad_seleccionada == "ciudad":
+                    #     city_select = str(vuelo.Aeropuerto_Salida).lower()
                     vuelos_salida = [v for v in vuelos if v.Aeropuerto_Salida.lower() == city_select.lower()]
                     for vuelo in vuelos_salida:
                         #print(vuelo)
@@ -750,15 +751,18 @@ class TransportesScreen(QWidget):
                         hora_pick_up = (hora_pickup_datetime - tiempo_a_restar).time()
 
                         self.table_widget.setItem(row, 0, QTableWidgetItem(transporte.Estado))
-                        self.table_widget.setItem(row, 1, QTableWidgetItem(tramo))
+                        self.table_widget.setItem(row, 1, QTableWidgetItem(transporte.Ciudad_Transporte_in))
+                        self.table_widget.setItem(row, 2, QTableWidgetItem(transporte.Lugar_Transporte_in))
+                        self.table_widget.setItem(row, 3, QTableWidgetItem(transporte.Ciudad_Transporte_end))
+                        self.table_widget.setItem(row, 4, QTableWidgetItem(transporte.Lugar_Transporte_end))
                         #self.table_widget.setItem(row, 2, QTableWidgetItem(str(transporte.Fecha)))
-                        self.table_widget.setItem(row, 2, QTableWidgetItem(f"Hotel {hotel.Ciudad_Hotel}" if hotel else f"NO"))
-                        self.table_widget.setItem(row, 3, QTableWidgetItem(hotel.Nombre_Hotel if hotel else "Sin hotel"))
-                        self.table_widget.setItem(row, 9, QTableWidgetItem(codigo))
-                        self.table_widget.setItem(row, 10, QTableWidgetItem(str(vuelo.Fecha.date())))
-                        self.table_widget.setItem(row, 11, QTableWidgetItem(str(vuelo.Hora_Salida.time())))
-                        self.table_widget.setItem(row, 7, QTableWidgetItem(str(hora_pick_up)))
-                        self.table_widget.setItem(row, 8, QTableWidgetItem(lugar_pick_up))
+                        #self.table_widget.setItem(row, 2, QTableWidgetItem(f"Hotel {hotel.Ciudad_Hotel}" if hotel else f"NO"))
+                        self.table_widget.setItem(row, 5, QTableWidgetItem(hotel.Nombre_Hotel if hotel else "Sin hotel"))
+                        self.table_widget.setItem(row, 6, QTableWidgetItem(codigo))
+                        self.table_widget.setItem(row, 7, QTableWidgetItem(str(vuelo.Fecha.date())))
+                        self.table_widget.setItem(row, 8, QTableWidgetItem(str(vuelo.Hora_Salida.time())))
+                        self.table_widget.setItem(row, 9, QTableWidgetItem(str(hora_pick_up)))
+                        self.table_widget.setItem(row, 10, QTableWidgetItem(lugar_pick_up))
                         #self.table_widget.setItem(row, 7, QTableWidgetItem(aeropuerto_llegada))
                         self.table_widget.setItem(row, 12, QTableWidgetItem(owner))
                         self.table_widget.setItem(row, 13, QTableWidgetItem(buque))
@@ -769,10 +773,10 @@ class TransportesScreen(QWidget):
                         self.table_widget.setItem(row, 17, QTableWidgetItem(transporte.Nacionalidad))
 
                 elif 'VESSEL-HOTEL' == tramo:# and str(vuelo.Codigo) in 'BUS':  # Transporte desde el hotel 
-                    if ciudad_seleccionada == "ciudad":
-                        city_select = str(transporte.Ciudad_Transporte_in).lower()
-                    else:
-                        city_select = transporte.Ciudad_Transporte_in
+                    # if ciudad_seleccionada == "ciudad":
+                    #     city_select = str(transporte.Ciudad_Transporte_in).lower()
+                    # else:
+                    city_select = transporte.Ciudad_Transporte_in
 
                     vuelos_salida1 = [v for v in vuelos if transporte.Ciudad_Transporte_in.lower() == city_select.lower() and v.Codigo.lower() == 'bus']
                     for vuelo in vuelos_salida1:
@@ -786,15 +790,18 @@ class TransportesScreen(QWidget):
                         lugar_pick_up = "Hotel"
 
                         self.table_widget.setItem(row, 0, QTableWidgetItem(transporte.Estado))
-                        self.table_widget.setItem(row, 1, QTableWidgetItem(tramo))
+                        self.table_widget.setItem(row, 1, QTableWidgetItem(transporte.Ciudad_Transporte_in))
+                        self.table_widget.setItem(row, 2, QTableWidgetItem(transporte.Lugar_Transporte_in))
+                        self.table_widget.setItem(row, 3, QTableWidgetItem(transporte.Ciudad_Transporte_end))
+                        self.table_widget.setItem(row, 4, QTableWidgetItem(transporte.Lugar_Transporte_end))
                         #self.table_widget.setItem(row, 2, QTableWidgetItem(str(transporte.Fecha)))
-                        self.table_widget.setItem(row, 2, QTableWidgetItem(f"Hotel {hotel.Ciudad_Hotel}" if hotel else f"NO"))
-                        self.table_widget.setItem(row, 3, QTableWidgetItem(hotel.Nombre_Hotel if hotel else "Sin hotel"))
-                        self.table_widget.setItem(row, 9, QTableWidgetItem(codigo))
-                        self.table_widget.setItem(row, 10, QTableWidgetItem(str(vuelo.Fecha.date())))
-                        self.table_widget.setItem(row, 11, QTableWidgetItem(str(vuelo.Hora_Salida.time())))
-                        self.table_widget.setItem(row, 7, QTableWidgetItem(str(transporte.Hora_Pickup)))
-                        self.table_widget.setItem(row, 8, QTableWidgetItem(lugar_pick_up))
+                        #self.table_widget.setItem(row, 2, QTableWidgetItem(f"Hotel {hotel.Ciudad_Hotel}" if hotel else f"NO"))
+                        self.table_widget.setItem(row, 5, QTableWidgetItem(hotel.Nombre_Hotel if hotel else "Sin hotel"))
+                        self.table_widget.setItem(row, 6, QTableWidgetItem(codigo))
+                        self.table_widget.setItem(row, 7, QTableWidgetItem(str(vuelo.Fecha.date())))
+                        self.table_widget.setItem(row, 8, QTableWidgetItem(str(vuelo.Hora_Salida.time())))
+                        self.table_widget.setItem(row, 9, QTableWidgetItem(str(transporte.Hora_Pickup)))
+                        self.table_widget.setItem(row, 10, QTableWidgetItem(lugar_pick_up))
                         #self.table_widget.setItem(row, 7, QTableWidgetItem(aeropuerto_llegada))
                         self.table_widget.setItem(row, 12, QTableWidgetItem(owner))
                         self.table_widget.setItem(row, 13, QTableWidgetItem(buque))
@@ -847,7 +854,7 @@ class TransportesScreen(QWidget):
             data.append(row_data)
 
         # Definir los nombres de las columnas
-        headers = ["Estado", "Transporte", "Hotel Ciudad", "Nombre Hotel", "Código Vuelo Llegada", "Date Llegada", "Hora Llegada", "Hora Pick Up", "Lugar Pick Up", "Código Vuelo Salida", "Date Salida", "Fecha Salida", "Owner", "Nave", "ETA", "First Name", "Last Name", "Nacionalidad"]
+        headers = ["Estado", "Transporte", "Hotel Ciudad", "Nombre Hotel", "Código Vuelo Llegada", "Date Llegada", "Hora Llegada", "Hora Pick Up", "Lugar Pick Up", "Código Vuelo Salida", "Date Salida", "Fecha Salida", "Owner", "Nave", "ETA", "First Name", "Last Name", "Nacionalidad", "Transportista", "Anfitrión", "Vehículo", "Vehículo apoyo"]
         df = pd.DataFrame(data, columns=headers)
 
         # Convertir "Hora Pick Up" a datetime para una ordenación correcta
@@ -1066,6 +1073,7 @@ class RoomListScreen(QWidget):
                 Tripulante.sexo.label("Gender"),
                 Tripulante.nacionalidad.label("Nacionalidad"),
                 Tripulante.posicion.label("Position"),
+                Buque.empresa.label("Owner"),
                 TripulanteHotel.categoria.label("Categoria")
             )
             .join(Buque, Buque.buque_id == Tripulante.buque_id)
@@ -1106,7 +1114,7 @@ class RoomListScreen(QWidget):
             )
 
         # Limpiar la tabla
-        headers = ["First Name", "Last Name", "Gender", "Nacionalidad", "Position", "Categoria", "Check In", "Check Out", "Rooms"]
+        headers = ["Owner", "First Name", "Last Name", "Gender", "Nacionalidad", "Position", "Categoria", "Check In", "Check Out", "Rooms"]
 
         self.table_widget.setRowCount(0)
         self.table_widget.setColumnCount(len(headers))  # Número correcto de columnas
@@ -1132,19 +1140,20 @@ class RoomListScreen(QWidget):
                 self.table_widget.insertRow(row)
                 self.tripulante_ids.append(roomlist.ID)
                 
-                self.table_widget.setItem(row, 0, QTableWidgetItem(str(roomlist.First_Name)))  # First Name
-                self.table_widget.setItem(row, 1, QTableWidgetItem(str(roomlist.Last_Name)))  # Last Name
-                self.table_widget.setItem(row, 2, QTableWidgetItem(str(roomlist.Gender)))  # Gender
-                self.table_widget.setItem(row, 3, QTableWidgetItem(str(roomlist.Nacionalidad)))  # Nacionalidad
-                self.table_widget.setItem(row, 4, QTableWidgetItem(str(roomlist.Position)))  # Position
-                self.table_widget.setItem(row, 5, QTableWidgetItem(str(roomlist.Categoria)))  # Position
+                self.table_widget.setItem(row, 0, QTableWidgetItem(str(roomlist.Owner)))  # First Name
+                self.table_widget.setItem(row, 1, QTableWidgetItem(str(roomlist.First_Name)))  # First Name
+                self.table_widget.setItem(row, 2, QTableWidgetItem(str(roomlist.Last_Name)))  # Last Name
+                self.table_widget.setItem(row, 3, QTableWidgetItem(str(roomlist.Gender)))  # Gender
+                self.table_widget.setItem(row, 4, QTableWidgetItem(str(roomlist.Nacionalidad)))  # Nacionalidad
+                self.table_widget.setItem(row, 5, QTableWidgetItem(str(roomlist.Position)))  # Position
+                self.table_widget.setItem(row, 6, QTableWidgetItem(str(roomlist.Categoria)))  # Position
                 
                 # Check In
-                self.table_widget.setItem(row, 6, QTableWidgetItem(str(roomlist.check_in) if roomlist.check_in else ""))
+                self.table_widget.setItem(row, 7, QTableWidgetItem(str(roomlist.check_in) if roomlist.check_in else ""))
                 # Check Out
-                self.table_widget.setItem(row, 7, QTableWidgetItem(str(roomlist.check_out) if roomlist.check_out else ""))
+                self.table_widget.setItem(row, 8, QTableWidgetItem(str(roomlist.check_out) if roomlist.check_out else ""))
                 # Rooms
-                self.table_widget.setItem(row, 8, QTableWidgetItem(str(roomlist.Rooms) if roomlist.Rooms else ""))
+                self.table_widget.setItem(row, 9, QTableWidgetItem(str(roomlist.Rooms) if roomlist.Rooms else ""))
 
     def generar_excel(self, hotel_seleccionado, buque_seleccionado, ciudad_seleccionada, owner_seleccionado):
         def incrementar_grupo(group_counter):
@@ -1333,25 +1342,38 @@ class RoomListScreen(QWidget):
             else:
                 cell.value = ""
 
-             # Contar el número de habitaciones por categoría, considerando habitaciones dobles
-            conteo_habitaciones = df[df['Rooms'].str.contains('Doble|Single', case=False)].groupby(['Categoria', 'Grupo'])['Rooms'].nunique().reset_index()
+            # Paso 1: Filtrar solo las habitaciones que contienen "doble" o "single", ignorando mayúsculas/minúsculas
+            filtered_df = df[df['Rooms'].str.lower().str.contains('doble|single', na=False)]
 
-            # Agrupar por 'Categoria' para obtener el conteo final de habitaciones por categoría
-            conteo_habitaciones = conteo_habitaciones.groupby('Categoria')['Rooms'].sum().reset_index()
-            conteo_habitaciones.columns = ['Categoria', 'Cantidad de Habitaciones']
+            # Normalizar la columna 'Rooms' en minúsculas solo en el DataFrame filtrado
+            filtered_df['Rooms'] = filtered_df['Rooms'].str.lower()
 
-            cell = ws.cell(row=1, column=4, value="Categoria").font = Font(bold=True)
-            cell = ws.cell(row=2, column=4, value="Cantidad de habitaciones").font = Font(bold=True)
+            # Paso 2: Eliminar duplicados por 'Categoria' y 'Grupo' para contar habitaciones dobles como una sola
+            filtered_df = filtered_df.drop_duplicates(subset=['Categoria', 'Grupo', 'Rooms'])
 
+            # Paso 3: Agrupar y contar habitaciones por 'Categoria' y 'Rooms' (doble o single)
+            conteo_habitaciones = (
+                filtered_df.groupby(['Categoria', 'Rooms'])['Rooms']
+                .count()
+                .unstack(fill_value=0)
+                .reindex(columns=['doble', 'single'], fill_value=0)  # Asegurar que tenga solo las columnas 'doble' y 'single'
+                .reset_index()
+            )
+
+            # Renombrar columnas para claridad
+            conteo_habitaciones.columns = ['Categoria', 'Cantidad de Dobles', 'Cantidad de Singles']
+
+
+            # Escribir encabezados en Excel
+            ws.cell(row=1, column=4, value="Categoria").font = Font(bold=True)
+            ws.cell(row=1, column=5, value="Cantidad de Singles").font = Font(bold=True)
+            ws.cell(row=1, column=6, value="Cantidad de Dobles").font = Font(bold=True)
+
+            # Escribir el conteo de habitaciones en Excel
             for idx, row in conteo_habitaciones.iterrows():
-                categoria_col = 5 + idx  # Comienza en la columna 2 y se desplaza a la derecha
-                categoria_cell = ws.cell(row=1, column=categoria_col, value=row['Categoria'])
-                categoria_cell.alignment = Alignment(horizontal='left')
-
-                # Escribir la cantidad de habitaciones en la segunda fila y alinear a la izquierda
-                cantidad_cell = ws.cell(row=2, column=categoria_col, value=row['Cantidad de Habitaciones'])
-                cantidad_cell.alignment = Alignment(horizontal='left')
-
+                ws.cell(row=2 + idx, column=4, value=row['Categoria'])
+                ws.cell(row=2 + idx, column=5, value=row['Cantidad de Singles'])
+                ws.cell(row=2 + idx, column=6, value=row['Cantidad de Dobles'])
 
             # Imprimir el conteo de habitaciones por categoría para depuración (opcional)
             #print(conteo_habitaciones['Categoria'])
@@ -1757,6 +1779,14 @@ class AlimentosScreen(QWidget):
             self.combo_restaurantes.addItem(restaurante.nombre)
         layout.addWidget(self.combo_restaurantes)
 
+        self.combo_tipo_comidas = QComboBox()
+        self.combo_tipo_comidas.addItem("Tipo comida")  # Agregar un valor por defecto
+
+        tipo_comidas = session.query(TripulanteRestaurante.tipo_comida).distinct().all()  # Consulta para obtener los nombres de los hoteles
+        for tipo_comida in tipo_comidas:
+            self.combo_tipo_comidas.addItem(tipo_comida.tipo_comida)
+        layout.addWidget(self.combo_tipo_comidas)
+
         self.label = QLabel()
         layout.addWidget(self.label)
 
@@ -1785,6 +1815,7 @@ class AlimentosScreen(QWidget):
         self.date_start1_rango.dateChanged.connect(self.actualizar_datos)
         self.date_end1_rango.dateChanged.connect(self.actualizar_datos)
         self.combo_restaurantes.currentTextChanged.connect(self.actualizar_datos)
+        self.combo_tipo_comidas.currentTextChanged.connect(self.actualizar_datos)
 
         # Actualizar datos inicialmente
         self.actualizar_datos()
@@ -1805,6 +1836,7 @@ class AlimentosScreen(QWidget):
         buque_seleccionado = self.combo_buques.currentText()
         restaurant_seleccionado = self.combo_restaurantes.currentText()
         owner_seleccionado = self.combo_owners.currentText()
+        tipo_comida_seleccionado = self.combo_tipo_comidas.currentText()
 
         fecha_inicio_eta = self.date_start1_eta.date().toString("dd-MM-yyyy")  # Formato de fecha: dd-mm-aaaa
         fecha_inicio_rango = self.date_start1_rango.date().toString("dd-MM-yyyy")  # Formato de fecha: dd-mm-aaaa
@@ -1815,13 +1847,14 @@ class AlimentosScreen(QWidget):
         #fecha_fin = self.date_end1.date().toString("dd-MM-yyyy")
 
     # Llamar a la función generar_excel con ciudad, buque y las fechas
-        self.generar_excel(ciudad_seleccionada, buque_seleccionado, restaurant_seleccionado, owner_seleccionado, fecha_inicio_eta, fecha_inicio_rango, fecha_fin_rango, eta_check, rango_check)#, fecha_fin)
+        self.generar_excel(ciudad_seleccionada, buque_seleccionado, restaurant_seleccionado, owner_seleccionado, fecha_inicio_eta, fecha_inicio_rango, fecha_fin_rango, eta_check, rango_check, tipo_comida_seleccionado)#, fecha_fin)
 
     def actualizar_datos(self):
         ciudad_seleccionada = self.combo_ciudades.currentText()
         buque_seleccionado = self.combo_buques.currentText()
         restaurant_seleccionado = self.combo_restaurantes.currentText()
         owner_seleccionado = self.combo_owners.currentText()
+        tipo_comida_seleccionado = self.combo_tipo_comidas.currentText()
 
         fecha_inicio_eta = self.date_start1_eta.date().toString("dd-MM-yyyy")  # Formato de fecha: dd-mm-aaaa
         fecha_inicio_rango = self.date_start1_rango.date().toString("dd-MM-yyyy")  # Formato de fecha: dd-mm-aaaa
@@ -1829,9 +1862,9 @@ class AlimentosScreen(QWidget):
         self.label.setText(f"Lista de hoteles en {ciudad_seleccionada}")
 
         # Cargar datos basados en los filtros seleccionados
-        self.cargar_datos(ciudad_seleccionada, buque_seleccionado, restaurant_seleccionado, owner_seleccionado, fecha_inicio_eta, fecha_inicio_rango, fecha_fin_rango)
+        self.cargar_datos(ciudad_seleccionada, buque_seleccionado, restaurant_seleccionado, owner_seleccionado, fecha_inicio_eta, fecha_inicio_rango, fecha_fin_rango, tipo_comida_seleccionado)
 
-    def cargar_datos(self, ciudad_seleccionada, buque_seleccionado, restaurant_seleccionado, owner_seleccionado, fecha_inicio_eta, fecha_inicio_rango, fecha_fin_rango):
+    def cargar_datos(self, ciudad_seleccionada, buque_seleccionado, restaurant_seleccionado, owner_seleccionado, fecha_inicio_eta, fecha_inicio_rango, fecha_fin_rango, tipo_comida_seleccionado):
         session = get_db_session()  # Obtener la sesión de la base de datos
 
         # Convertir las entradas a minúsculas para comparación
@@ -1839,6 +1872,7 @@ class AlimentosScreen(QWidget):
         buque_seleccionado = buque_seleccionado.lower()
         ciudad_seleccionada = ciudad_seleccionada.lower()
         owner_seleccionado = owner_seleccionado.lower()
+        tipo_comida_seleccionado = tipo_comida_seleccionado.lower()
 
         # Obtener las fechas seleccionadas en QDateEdit
         fecha_inicio_eta = fecha_inicio_eta 
@@ -1860,13 +1894,14 @@ class AlimentosScreen(QWidget):
                 Tripulante.apellido.label("Last_Name"),
                 Restaurante.ciudad.label("Restaurante_Ciudad"),
                 TripulanteRestaurante.pref_alimenticia.label("Preferencia"),
+                func.coalesce(TripulanteHotel.categoria, "").label("Categoria"),  # Usa "Sin categoría" si es NULL
                 Buque.empresa.label("Owner")
             )
             .join(Restaurante, Restaurante.restaurante_id == TripulanteRestaurante.restaurante_id)
             .join(Tripulante, Tripulante.tripulante_id == TripulanteRestaurante.tripulante_id)
             .join(Buque, Buque.buque_id == Tripulante.buque_id)
+            .outerjoin(TripulanteHotel, Tripulante.tripulante_id == TripulanteHotel.tripulante_id)  # LEFT JOIN en TripulanteHotel
             .filter(Tripulante.tripulante_id == TripulanteRestaurante.tripulante_id)
-            .filter(Buque.buque_id == Tripulante.buque_id)
             .distinct()
         )
 
@@ -1882,6 +1917,9 @@ class AlimentosScreen(QWidget):
 
         if restaurant_seleccionado != "restaurante":
             query = query.filter(func.lower(Restaurante.nombre) == restaurant_seleccionado)
+
+        if tipo_comida_seleccionado != "tipo comida":
+            query = query.filter(func.lower(TripulanteRestaurante.tipo_comida) == tipo_comida_seleccionado)
 
         # Aplicar filtro de ETA por rango de fechas si está habilitado
         if self.check_fecha_eta.isChecked():
@@ -1924,11 +1962,12 @@ class AlimentosScreen(QWidget):
             self.table_widget.setItem(row, 0, QTableWidgetItem(str(tripulante.First_Name)))  # First Name
             self.table_widget.setItem(row, 1, QTableWidgetItem(str(tripulante.Last_Name)))  # Last Name
             self.table_widget.setItem(row, 2, QTableWidgetItem(str(tripulante.Preferencia)))  # Gender
+            self.table_widget.setItem(row, 3, QTableWidgetItem(str(tripulante.Categoria)))  # Gender
             
             # Check In
             #self.table_widget.setItem(row, 6, QTableWidgetItem(str(roomlist.check_in) if roomlist.check_in else ""))
 
-    def generar_excel(self, ciudad_seleccionada, buque_seleccionado, restaurant_seleccionado, owner_seleccionado, fecha_inicio_eta, fecha_inicio_rango, fecha_fin_rango, eta_check, rango_check):
+    def generar_excel(self, ciudad_seleccionada, buque_seleccionado, restaurant_seleccionado, owner_seleccionado, fecha_inicio_eta, fecha_inicio_rango, fecha_fin_rango, eta_check, rango_check, tipo_comida_seleccionado):
         # Crear un DataFrame con los datos de la tabla
         data = []
         for row in range(self.table_widget.rowCount()):
