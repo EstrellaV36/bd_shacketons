@@ -40,9 +40,9 @@ class BasicApp(QMainWindow):
         self.generacion_reportes_screen = GeneracionReportesScreen(self)
         self.menu_reportes_index = self.stacked_widget.addWidget(self.generacion_reportes_screen)
 
-        print("Índices en stacked_widget:")
-        for i in range(self.stacked_widget.count()):
-            print(f"Índice {i}: {self.stacked_widget.widget(i)}")
+        # print("Índices en stacked_widget:")
+        # for i in range(self.stacked_widget.count()):
+        #     print(f"Índice {i}: {self.stacked_widget.widget(i)}")
 
     def create_main_menu(self):
         main_menu_widget = QWidget()
