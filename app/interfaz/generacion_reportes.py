@@ -1235,7 +1235,12 @@ class TransportesScreen(QWidget):
 
                 # Caso 'ATO-HOTEL'
                 if 'ATO-HOTEL' == tramo:
-                    vuelos_llegada = [v for v in vuelos if v.Aeropuerto_Llegada.lower() == city_select]
+                    vuelos_llegada = [
+                        v for v in vuelos['arribo']
+                        if v is not None and v.get('Aeropuerto_Llegada') and ciudad_seleccionada
+                        and v['Aeropuerto_Llegada'].lower() == ciudad_seleccionada.lower()
+                    ]
+
                     for vuelo in vuelos_llegada:
                         codigo = f"{str(vuelo.Codigo)} {CITY_TO_AIRPORT_CODES.get(vuelo.Aeropuerto_Salida)}-{CITY_TO_AIRPORT_CODES.get(vuelo.Aeropuerto_Llegada)}"
                         data_rows.append({
@@ -1852,13 +1857,21 @@ class AsistenciasScreen(QWidget):
             for transporte in transportes:
                 tramo = f"{transporte.Lugar_Transporte_in}-{transporte.Lugar_Transporte_end}"
                 if 'ATO-HOTEL' == tramo:  # Transporte hacia el hotel
-                    vuelos_llegada = [v for v in vuelos['arribo'] if v['Aeropuerto_Llegada'].lower() == ciudad_seleccionada.lower()]
+                    vuelos_llegada = [
+                        v for v in vuelos['arribo']
+                        if v is not None and v.get('Aeropuerto_Llegada') and ciudad_seleccionada
+                        and v['Aeropuerto_Llegada'].lower() == ciudad_seleccionada.lower()
+                    ]
                     for vuelo in vuelos_llegada:
                         tripulantes_info[tripulante_id]["Fecha_Pick_Up"] = vuelo["Fecha_Vuelo_Arribo"]
                         tripulantes_info[tripulante_id]["Hora_Pick_Up"] = vuelo['Hora_Arribo'].time()
 
                 elif 'HOTEL-ATO' in tramo:  # Transporte desde el hotel
-                    vuelos_salida = [v for v in vuelos['salida'] if v['Aeropuerto_Salida'].lower() == ciudad_seleccionada.lower()]
+                    vuelos_salida = [
+                        v for v in vuelos['salida']
+                        if v is not None and v.get('Aeropuerto_Salida') and v['Aeropuerto_Salida'].lower() == (ciudad_seleccionada.lower() if ciudad_seleccionada else '')
+                    ]
+
                     for vuelo in vuelos_salida:
                         a1 = CITY_TO_AIRPORT_CODES.get(str(vuelo['Aeropuerto_Salida']))
                         try:

@@ -65,7 +65,8 @@ class Tripulante(Base):
     condicion: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     puerto_desembarque: Mapped[str] = mapped_column(String, nullable=True)
     pref_alimenticia: Mapped[Optional[str]] = mapped_column(String, default='NORMAL')
-    estado: Mapped[str] = mapped_column(String, nullable=False)  # Añadido para diferenciar ON/OFF
+    estado: Mapped[str] = mapped_column(String, nullable=False)
+    activo: Mapped[str] = mapped_column(String, nullable=False)
 
     buque_id: Mapped[Optional[int]] = mapped_column(ForeignKey("buques.buque_id"))
     tipo: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)  #Este no se si se mantiene porque es algo del viaje
@@ -83,7 +84,7 @@ class Tripulante(Base):
 
     def __repr__(self):
         return f"Tripulante(id={self.tripulante_id}, nombre={self.nombre}, apellido={self.apellido}, buque={self.buque_id})"
-
+    
 #-----------  TABLA AÑADIDA PARA MANEJAR MULTIPLES TRIPULANTES POR VUELO ----------
 class TripulanteVuelo(Base):
     __tablename__ = "tripulante_vuelo"

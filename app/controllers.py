@@ -70,16 +70,14 @@ CITY_AIRPORT_CODES = {
     'SOC': "SOLO CITY",
     'MBJ': "MONTEGO BAY",
     'BOM': "BOMBAY",
-    'GUA': "CIUDAD DE GUATEMALA",
-    'PTY': "CIUDAD DE PANAMÁ",
-    'LAX': "LOS ÁNGELES"
+    'GUA': "CIUDAD DE GUATEMALA"
 }
 
 CITY_TO_AIRPORT_CODES = {city: code for code, city in CITY_AIRPORT_CODES.items()}
 
 # Definir los nombres de las columnas antes de llamar al método
-buque_on_columns = ['Owner', 'Vessel', 'Date arrive CL', 'ETA Vessel', 'ETD Vessel', 'Puerto a embarcar', 'Condicion']
-buque_off_columns = ['Owner', 'Vessel', 'Date First flight', 'ETA Vessel', 'ETD Vessel', 'Puerto a desembarcar', 'Condicion']
+buque_on_columns = ['Activo', 'Owner', 'Vessel', 'Date arrive CL', 'ETA Vessel', 'ETD Vessel', 'Puerto a embarcar', 'Condicion']
+buque_off_columns = ['Activo', 'Owner', 'Vessel', 'Date First flight', 'ETA Vessel', 'ETD Vessel', 'Puerto a desembarcar', 'Condicion']
 
 tripulante_columns = ['First name', 'Last name', 'Gender', 'Nacionalidad', 'Position', 'Pasaporte', 'DOB']
 
@@ -87,8 +85,13 @@ domestic_columns = ['Nro Domestic Flight', 'Date Domestic Flight', 'Hora Domesti
 
 asistencia_columns = ['Proveedor SCL', 'Asistencia 1', 'Proveedor PUQ', 'Asistencia 2', 'Proveedor WPU', 'Asistencia 3']
 
-def buscar_buque_id(nombre_buque, session):
-    buque = session.query(Buque).filter(Buque.nombre.ilike(nombre_buque)).first()  # Usando ilike para coincidencias sin distinción entre mayúsculas y minúsculas
+def buscar_buque_id(nombre_buque, nombre_empresa, session):
+    buque = session.query(Buque).filter(
+        and_(
+            Buque.nombre.ilike(nombre_buque),
+            Buque.empresa.ilike(nombre_empresa)
+        )
+    ).first()
     if buque:
         #print(f"Buque encontrado: {nombre_buque} con ID: {buque.buque_id}")
         return buque.buque_id
@@ -118,11 +121,11 @@ class Controller:
             excel_data_on = pd.read_excel(file_path, sheet_name='ON', header=None)
 
             # Extraer los datos de los buque ON (desde fila 14, índice 13)
-            buque_on = self.read_all_rows(excel_data_on, start_row=1, column_range=slice(0, 7), column_names=buque_on_columns) 
+            buque_on = self.read_all_rows(excel_data_on, start_row=1, column_range=slice(0, 8), column_names=buque_on_columns) 
             buque_on.reset_index(drop=True, inplace=True)  # Reiniciar el índice
 
             # Extraer los datos de tripulantes ON (fila 14)
-            tripulantes_on = self.read_all_rows(excel_data_on, start_row=1, column_range=slice(9, 16), column_names=tripulante_columns)  
+            tripulantes_on = self.read_all_rows(excel_data_on, start_row=1, column_range=slice(10, 17), column_names=tripulante_columns)  
             tripulantes_on.reset_index(drop=True, inplace=True)  # Reiniciar el índice
 
             # Procesar vuelos internacionales ON
@@ -140,7 +143,7 @@ class Controller:
             hoteles_on.reset_index(drop=True, inplace=True)  # Reiniciar el índice
 
             #Procesar asistencias ON
-            asistencias_on = self._extract_assist(excel_data_on, start_row=1, column_range=slice(41,47), column_names=asistencia_columns)
+            asistencias_on = self._extract_assist(excel_data_on, start_row=1, column_range=slice(42,48), column_names=asistencia_columns)
             asistencias_on.reset_index(drop=True, inplace=True)  # Reiniciar el índice
 
             #Procesar transportes ON
@@ -159,11 +162,11 @@ class Controller:
             excel_data_off = pd.read_excel(file_path, sheet_name='OFF', header=None)
 
             # Extraer los datos de los buque OFF (desde fila 22, índice 21)
-            buque_off = self.read_all_rows(excel_data_off, start_row=1, column_range=slice(0, 7), column_names=buque_off_columns)
+            buque_off = self.read_all_rows(excel_data_off, start_row=1, column_range=slice(0, 8), column_names=buque_off_columns)
             buque_off.reset_index(drop=True, inplace=True)  # Reiniciar el índice
 
             # Extraer los datos de tripulantes OFF (fila 22)
-            tripulantes_off = self.read_all_rows(excel_data_off, start_row=1, column_range=slice(9, 16), column_names=tripulante_columns) 
+            tripulantes_off = self.read_all_rows(excel_data_off, start_row=1, column_range=slice(10, 17), column_names=tripulante_columns) 
             tripulantes_off.reset_index(drop=True, inplace=True)  # Reiniciar el índice
 
             #Procesar hoteles OFF
@@ -181,7 +184,7 @@ class Controller:
             vuelos_regionales_off.reset_index(drop=True, inplace=True)  # Reiniciar el índice
 
             #Procesar asistencias OFF
-            asistencias_off = self._extract_assist(excel_data_off, start_row=1, column_range=slice(29,35), column_names=asistencia_columns)
+            asistencias_off = self._extract_assist(excel_data_off, start_row=1, column_range=slice(30,36), column_names=asistencia_columns)
             asistencias_off.reset_index(drop=True, inplace=True)  # Reiniciar el índice
 
             #Procesar transporte OFF
@@ -221,6 +224,8 @@ class Controller:
             # Crear buques ON y OFF
             self._create_buque(self.buque_on)
             self._create_buque(self.buque_off)
+
+            print(hoteles_on)
 
             # Crear tripulantes ON y OFF
             tripulantes = []
@@ -304,7 +309,7 @@ class Controller:
 
         return hoteles_df
 
-    def _extraer_ciudades_y_horarios(self, vuelo_info, tipo_vuelo):        
+    def _extraer_ciudades_y_horarios(self, vuelo_info):        
         try:
             vuelo = vuelo_info['vuelo']
 
@@ -328,7 +333,17 @@ class Controller:
 
             # Obtener la fecha y las horas como objetos datetime
             fecha_vuelo = vuelo_info['fecha']  # Se espera que sea un objeto Timestamp
-            hora_salida, hora_llegada = vuelo_info['hora'].split('-')
+            hora = vuelo_info.get('hora', '').replace("–", "-")
+            print(f"LA HORA ES {type(hora)} {hora}")
+
+            if '-' in hora:
+                hora_salida, hora_llegada = hora.split('-')
+                hora_salida = hora_salida.strip()  # Elimina espacios alrededor
+                hora_llegada = hora_llegada.strip()  # Elimina espacios alrededor
+            else:
+                print(f"Formato de hora inesperado: '{hora}'")
+                # Asigna valores predeterminados o maneja el error según lo necesites
+                hora_salida, hora_llegada = None, None  # O cualquier valor adecuado
 
             # Eliminar espacios en blanco antes de convertir a datetime
             hora_salida = hora_salida.strip()
@@ -379,11 +394,16 @@ class Controller:
                 # Comprobar si el índice i está dentro de buque_df
                 if i >= len(buque_df):
                     raise IndexError(f"Índice fuera de rango: {i} no está en buque_df.")
-
+                
+                activo = buque_df.loc[i]['Activo']
                 # Obtener el nombre del buque correspondiente
                 nombre_buque = buque_df.loc[i]['Vessel']
+                nombre_empresa = buque_df.loc[i]['Owner']
                 condicion = buque_df.loc[i]['Condicion'] 
-                buque_id = buscar_buque_id(nombre_buque, self.db_session)
+
+                #print(f"{nombre_buque} | {nombre_empresa} | {condicion} {i}")
+
+                buque_id = buscar_buque_id(nombre_buque, nombre_empresa, self.db_session)
 
                 # Buscar si el tripulante ya existe en la base de datos por pasaporte
                 tripulante_existente = self.db_session.query(Tripulante).filter_by(pasaporte=row['Pasaporte']).first()
@@ -391,6 +411,7 @@ class Controller:
                 if not tripulante_existente:
                     # Si el tripulante no existe, lo creamos
                     tripulante = Tripulante(
+                        activo=activo,
                         nombre=row['First name'],
                         apellido=row['Last name'],
                         sexo=row['Gender'],
@@ -510,7 +531,7 @@ class Controller:
                 tripulante = self.db_session.query(Tripulante).filter_by(pasaporte=tripulante_data['Pasaporte']).first()
 
                 if not tripulante:
-                    print(f"No se encontró tripulante con pasaporte {tripulante_data['Pasaporte']} en la fila {i}.")
+                    #print(f"No se encontró tripulante con pasaporte {tripulante_data['Pasaporte']} en la fila {i}.")
                     continue
 
                 # Iterar sobre los vuelos correspondientes a este tripulante (en la misma fila)
@@ -519,7 +540,7 @@ class Controller:
 
                     # Verificar que haya información válida sobre el vuelo
                     if pd.notna(vuelo_info) and isinstance(vuelo_info, dict) and vuelo_info.get('vuelo') != 'No disponible':
-                        vuelo_info = self._extraer_ciudades_y_horarios(vuelo_info, state)
+                        vuelo_info = self._extraer_ciudades_y_horarios(vuelo_info)
 
                         if vuelo_info is None or 'codigo_vuelo' not in vuelo_info:
                             print(f"Omitiendo vuelo {vuelo_key} en la fila {i} debido a datos faltantes.")
@@ -596,7 +617,7 @@ class Controller:
 
                 tripulante = self.db_session.query(Tripulante).filter_by(pasaporte=tripulante_data['Pasaporte']).first()
                 if not tripulante:
-                    print(f"No se encontró tripulante con pasaporte {tripulante_data['Pasaporte']} en la fila {i}.")
+                    #print(f"No se encontró tripulante con pasaporte {tripulante_data['Pasaporte']} en la fila {i}.")
                     continue
 
                 # Obtener la información de hoteles correspondiente al tripulante
@@ -686,9 +707,10 @@ class Controller:
             self.db_session.rollback()
 
     def _create_restaurantes(self, restaurantes_df, tripulantes_df):
-        #print(restaurantes_df)
+        print(restaurantes_df)
+        
         try:
-            for index in range(len(restaurantes_df)):
+            for index in range(len(tripulantes_df)):
                 restaurante_row = restaurantes_df.iloc[index]
 
                 # Obtener el pasaporte del tripulante basado en la fila actual
@@ -736,7 +758,6 @@ class Controller:
                     if pd.isna(fecha_desde):
                         #print(f"No hay servicio de comida en {nombre_restaurantes[i-1]}, continuando...")  # Línea de depuración
                         continue
-
 
                     # Extraer ciudad y tipo de comida
                     ciudad_tipo = servicio_comida.split(" ")  # Separar "PUQ Cena" en ["PUQ", "Cena"]
@@ -798,6 +819,7 @@ class Controller:
 
         except Exception as e:
             print(f"Error al guardar en la base de datos: {e}")
+            traceback.print_exc()
             self.db_session.rollback()  # Asegúrate de revertir la sesión en caso de error
 
     def _create_transporte(self, transportes_df, tripulantes_df):
@@ -825,7 +847,7 @@ class Controller:
                 tripulante = self.db_session.query(Tripulante).filter_by(pasaporte=tripulante_data['Pasaporte']).first()
                 
                 if not tripulante:
-                    print(f"No se encontró tripulante con pasaporte {tripulante_data['Pasaporte']} en la fila {i}.")
+                    #print(f"No se encontró tripulante con pasaporte {tripulante_data['Pasaporte']} en la fila {i}.")
                     continue
 
                 # Iterar sobre las claves que representan los vuelos
@@ -973,6 +995,13 @@ class Controller:
                         vuelo = excel_data.iloc[i, col_idx_vuelo]
                         fecha = excel_data.iloc[i, col_idx_fecha]
                         hora = excel_data.iloc[i, col_idx_hora]
+
+                        if type(hora) == str:
+                            if hora.replace(" ", "") == "":
+                                hora = None
+                            else:
+                                hora = hora.replace(" ", "")
+                                #print(f"LA HORA ES {type(hora)} {hora}")
 
                         #print(f"{vuelo} | {fecha} | {hora}")
 
@@ -1206,8 +1235,8 @@ class Controller:
                     place_in_value = place_in_idx if pd.notna(place_in_idx) else 'Desconocido'
                     city_end_value = city_end_idx if pd.notna(city_end_idx) else 'Desconocido'
                     place_end_value = place_end_idx if pd.notna(place_end_idx) else 'Desconocido'
-                    date_pickup_value = date_pickup_idx if pd.notna(date_pickup_idx) else 'Desconocido'
-                    hours_pickup_value = hours_pickup_idx if pd.notna(hours_pickup_idx) else 'Desconocido'
+                    date_pickup_value = date_pickup_idx if pd.notna(date_pickup_idx) else None
+                    hours_pickup_value = hours_pickup_idx if pd.notna(hours_pickup_idx) else None
 
                     # Agregar el transporte al diccionario del tripulante
                     tripulante_transports[f'Transporte {transports_num}'] = {
