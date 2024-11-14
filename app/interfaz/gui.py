@@ -29,28 +29,20 @@ class BasicApp(QMainWindow):
         self.stacked_widget = QStackedWidget()
         main_layout.addWidget(self.stacked_widget)
 
-        # Create and add screens
-        self.create_main_menu()
+        self.main_menu_widget = self.create_main_menu()
+        self.main_menu_index = self.stacked_widget.addWidget(self.main_menu_widget)
 
-        # Create generic screens before other screens
-        self.hotel_widget = self.create_generic_screen("Hotel")
-        self.transporte_widget = self.create_generic_screen("Transporte")
-        self.restaurant_widget = self.create_generic_screen("Restaurant")
-
-        # Instantiate other screens
+        # Instanciar y agregar otras pantallas
         self.carga_masiva_screen = CargaMasivaScreen(self.controller, self)
-        self.visualizacion_datos_screen = VisualizacionDatosScreen(
-            self.controller, self, self.carga_masiva_screen,
-            self.hotel_widget, self.transporte_widget, self.restaurant_widget
-        )
+        self.carga_masiva_index = self.stacked_widget.addWidget(self.carga_masiva_screen)
+        
+        # Instancia y agrega la pantalla de generación de reportes
         self.generacion_reportes_screen = GeneracionReportesScreen(self)
-        # Guardar el índice de la pantalla de reportes
         self.menu_reportes_index = self.stacked_widget.addWidget(self.generacion_reportes_screen)
 
-        # Add screens to stacked_widget
-        self.stacked_widget.addWidget(self.carga_masiva_screen)
-        self.stacked_widget.addWidget(self.visualizacion_datos_screen)
-        self.stacked_widget.addWidget(self.generacion_reportes_screen)
+        print("Índices en stacked_widget:")
+        for i in range(self.stacked_widget.count()):
+            print(f"Índice {i}: {self.stacked_widget.widget(i)}")
 
     def create_main_menu(self):
         main_menu_widget = QWidget()
@@ -80,7 +72,7 @@ class BasicApp(QMainWindow):
         # Añadir un espacio abajo para centrar los botones verticalmente
         layout.addStretch()
 
-        self.stacked_widget.addWidget(main_menu_widget)
+        return main_menu_widget
 
     # Método para crear pantallas genéricas con el botón "Volver"
     def create_generic_screen(self, title):
