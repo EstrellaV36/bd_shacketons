@@ -1236,7 +1236,7 @@ class TransportesScreen(QWidget):
                 # Caso 'ATO-HOTEL'
                 if 'ATO-HOTEL' == tramo:
                     vuelos_llegada = [
-                        v for v in vuelos['arribo']
+                        v for v in vuelos
                         if v is not None and v.get('Aeropuerto_Llegada') and ciudad_seleccionada
                         and v['Aeropuerto_Llegada'].lower() == ciudad_seleccionada.lower()
                     ]
@@ -1943,7 +1943,6 @@ class AsistenciasScreen(QWidget):
             if info.get("First_Name") or info.get("Last_Name") or info.get("Vessel")  # Puedes ajustar según el criterio
         }
 
-
         headers = [
             "Owner", "Vessel", "ETA", "First Name", "Last Name", "Condition", "Type", "Proveedor", "Asistencia", "Transporte",
             "Comidas", "Nro Vuelo Arribo", "Fecha Vuelo Arribo", "Hora Arribo",
@@ -2010,6 +2009,7 @@ class AsistenciasScreen(QWidget):
             self.table_widget.setItem(row_position, 20, QTableWidgetItem(
                 info.get("Hora_Vuelo_Salida", "").strftime("%H:%M") if isinstance(info.get("Hora_Vuelo_Salida", ""), datetime) else ""
             ))
+
 
     # Mantén las funciones de formateo separadas
     def format_date(self, value):
@@ -2377,22 +2377,18 @@ class AlimentosScreen(QWidget):
                 )
             )
 
+        query = query.order_by(TripulanteHotel.categoria, Tripulante.apellido)
+
         # Limpiar la tabla
         headers = ["First Name", "Last Name", "Preferencia", "Categoria", "Signature"]
 
         self.table_widget.setRowCount(0)
-        self.table_widget.setColumnCount(len(headers))  # Número correcto de columnas
+        self.table_widget.setColumnCount(len(headers))
         self.table_widget.setHorizontalHeaderLabels(headers)
 
         query = query.order_by(Tripulante.apellido)
 
         self.tripulante_ids = []
-
-        # # Ordenar el DataFrame primero por 'Check In', luego por 'Position' y finalmente por 'Gender'
-        #df = df.sort_values(by=["Last Name"])
-
-        # # Formatear 'Check In' de nuevo a string con el formato deseado
-        # df['Check In'] = df['Check In'].dt.strftime('%Y-%m-%d')
 
         # Llenar la tabla con los resultados de la consulta
         for tripulante in query:
@@ -2405,9 +2401,6 @@ class AlimentosScreen(QWidget):
             self.table_widget.setItem(row, 2, QTableWidgetItem(str(tripulante.Preferencia)))  # Gender
             self.table_widget.setItem(row, 3, QTableWidgetItem(str(tripulante.Categoria)))  # Gender
             
-            # Check In
-            #self.table_widget.setItem(row, 6, QTableWidgetItem(str(roomlist.check_in) if roomlist.check_in else ""))
-
     def generar_excel(self, ciudad_seleccionada, buque_seleccionado, restaurant_seleccionado, owner_seleccionado, fecha_inicio_eta, fecha_inicio_rango, fecha_fin_rango, eta_check, rango_check, tipo_comida_seleccionado):
         # Crear un DataFrame con los datos de la tabla
         data = []
