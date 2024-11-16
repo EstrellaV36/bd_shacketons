@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import re
 import pandas as pd
 from sqlalchemy.orm import Session
@@ -70,7 +70,10 @@ CITY_AIRPORT_CODES = {
     'SOC': "SOLO CITY",
     'MBJ': "MONTEGO BAY",
     'BOM': "BOMBAY",
-    'GUA': "CIUDAD DE GUATEMALA"
+    'GUA': "CIUDAD DE GUATEMALA",
+    'CCU': "CALCUTA",
+    'COK': "COCHIN",
+    'CMB': "COLOMBO"
 }
 
 CITY_TO_AIRPORT_CODES = {city: code for code, city in CITY_AIRPORT_CODES.items()}
@@ -80,6 +83,8 @@ buque_on_columns = ['Activo', 'Owner', 'Vessel', 'Date arrive CL', 'ETA Vessel',
 buque_off_columns = ['Activo', 'Owner', 'Vessel', 'Date First flight', 'ETA Vessel', 'ETD Vessel', 'Puerto a desembarcar', 'Condicion']
 
 tripulante_columns = ['First name', 'Last name', 'Gender', 'Nacionalidad', 'Position', 'Pasaporte', 'DOB']
+
+aerolineas_columns = ['Aerolinea 1', 'Aerolinea 2', 'Aerolinea 3', 'Aerolinea 4']
 
 domestic_columns = ['Nro Domestic Flight', 'Date Domestic Flight', 'Hora Domestic Flight']
 
@@ -128,6 +133,9 @@ class Controller:
             tripulantes_on = self.read_all_rows(excel_data_on, start_row=1, column_range=slice(10, 17), column_names=tripulante_columns)  
             tripulantes_on.reset_index(drop=True, inplace=True)  # Reiniciar el índice
 
+            aerolineas_on = self.read_all_rows(excel_data_on, start_row=1, column_range=slice(17,21), column_names=aerolineas_columns)
+            aerolineas_on.reset_index(drop=True, inplace=True)
+
             # Procesar vuelos internacionales ON
             vuelos_internacionales_on = self._extract_international_flights(excel_data_on, start_row=0, state="on")
             vuelos_internacionales_on.reset_index(drop=True, inplace=True)  # Reiniciar el índice
@@ -173,6 +181,9 @@ class Controller:
             hoteles_off = self._extract_hotels(excel_data_off, start_row=0, state="off")
             hoteles_off.reset_index(drop=True, inplace=True)  # Reiniciar el índice
 
+            aerolineas_off = self.read_all_rows(excel_data_off, start_row=1, column_range=slice(17,21), column_names=aerolineas_columns)
+            aerolineas_off.reset_index(drop=True, inplace=True)
+
             #Procesar vuelos internacionales OFF
             vuelos_internacionales_off = self._extract_flights(excel_data_off, start_row=0, state="INTERNACIONAL")
             vuelos_internacionales_off.reset_index(drop=True, inplace=True)  # Reiniciar el índice
@@ -204,6 +215,8 @@ class Controller:
             self.tripulantes_off = tripulantes_off
             self.buque_on = buque_on
             self.buque_off = buque_off
+            self.aerolineas_on = aerolineas_on
+            self.aerolineas_off = aerolineas_off
             self.vuelos_internacionales_on = vuelos_internacionales_on
             self.vuelos_internacionales_off = vuelos_internacionales_off
             self.hoteles_on = hoteles_on
@@ -225,28 +238,27 @@ class Controller:
             self._create_buque(self.buque_on)
             self._create_buque(self.buque_off)
 
-            print(hoteles_on)
-
             # Crear tripulantes ON y OFF
             tripulantes = []
             tripulantes += self._create_tripulantes(tripulantes_on, self.buque_on, self.asistencias_on, "ON")
             tripulantes += self._create_tripulantes(tripulantes_off, self.buque_off, self.asistencias_off, "OFF")
 
-            self._create_hotel(self.hoteles_on, self.tripulantes_on)
-            self._create_hotel(self.hoteles_off, self.tripulantes_off)
+            #self._create_hotel(self.hoteles_on, self.tripulantes_on)
+            #self._create_hotel(self.hoteles_off, self.tripulantes_off)
 
-            self._create_restaurantes(self.restaurantes_on,self.tripulantes_on)
-            self._create_restaurantes(self.restaurantes_off,self.tripulantes_off)
+            #self._create_restaurantes(self.restaurantes_on,self.tripulantes_on)
+            #self._create_restaurantes(self.restaurantes_off,self.tripulantes_off)
 
-            self._create_transporte(self.transportes_on, self.tripulantes_on)
-            self._create_transporte(self.transportes_off, self.tripulantes_off)
+            #self._create_transporte(self.transportes_on, self.tripulantes_on)
+            #self._create_transporte(self.transportes_off, self.tripulantes_off)
 
             self._create_vuelos(self.vuelos_internacionales_on, self.tripulantes_on, 'ON', 'INTERNACIONAL')
-            self._create_vuelos(self.vuelos_internacionales_off, self.tripulantes_off, 'OFF', 'INTERNACIONAL') #AHORA LOS VUELOS INTERNACIONALES OFF SE TOMAN DESDE FUNCION EXTRACT FLIGHTS PORQUE EN OFF NO CONSIDERAN EL TRAYECTO ENTERO
-            self._create_vuelos(self.vuelos_domesticos_on, self.tripulantes_on, 'ON', 'DOMESTICO')
-            self._create_vuelos(self.vuelos_domesticos_off, self.tripulantes_off, 'OFF', 'DOMESTICO')
-            self._create_vuelos(self.vuelos_regionales_on, self.tripulantes_on, 'ON', 'REGIONAL')
-            self._create_vuelos(self.vuelos_regionales_off, self.tripulantes_off, 'OFF', 'REGIONAL')
+            #self._create_vuelos(self.vuelos_internacionales_off, self.tripulantes_off, 'OFF', 'INTERNACIONAL')
+
+            #self._create_vuelos(self.vuelos_domesticos_on, self.tripulantes_on, 'ON', 'DOMESTICO')
+            #self._create_vuelos(self.vuelos_domesticos_off, self.tripulantes_off, 'OFF', 'DOMESTICO')
+            #self._create_vuelos(self.vuelos_regionales_on, self.tripulantes_on, 'ON', 'REGIONAL')
+            #self._create_vuelos(self.vuelos_regionales_off, self.tripulantes_off, 'OFF', 'REGIONAL')
 
             return self.buque_on, self.buque_off, self.tripulantes_on, self.tripulantes_off
 
@@ -311,15 +323,16 @@ class Controller:
 
     def _extraer_ciudades_y_horarios(self, vuelo_info):        
         try:
+            print(f"Datos originales recibidos: {vuelo_info}")  # Agregar este print
             vuelo = vuelo_info['vuelo']
 
             # Verifica si el vuelo es NaN o None
             if vuelo is None or pd.isna(vuelo):
                 #print("Vuelo es NaN o None. Omitiendo...")
                 return None  
-            
+
             # Utilizar una expresión regular para capturar el código de vuelo y los aeropuertos
-            expresion_vuelo = r'^(.+)\s([A-Z]{3})-([A-Z]{3})$'
+            expresion_vuelo = r'^(.+)\s([A-Z]{3})[-\s]([A-Z]{3})$' # Acepta '-' o ' ' como separador
             match = re.match(expresion_vuelo, vuelo)
 
             if match:
@@ -331,37 +344,34 @@ class Controller:
                 #print(f"Formato de vuelo inválido: {vuelo_info}")
                 return None
 
-            # Obtener la fecha y las horas como objetos datetime
+            # Obtener la fecha del vuelo
             fecha_vuelo = vuelo_info['fecha']  # Se espera que sea un objeto Timestamp
-            hora = vuelo_info.get('hora', '').replace("–", "-")
-            print(f"LA HORA ES {type(hora)} {hora}")
+            hora = vuelo_info.get('hora', '').replace("–", "-").strip()
 
-            if '-' in hora:
-                hora_salida, hora_llegada = hora.split('-')
-                hora_salida = hora_salida.strip()  # Elimina espacios alrededor
-                hora_llegada = hora_llegada.strip()  # Elimina espacios alrededor
-            else:
+            # Detectar y corregir formato concatenado de horas (sin espacio)
+            if re.match(r'^\d{2}:\d{2}\d{2}:\d{2}(\+1)?$', hora):
+                # Inserta un espacio entre las horas de salida y llegada
+                hora = hora[:5] + ' ' + hora[5:]
+                print(f"Hora reparada automáticamente: '{hora}'")
+                
+            # Usar expresión regular para separar la hora de salida y llegada (admite '-' o espacio)
+            match_horas = re.match(r'^(\d{2}:\d{2})[-\s](\d{2}:\d{2})(\+1)?$', hora)
+
+            if not match_horas:
                 print(f"Formato de hora inesperado: '{hora}'")
-                # Asigna valores predeterminados o maneja el error según lo necesites
-                hora_salida, hora_llegada = None, None  # O cualquier valor adecuado
+                hora_salida, hora_llegada = None, None
+            else:
+                hora_salida = match_horas.group(1).strip()
+                hora_llegada = match_horas.group(2).strip()
+                dia_siguiente = match_horas.group(3)  # Detectar si hay '+1'
 
-            # Eliminar espacios en blanco antes de convertir a datetime
-            hora_salida = hora_salida.strip()
-            hora_llegada = hora_llegada.strip()
-
-            # Verifica si la hora de llegada contiene un '+1' y ajusta la hora
-            if '+1' in hora_llegada:
-                hora_llegada = hora_llegada.replace('+1', '').strip()  # Eliminar '+1' de la hora de llegada
-
-            # Convertir las horas de salida y llegada a objetos datetime
+            # Convertir horas a objetos datetime
             hora_salida = datetime.combine(fecha_vuelo.date(), datetime.strptime(hora_salida, "%H:%M").time())
-            
-            # Convertir la hora de llegada
             hora_llegada = datetime.combine(fecha_vuelo.date(), datetime.strptime(hora_llegada, "%H:%M").time())
-            
-            # Si la hora de llegada era originalmente pasada la medianoche, ajusta para mostrarlo como un día más
-            if '+1' in vuelo_info['hora']:
-                hora_llegada += pd.Timedelta(days=1)
+
+            # Ajustar fecha de llegada si contiene '+1'
+            if dia_siguiente:
+                hora_llegada += timedelta(days=1)
 
             # Buscar las ciudades en el diccionario de aeropuertos
             ciudad_salida = CITY_AIRPORT_CODES.get(aeropuerto_salida, "Desconocido")
@@ -371,11 +381,10 @@ class Controller:
                 'codigo_vuelo': codigo_vuelo,
                 'ciudad_salida': ciudad_salida,
                 'ciudad_llegada': ciudad_llegada,
-                'fecha': fecha_vuelo,  # Retornar como objeto Timestamp
-                'hora_salida': hora_salida,  # Retornar como objeto datetime
-                'hora_llegada': hora_llegada   # Retornar como objeto datetime
+                'fecha': fecha_vuelo, 
+                'hora_salida': hora_salida, 
+                'hora_llegada': hora_llegada  
             }
-
         except Exception as e:
             print(f"Error al procesar el vuelo: {e}")
             traceback.print_exc()  # Imprime el seguimiento completo del error
@@ -435,7 +444,12 @@ class Controller:
                     buque_id=buque_id,
                     ciudad=buque_df.loc[i]['Puerto'],
                     eta=buque_df.loc[i]['ETA Vessel'],
-                    etd=buque_df.loc[i]['ETD Vessel']
+                    etd=buque_df.loc[i]['ETD Vessel'],
+                    date_arrive_cl=buque_df.loc[i]['Date arrive CL'] if estado == 'ON' else None,  # Solo asignar si estado es 'on'
+                    date_first_flight=(
+                        buque_df.loc[i]['Date First flight'] if estado == 'off' and not pd.isna(buque_df.loc[i]['Date First flight'])
+                        else None
+                    )                
                 )
 
                 self.db_session.add(eta)
@@ -537,9 +551,10 @@ class Controller:
                 # Iterar sobre los vuelos correspondientes a este tripulante (en la misma fila)
                 for vuelo_key in vuelo_row.index:
                     vuelo_info = vuelo_row[vuelo_key]  # Obtener la información del vuelo de la fila de vuelos
-
+                    print(vuelo_info)
                     # Verificar que haya información válida sobre el vuelo
                     if pd.notna(vuelo_info) and isinstance(vuelo_info, dict) and vuelo_info.get('vuelo') != 'No disponible':
+                        print(f"Datos antes de llamar a _extraer_ciudades_y_horarios: {vuelo_info}")   
                         vuelo_info = self._extraer_ciudades_y_horarios(vuelo_info)
 
                         if vuelo_info is None or 'codigo_vuelo' not in vuelo_info:
@@ -575,8 +590,6 @@ class Controller:
                             tripulante_id=tripulante.tripulante_id, vuelo_id=vuelo.vuelo_id
                         ).first()
 
-                        print(f"{vuelo_info} | {vuelo.vuelo_id}")
-
                         if not tripulante_vuelo_existente:
                             # Asociar el tripulante al vuelo si no existe la asociación
                             tripulante_vuelo = TripulanteVuelo(
@@ -596,7 +609,6 @@ class Controller:
             print(f"Error al crear vuelos o asignar tripulantes: {e}")
             traceback.print_exc()
             self.db_session.rollback()
-
 
     def _create_hotel(self, hotel_df, tripulantes_df):
         try:
@@ -706,9 +718,7 @@ class Controller:
             traceback.print_exc()
             self.db_session.rollback()
 
-    def _create_restaurantes(self, restaurantes_df, tripulantes_df):
-        print(restaurantes_df)
-        
+    def _create_restaurantes(self, restaurantes_df, tripulantes_df):        
         try:
             for index in range(len(tripulantes_df)):
                 restaurante_row = restaurantes_df.iloc[index]

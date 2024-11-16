@@ -27,6 +27,8 @@ class EtaCiudad(Base):
     buque_id: Mapped[int] = mapped_column(ForeignKey("buques.buque_id"))
     tripulante_id: Mapped[int] = mapped_column(ForeignKey("tripulantes.tripulante_id"))
     ciudad: Mapped[str] = mapped_column(String, nullable=False)  # PUQ, SCL, WPU, etc.
+    date_arrive_cl: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    date_first_flight: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     eta: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     etd: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     buque: Mapped["Buque"] = relationship(back_populates="etas")
@@ -103,6 +105,7 @@ class Vuelo(Base):
     __tablename__ = "vuelos"
 
     vuelo_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    aerolinea: Mapped[str] = mapped_column(String, nullable=True)
     codigo: Mapped[str] = mapped_column(String, nullable=False)
     fecha: Mapped[datetime] = mapped_column(nullable=False)
     tipo: Mapped[str] = mapped_column(String, nullable=False)
