@@ -530,6 +530,7 @@ class HotelScreen(QWidget):
 
             # Filtrar habitaciones
             filtered_df = df[df['Rooms'].str.contains('doble|single', case=False, na=False)]
+
             # Normalizar valores en Rooms y Gender para garantizar consistencia
             filtered_df['Rooms'] = filtered_df['Rooms'].str.strip().str.lower()
             filtered_df['Gender'] = filtered_df['Gender'].str.strip().str.lower()
@@ -540,15 +541,14 @@ class HotelScreen(QWidget):
                 .reset_index(name='Count')
             )
 
-            # Insertar aquí el código de depuración después de calcular conteo_habitaciones
-            print("\nDespués del groupby y count:")
-            print(conteo_habitaciones)
+            # Ajustar el conteo para dobles
+            conteo_habitaciones['Count'] = conteo_habitaciones.apply(
+                lambda x: x['Count'] // 2 if x['Rooms'] == 'doble' else x['Count'], axis=1
+            )
 
-            # Separar Rooms y Gender en columnas separadas en conteo_habitaciones
-            conteo_habitaciones['Room Type'] = conteo_habitaciones['Rooms'].str.extract(r'(single|doble)', expand=False)
-            conteo_habitaciones['Gender Type'] = conteo_habitaciones['Rooms'].str.extract(r'(m|f)', expand=False)
-            conteo_habitaciones.drop(columns=['Rooms'], inplace=True)
-            conteo_habitaciones.rename(columns={'Room Type': 'Rooms', 'Gender Type': 'Gender'}, inplace=True)
+            # Asegurar consistencia separando 'Rooms' y 'Gender' en columnas
+            conteo_habitaciones['Rooms'] = conteo_habitaciones['Rooms'].str.extract(r'(single|doble)', expand=False)
+            conteo_habitaciones['Gender'] = conteo_habitaciones['Gender'].str.extract(r'(m|f)', expand=False)
 
             # Crear combinaciones completas
             categorias = sorted(filtered_df['Categoria'].unique())
@@ -558,45 +558,15 @@ class HotelScreen(QWidget):
             # Generar combinaciones completas de categorías, tipos de habitación y géneros
             full_index = pd.DataFrame(list(product(categorias, room_types, genders)), columns=['Categoria', 'Rooms', 'Gender'])
 
-            # Asegurarnos de que los valores en full_index sean consistentes con filtered_df
-            full_index['Rooms'] = full_index['Rooms'].str.strip().str.lower()
-            full_index['Gender'] = full_index['Gender'].str.strip().str.lower()
-
-            # Insertar aquí el código para verificar los tipos y valores antes del merge
-            print("\nTipos de datos antes del merge:")
-            print("Full Index:")
-            print(full_index.dtypes)
-            print("Conteo Habitaciones:")
-            print(conteo_habitaciones.dtypes)
-
-            print("\nValores únicos antes del merge:")
-            print("Full Index - Categoria:", full_index['Categoria'].unique())
-            print("Conteo Habitaciones - Categoria:", conteo_habitaciones['Categoria'].unique())
-            print("Full Index - Rooms:", full_index['Rooms'].unique())
-            print("Conteo Habitaciones - Rooms:", conteo_habitaciones['Rooms'].unique())
-            print("Full Index - Gender:", full_index['Gender'].unique())
-            print("Conteo Habitaciones - Gender:", conteo_habitaciones['Gender'].unique())
-
             # Asegurar que los tipos sean consistentes
             full_index['Categoria'] = full_index['Categoria'].astype(str)
             conteo_habitaciones['Categoria'] = conteo_habitaciones['Categoria'].astype(str)
-            full_index['Rooms'] = full_index['Rooms'].astype(str)
-            conteo_habitaciones['Rooms'] = conteo_habitaciones['Rooms'].astype(str)
-            full_index['Gender'] = full_index['Gender'].astype(str)
-            conteo_habitaciones['Gender'] = conteo_habitaciones['Gender'].astype(str)
 
-            # Realizar el merge nuevamente
+            # Realizar el merge
             conteo_habitaciones = pd.merge(full_index, conteo_habitaciones, on=['Categoria', 'Rooms', 'Gender'], how='left').fillna(0)
-
-            # Depuración posterior al merge
-            print("\nDespués del merge (ajustado):")
-            print(conteo_habitaciones)
 
             # Pivot para reestructurar datos
             conteo_habitaciones = conteo_habitaciones.pivot(index='Categoria', columns=['Rooms', 'Gender'], values='Count').fillna(0)
-
-            print("\nDespués del pivot:")
-            print(conteo_habitaciones)
 
             # Renombrar columnas
             conteo_habitaciones.columns = ['Singles M', 'Dobles M', 'Singles F', 'Dobles F']
@@ -607,11 +577,23 @@ class HotelScreen(QWidget):
 
             # Resetear índice
             conteo_habitaciones.reset_index(inplace=True)
-            print("\nDespués de calcular totales y reset_index (ajustado):")
-            print(conteo_habitaciones)
 
+            # Escribir los datos en Excel
+            conteo_start_row = 2  # La fila donde comenzará el conteo
+            conteo_start_col = 4  # Columna D (columna 4 en Excel)
 
+            conteo_headers = ['Categoria', 'Singles M', 'Dobles M', 'Singles F', 'Dobles F', 'Total Singles', 'Total Dobles']
+            for col_offset, header_name in enumerate(conteo_headers):
+                cell = ws.cell(row=conteo_start_row, column=conteo_start_col + col_offset)
+                cell.value = header_name
+                cell.font = Font(bold=True)
+                cell.alignment = Alignment(horizontal="center", vertical="center")
 
+            for idx, row in conteo_habitaciones.iterrows():
+                for col_offset, key in enumerate(['Categoria', 'Singles M', 'Dobles M', 'Singles F', 'Dobles F', 'Total Singles', 'Total Dobles']):
+                    cell = ws.cell(row=conteo_start_row + 1 + idx, column=conteo_start_col + col_offset)
+                    cell.value = row[key]
+                    cell.alignment = Alignment(horizontal="center", vertical="center")
 
             # Fila en blanco antes de los encabezados
             header_start_row = 8  # Fila donde comienzan los encabezados de la tabla
