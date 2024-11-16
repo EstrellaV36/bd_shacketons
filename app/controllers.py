@@ -243,28 +243,22 @@ class Controller:
             tripulantes += self._create_tripulantes(tripulantes_on, self.buque_on, self.asistencias_on, "ON")
             tripulantes += self._create_tripulantes(tripulantes_off, self.buque_off, self.asistencias_off, "OFF")
 
-            #self._create_hotel(self.hoteles_on, self.tripulantes_on)
+            self._create_hotel(self.hoteles_on, self.tripulantes_on)
             self._create_hotel(self.hoteles_off, self.tripulantes_off)
 
-            results = self.db_session.query(Hotel).filter(
-                func.lower(Hotel.nombre).like('%diego de almagro%'),
-                func.lower(Hotel.ciudad) == 'puq'
-            ).all()
-            print(f"Resultados encontrados: {results}")
+            self._create_restaurantes(self.restaurantes_on,self.tripulantes_on)
+            self._create_restaurantes(self.restaurantes_off,self.tripulantes_off)
 
-            #self._create_restaurantes(self.restaurantes_on,self.tripulantes_on)
-            #self._create_restaurantes(self.restaurantes_off,self.tripulantes_off)
+            self._create_transporte(self.transportes_on, self.tripulantes_on)
+            self._create_transporte(self.transportes_off, self.tripulantes_off)
 
-            #self._create_transporte(self.transportes_on, self.tripulantes_on)
-            #self._create_transporte(self.transportes_off, self.tripulantes_off)
+            self._create_vuelos(self.vuelos_internacionales_on, self.tripulantes_on, 'ON', 'INTERNACIONAL')
+            self._create_vuelos(self.vuelos_internacionales_off, self.tripulantes_off, 'OFF', 'INTERNACIONAL')
 
-            #self._create_vuelos(self.vuelos_internacionales_on, self.tripulantes_on, 'ON', 'INTERNACIONAL')
-            #self._create_vuelos(self.vuelos_internacionales_off, self.tripulantes_off, 'OFF', 'INTERNACIONAL')
-
-            #self._create_vuelos(self.vuelos_domesticos_on, self.tripulantes_on, 'ON', 'DOMESTICO')
-            #self._create_vuelos(self.vuelos_domesticos_off, self.tripulantes_off, 'OFF', 'DOMESTICO')
-            #self._create_vuelos(self.vuelos_regionales_on, self.tripulantes_on, 'ON', 'REGIONAL')
-            #self._create_vuelos(self.vuelos_regionales_off, self.tripulantes_off, 'OFF', 'REGIONAL')
+            self._create_vuelos(self.vuelos_domesticos_on, self.tripulantes_on, 'ON', 'DOMESTICO')
+            self._create_vuelos(self.vuelos_domesticos_off, self.tripulantes_off, 'OFF', 'DOMESTICO')
+            self._create_vuelos(self.vuelos_regionales_on, self.tripulantes_on, 'ON', 'REGIONAL')
+            self._create_vuelos(self.vuelos_regionales_off, self.tripulantes_off, 'OFF', 'REGIONAL')
 
             return self.buque_on, self.buque_off, self.tripulantes_on, self.tripulantes_off
 
@@ -353,7 +347,7 @@ class Controller:
             if re.match(r'^\d{2}:\d{2}\d{2}:\d{2}(\+1)?$', hora):
                 # Inserta un espacio entre las horas de salida y llegada
                 hora = hora[:5] + ' ' + hora[5:]
-                print(f"Hora reparada automáticamente: '{hora}'")
+                #print(f"Hora reparada automáticamente: '{hora}'")
                 
             # Usar expresión regular para separar la hora de salida y llegada (admite '-' o espacio)
             match_horas = re.match(r'^(\d{2}:\d{2})[-\s](\d{2}:\d{2})(\+1)?$', hora)
@@ -552,13 +546,12 @@ class Controller:
                 # Iterar sobre los vuelos correspondientes a este tripulante (en la misma fila)
                 for vuelo_key in vuelo_row.index:
                     vuelo_info = vuelo_row[vuelo_key]  # Obtener la información del vuelo de la fila de vuelos
-                    print(vuelo_info)
                     # Verificar que haya información válida sobre el vuelo
                     if pd.notna(vuelo_info) and isinstance(vuelo_info, dict) and vuelo_info.get('vuelo') != 'No disponible':
                         vuelo_info = self._extraer_ciudades_y_horarios(vuelo_info)
 
                         if vuelo_info is None or 'codigo_vuelo' not in vuelo_info:
-                            print(f"Omitiendo vuelo {vuelo_key} en la fila {i} debido a datos faltantes.")
+                            print(f"Omitiendo vuelo {vuelo_key} en la fila {i} debido a datos faltantes. {vuelo_info}")
                             continue
 
                         # Buscar el vuelo por código y fecha
@@ -654,7 +647,7 @@ class Controller:
 
                         if hotel_ciudad_normalizado == "hotel":
                             continue
-                        print(f"Verificando existencia del hotel: {hotel_nombre_normalizado} en {hotel_ciudad_normalizado}")  # Para depuración
+                        #print(f"Verificando existencia del hotel: {hotel_nombre_normalizado} en {hotel_ciudad_normalizado}")  # Para depuración
 
                         # Comprobar si el hotel ya existe en la base de datos
                         existing_hotel = self.db_session.query(Hotel).filter(
@@ -664,7 +657,7 @@ class Controller:
 
                         if existing_hotel:
                             hotel = existing_hotel
-                            print(f"Hotel encontrado en la base de datos: {existing_hotel.nombre}, {existing_hotel.ciudad}")                       
+                            #print(f"Hotel encontrado en la base de datos: {existing_hotel.nombre}, {existing_hotel.ciudad}")                       
                         else: 
                             print("No se encontró el hotel en la base de datos.")
                             # Crear nuevo hotel si no existe
@@ -674,7 +667,7 @@ class Controller:
                             )
                             self.db_session.add(hotel)
                             self.db_session.flush()  # Para obtener el ID del hotel recién creado
-                            print(f"Nuevo hotel creado: {hotel.nombre}")  # Para depuración
+                            #print(f"Nuevo hotel creado: {hotel.nombre}")  # Para depuración
 
                         # Crear relación Tripulante-Hotel, asegurándose de que los valores no sean NaN
                         existing_tripulante_hotel = self.db_session.query(TripulanteHotel).filter(
@@ -809,7 +802,6 @@ class Controller:
                     #print(tripulante_restaurante)
 
                     if not tripulante_restaurante:
-                        print("No existente")
                         # Asignar preferencia alimenticia al tripulante si no se ha establecido
                         if restaurante is not None:  # Crea la relación entre el tripulante y el restaurante
                             relacion = TripulanteRestaurante(

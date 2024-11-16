@@ -13,6 +13,8 @@ from datetime import datetime, time, timedelta
 from sqlalchemy import func, and_, or_, case
 from sqlalchemy.orm import aliased
 from sqlalchemy.sql import exists
+from openpyxl.cell.cell import MergedCell
+from itertools import product
 
 from collections import defaultdict
 
@@ -241,12 +243,13 @@ class HotelScreen(QWidget):
     def generar_excel_con_ciudad(self):
         ciudad_seleccionada = self.combo_ciudades.currentText()
         buque_seleccionado = self.combo_buques.currentText()
+        owner_seleccionado = self.combo_owner.currentText()
         # Obtener las fechas seleccionadas
         fecha_inicio = self.date_start1.date().toString("dd-MM-yyyy")  # Formato de fecha: dd-mm-aaaa
         fecha_fin = self.date_end1.date().toString("dd-MM-yyyy")
 
     # Llamar a la función generar_excel con ciudad, buque y las fechas
-        self.generar_excel(ciudad_seleccionada, buque_seleccionado, fecha_inicio, fecha_fin)
+        self.generar_excel(ciudad_seleccionada, buque_seleccionado,owner_seleccionado, fecha_inicio, fecha_fin)
 
     def actualizar_datos(self):
         ciudad_seleccionada = self.combo_ciudades.currentText()
@@ -382,7 +385,19 @@ class HotelScreen(QWidget):
             # Agregar a la tabla
             self.table_widget.setItem(row, 10, QTableWidgetItem(rooms_value))  # Rooms
 
-    def generar_excel(self, ciudad_seleccionada, buque_seleccionado, fecha_inicio, fecha_fin):
+    def generar_excel(self, ciudad_seleccionada, buque_seleccionado, owner_seleccionado, fecha_inicio, fecha_fin):
+        def incrementar_grupo(group_counter):
+            group_list = list(group_counter)
+            i = len(group_list) - 1
+            while i >= 0:
+                if group_list[i] != 'Z':
+                    group_list[i] = chr(ord(group_list[i]) + 1)
+                    return ''.join(group_list)
+                else:
+                    group_list[i] = 'A'
+                    i -= 1
+            return 'A' + ''.join(group_list)
+
         # Crear un DataFrame con los datos de la tabla
         data = []
         for row in range(self.table_widget.rowCount()):
@@ -392,27 +407,89 @@ class HotelScreen(QWidget):
                 row_data.append(item.text() if item else "")
             data.append(row_data)
 
-        # Definir los nombres de las columnas
-        column_names = ["Owner", "First name", "Last name", "Gender", "Nacionalidad", "Position", 
+        column_names = ["Owner", "First name", "Last name", "Gender", "Nacionalidad", "Position",
                         "Categoria", "Hotel Ciudad", "Check in", "Check out", "Rooms"]
-
         df = pd.DataFrame(data, columns=column_names)
 
-        # Ordenar el DataFrame por "Categoria" y "Check in"
+        # Normalizar columnas necesarias
+        df['Rooms'] = df['Rooms'].str.lower()  # Normalizar tipo de habitación
+        df['Gender'] = df['Gender'].str.lower()  # Normalizar género
+        df['Check in'] = pd.to_datetime(df['Check in'], errors='coerce')
+        df['Check out'] = pd.to_datetime(df['Check out'], errors='coerce')
+
+        # Ordenar por categoría y fecha de check-in
         df.sort_values(by=["Categoria", "Check in"], ascending=[True, True], inplace=True)
 
+        # Insertar columna de números
         df.insert(0, "Nro", range(1, len(df) + 1))
 
-        # Generar nombre de archivo basado en buque y hotel seleccionados
-        file_name_parts = ["informe_hotel"]
-        if ciudad_seleccionada.lower() != "ciudad" and ciudad_seleccionada.lower() not in file_name_parts:
-            file_name_parts.append(ciudad_seleccionada)
-        if buque_seleccionado.lower() != "buque" and buque_seleccionado.lower() not in file_name_parts:
-            file_name_parts.append(buque_seleccionado)
+        # Formatear las columnas "Check in" y "Check out" para mostrar solo la fecha
+        df['Check in'] = df['Check in'].dt.strftime('%Y-%m-%d')
+        df['Check out'] = df['Check out'].dt.strftime('%Y-%m-%d')
 
+        # Agrupamiento
+        group_counter = 'A'
+        double_buffer_m = []  # Buffer para hombres
+        double_buffer_f = []  # Buffer para mujeres
+        current_category = None  # Categoría actual para verificar consistencia
+
+        for idx, row in df.iterrows():
+            room_type = row['Rooms']
+            gender = row['Gender']
+            categoria = row['Categoria']  # Categoría del tripulante actual
+
+            # Verificar si la categoría cambió
+            if current_category is None or current_category != categoria:
+                current_category = categoria
+                # Asignar grupo a quienes queden en los buffers antes de limpiar
+                if double_buffer_m:
+                    df.loc[double_buffer_m, 'Grupo'] = group_counter
+                    group_counter = incrementar_grupo(group_counter)
+                    double_buffer_m = []
+                if double_buffer_f:
+                    df.loc[double_buffer_f, 'Grupo'] = group_counter
+                    group_counter = incrementar_grupo(group_counter)
+                    double_buffer_f = []
+
+            # Habitaciones dobles
+            if "doble" in room_type:
+                if gender == "m":
+                    double_buffer_m.append(idx)
+                    # Verificar si el buffer tiene dos elementos y asignar grupo
+                    if len(double_buffer_m) == 2:
+                        df.loc[double_buffer_m, 'Grupo'] = group_counter
+                        double_buffer_m = []  # Limpiar buffer
+                        group_counter = incrementar_grupo(group_counter)
+                elif gender == "f":
+                    double_buffer_f.append(idx)
+                    # Verificar si el buffer tiene dos elementos y asignar grupo
+                    if len(double_buffer_f) == 2:
+                        df.loc[double_buffer_f, 'Grupo'] = group_counter
+                        double_buffer_f = []  # Limpiar buffer
+                        group_counter = incrementar_grupo(group_counter)
+
+            # Habitaciones individuales
+            elif "single" in room_type:
+                df.loc[idx, 'Grupo'] = group_counter
+                group_counter = incrementar_grupo(group_counter)
+
+        # Asignar grupo a quienes queden en los buffers al final del proceso
+        if double_buffer_m:
+            df.loc[double_buffer_m, 'Grupo'] = group_counter
+            group_counter = incrementar_grupo(group_counter)
+
+        if double_buffer_f:
+            df.loc[double_buffer_f, 'Grupo'] = group_counter
+            group_counter = incrementar_grupo(group_counter)
+
+        # Exportar a Excel
+        file_name_parts = ["informe_hotel"]
+        if ciudad_seleccionada.lower() != "ciudad":
+            file_name_parts.append(ciudad_seleccionada)
+        if buque_seleccionado.lower() != "buque":
+            file_name_parts.append(buque_seleccionado)
         file_name = "_".join(file_name_parts) + ".xlsx"
 
-        # Guardar archivo Excel
         file_path, _ = QFileDialog.getSaveFileName(
             self,
             "Guardar archivo Excel",
@@ -424,71 +501,159 @@ class HotelScreen(QWidget):
             wb = Workbook()
             ws = wb.active
 
-            # Añadir el título al principio de todo
-            ws.merge_cells('A1:K1')
-            title_cell = ws['A1']
-            title_cell.value = "REQUERIMIENTO HOTEL"
-            title_cell.font = Font(size=20, bold=True, underline="single")
-            title_cell.alignment = Alignment(horizontal="center", vertical="center")
+            # Escribir título
+            ws['A1'] = "REQUERIMIENTO HOTEL"
+            ws['A1'].font = Font(size=20, bold=True, underline="single")
+            ws['A1'].alignment = Alignment(horizontal="left", vertical="center")
 
-            # Encabezados personalizados
-            ws.cell(row=2, column=1, value="BUQUE").font = Font(bold=True)
-            ws.cell(row=2, column=2, value=buque_seleccionado if buque_seleccionado and buque_seleccionado.lower() != "buque" else "Buque no seleccionado")
-            ws.cell(row=3, column=1, value="CIUDAD").font = Font(bold=True)
-            ws.cell(row=3, column=2, value=ciudad_seleccionada if ciudad_seleccionada and ciudad_seleccionada != "Ciudad" else "Ciudad no seleccionada")
+            # Información en la primera columna bajo el título
+            ws['A2'] = "BUQUE"
+            ws['A2'].font = Font(bold=True)
+            ws['B2'] = buque_seleccionado if buque_seleccionado and buque_seleccionado.lower() != "buque" else "No seleccionado"
 
-            # Mostrar las fechas de ETA solo si están seleccionadas
-            if fecha_inicio and fecha_fin:
-                ws.cell(row=4, column=1, value="ETA Desde:").font = Font(bold=True)
-                ws.cell(row=4, column=2, value=fecha_inicio)
-                ws.cell(row=5, column=1, value="ETA Hasta:").font = Font(bold=True)
-                ws.cell(row=5, column=2, value=fecha_fin)
-            else:
-                ws.cell(row=4, column=1, value="ETA").font = Font(bold=True)
-                ws.cell(row=4, column=2, value="ETA no seleccionada")
+            ws['A3'] = "OWNER"
+            ws['A3'].font = Font(bold=True)
+            ws['B3'] = owner_seleccionado if owner_seleccionado and owner_seleccionado.lower() != "owner" else "No seleccionado"
 
-            # Aplicar negrita y centrado a los encabezados
+            ws['A4'] = "ETA inicio"
+            ws['A4'].font = Font(bold=True)
+            ws['B4'] = fecha_inicio if fecha_inicio else "No especificado"
+
+            ws['A5'] = "ETA fin"
+            ws['A5'].font = Font(bold=True)
+            ws['B5'] = fecha_fin if fecha_fin else "No especificado"
+
+            ws['A6'] = "CIUDAD"
+            ws['A6'].font = Font(bold=True)
+            ws['B6'] = ciudad_seleccionada if ciudad_seleccionada and ciudad_seleccionada.lower() != "ciudad" else "No especificada"
+
+
+            # Filtrar habitaciones
+            filtered_df = df[df['Rooms'].str.contains('doble|single', case=False, na=False)]
+            # Normalizar valores en Rooms y Gender para garantizar consistencia
+            filtered_df['Rooms'] = filtered_df['Rooms'].str.strip().str.lower()
+            filtered_df['Gender'] = filtered_df['Gender'].str.strip().str.lower()
+
+            # Agrupación y conteo
+            conteo_habitaciones = (
+                filtered_df.groupby(['Categoria', 'Rooms', 'Gender']).size()
+                .reset_index(name='Count')
+            )
+
+            # Insertar aquí el código de depuración después de calcular conteo_habitaciones
+            print("\nDespués del groupby y count:")
+            print(conteo_habitaciones)
+
+            # Separar Rooms y Gender en columnas separadas en conteo_habitaciones
+            conteo_habitaciones['Room Type'] = conteo_habitaciones['Rooms'].str.extract(r'(single|doble)', expand=False)
+            conteo_habitaciones['Gender Type'] = conteo_habitaciones['Rooms'].str.extract(r'(m|f)', expand=False)
+            conteo_habitaciones.drop(columns=['Rooms'], inplace=True)
+            conteo_habitaciones.rename(columns={'Room Type': 'Rooms', 'Gender Type': 'Gender'}, inplace=True)
+
+            # Crear combinaciones completas
+            categorias = sorted(filtered_df['Categoria'].unique())
+            room_types = ['single', 'doble']
+            genders = ['m', 'f']
+
+            # Generar combinaciones completas de categorías, tipos de habitación y géneros
+            full_index = pd.DataFrame(list(product(categorias, room_types, genders)), columns=['Categoria', 'Rooms', 'Gender'])
+
+            # Asegurarnos de que los valores en full_index sean consistentes con filtered_df
+            full_index['Rooms'] = full_index['Rooms'].str.strip().str.lower()
+            full_index['Gender'] = full_index['Gender'].str.strip().str.lower()
+
+            # Insertar aquí el código para verificar los tipos y valores antes del merge
+            print("\nTipos de datos antes del merge:")
+            print("Full Index:")
+            print(full_index.dtypes)
+            print("Conteo Habitaciones:")
+            print(conteo_habitaciones.dtypes)
+
+            print("\nValores únicos antes del merge:")
+            print("Full Index - Categoria:", full_index['Categoria'].unique())
+            print("Conteo Habitaciones - Categoria:", conteo_habitaciones['Categoria'].unique())
+            print("Full Index - Rooms:", full_index['Rooms'].unique())
+            print("Conteo Habitaciones - Rooms:", conteo_habitaciones['Rooms'].unique())
+            print("Full Index - Gender:", full_index['Gender'].unique())
+            print("Conteo Habitaciones - Gender:", conteo_habitaciones['Gender'].unique())
+
+            # Asegurar que los tipos sean consistentes
+            full_index['Categoria'] = full_index['Categoria'].astype(str)
+            conteo_habitaciones['Categoria'] = conteo_habitaciones['Categoria'].astype(str)
+            full_index['Rooms'] = full_index['Rooms'].astype(str)
+            conteo_habitaciones['Rooms'] = conteo_habitaciones['Rooms'].astype(str)
+            full_index['Gender'] = full_index['Gender'].astype(str)
+            conteo_habitaciones['Gender'] = conteo_habitaciones['Gender'].astype(str)
+
+            # Realizar el merge nuevamente
+            conteo_habitaciones = pd.merge(full_index, conteo_habitaciones, on=['Categoria', 'Rooms', 'Gender'], how='left').fillna(0)
+
+            # Depuración posterior al merge
+            print("\nDespués del merge (ajustado):")
+            print(conteo_habitaciones)
+
+            # Pivot para reestructurar datos
+            conteo_habitaciones = conteo_habitaciones.pivot(index='Categoria', columns=['Rooms', 'Gender'], values='Count').fillna(0)
+
+            print("\nDespués del pivot:")
+            print(conteo_habitaciones)
+
+            # Renombrar columnas
+            conteo_habitaciones.columns = ['Singles M', 'Dobles M', 'Singles F', 'Dobles F']
+
+            # Agregar totales
+            conteo_habitaciones['Total Singles'] = conteo_habitaciones['Singles M'] + conteo_habitaciones['Singles F']
+            conteo_habitaciones['Total Dobles'] = conteo_habitaciones['Dobles M'] + conteo_habitaciones['Dobles F']
+
+            # Resetear índice
+            conteo_habitaciones.reset_index(inplace=True)
+            print("\nDespués de calcular totales y reset_index (ajustado):")
+            print(conteo_habitaciones)
+
+
+
+
+            # Fila en blanco antes de los encabezados
+            header_start_row = 8  # Fila donde comienzan los encabezados de la tabla
+
+            # Escribir encabezados de la tabla
             header_fill = PatternFill(start_color='ADD8E6', end_color='ADD8E6', fill_type='solid')
             thin_border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
-            
+
             for col_num, col_name in enumerate(df.columns, 1):
-                cell = ws.cell(row=7, column=col_num)  # Cambiar a fila 7
+                cell = ws.cell(row=header_start_row, column=col_num)
                 cell.value = col_name
                 cell.fill = header_fill
                 cell.font = Font(bold=True)
-                cell.alignment = Alignment(horizontal="center", vertical="center")  # Centrar encabezado
-                cell.border = thin_border  # Aplicar borde al encabezado
+                cell.alignment = Alignment(horizontal="center", vertical="center")
+                cell.border = thin_border
 
-            # Escribir los datos del DataFrame y aplicar bordes y centrado
+            # Escribir los datos de la tabla
             data_fill = PatternFill(start_color='FFFF99', end_color='FFFF99', fill_type='solid')
-            for row_num, row_data in enumerate(df.values, start=8):  # Cambiar a fila 8
+            for row_num, row_data in enumerate(df.values, start=header_start_row + 1):
                 for col_num, cell_value in enumerate(row_data, 1):
                     cell = ws.cell(row=row_num, column=col_num)
                     cell.value = cell_value
                     cell.fill = data_fill
-                    cell.border = thin_border  # Aplicar borde a cada celda
+                    cell.border = thin_border
+                    cell.alignment = Alignment(horizontal="center", vertical="center")
 
-                    # Centrar columnas específicas (excluyendo First Name, Last Name, y Position)
-                    if col_num not in [3, 4, 6, 7]:  # No centrar First Name, Last Name, Position
-                        cell.alignment = Alignment(horizontal="center", vertical="center")
-                    else:
-                        cell.alignment = Alignment(horizontal="left", vertical="center")
-
-            # Ajustar el ancho de las columnas
-            for col_num in range(1, len(df.columns) + 1):
+            # Ajustar automáticamente el ancho de las columnas
+            for col in ws.columns:
                 max_length = 0
-                column = get_column_letter(col_num)
-                for row in ws[column]:
-                    try:
-                        if len(str(row.value)) > max_length:
-                            max_length = len(str(row.value))
-                    except:
-                        pass
-                adjusted_width = (max_length + 2)  # Agregar un poco de espacio extra
-                ws.column_dimensions[column].width = adjusted_width
+                column_letter = get_column_letter(col[0].column)  # Obtener la letra de la columna
+                for cell in col:
+                    if not isinstance(cell, MergedCell):  # Ignorar celdas combinadas
+                        try:
+                            if cell.value:
+                                max_length = max(max_length, len(str(cell.value)))
+                        except:
+                            pass
+                adjusted_width = max_length + 2  # Añadir un poco de espacio extra
+                ws.column_dimensions[column_letter].width = adjusted_width
 
-            # Guardar el archivo Excel
-            wb.save(file_path)
+        # Guardar el archivo Excel
+        wb.save(file_path)
 
     def toggle_fecha_fields(self):
         is_checked = self.check_fecha.isChecked()
