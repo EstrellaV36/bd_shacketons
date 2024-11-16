@@ -427,21 +427,23 @@ class HotelScreen(QWidget):
         df['Check in'] = df['Check in'].dt.strftime('%Y-%m-%d')
         df['Check out'] = df['Check out'].dt.strftime('%Y-%m-%d')
 
-        # Agrupamiento
+        # Inicialización
         group_counter = 'A'
-        double_buffer_m = []  # Buffer para hombres
-        double_buffer_f = []  # Buffer para mujeres
-        current_category = None  # Categoría actual para verificar consistencia
+        current_category = None
+        double_buffer_m = []  # Buffer para habitaciones dobles masculinas
+        double_buffer_f = []  # Buffer para habitaciones dobles femeninas
 
+        # Procesar cada fila
         for idx, row in df.iterrows():
             room_type = row['Rooms']
             gender = row['Gender']
             categoria = row['Categoria']  # Categoría del tripulante actual
 
-            # Verificar si la categoría cambió
+            # Cambiar de categoría: limpiar buffers pendientes
             if current_category is None or current_category != categoria:
                 current_category = categoria
-                # Asignar grupo a quienes queden en los buffers antes de limpiar
+
+                # Asignar grupos pendientes del buffer
                 if double_buffer_m:
                     df.loc[double_buffer_m, 'Grupo'] = group_counter
                     group_counter = incrementar_grupo(group_counter)
@@ -455,25 +457,25 @@ class HotelScreen(QWidget):
             if "doble" in room_type:
                 if gender == "m":
                     double_buffer_m.append(idx)
-                    # Verificar si el buffer tiene dos elementos y asignar grupo
+                    # Asignar si el buffer tiene dos personas
                     if len(double_buffer_m) == 2:
                         df.loc[double_buffer_m, 'Grupo'] = group_counter
-                        double_buffer_m = []  # Limpiar buffer
                         group_counter = incrementar_grupo(group_counter)
+                        double_buffer_m = []
                 elif gender == "f":
                     double_buffer_f.append(idx)
-                    # Verificar si el buffer tiene dos elementos y asignar grupo
+                    # Asignar si el buffer tiene dos personas
                     if len(double_buffer_f) == 2:
                         df.loc[double_buffer_f, 'Grupo'] = group_counter
-                        double_buffer_f = []  # Limpiar buffer
                         group_counter = incrementar_grupo(group_counter)
+                        double_buffer_f = []
 
             # Habitaciones individuales
             elif "single" in room_type:
                 df.loc[idx, 'Grupo'] = group_counter
                 group_counter = incrementar_grupo(group_counter)
 
-        # Asignar grupo a quienes queden en los buffers al final del proceso
+        # Asignar buffers pendientes al final
         if double_buffer_m:
             df.loc[double_buffer_m, 'Grupo'] = group_counter
             group_counter = incrementar_grupo(group_counter)
@@ -481,6 +483,7 @@ class HotelScreen(QWidget):
         if double_buffer_f:
             df.loc[double_buffer_f, 'Grupo'] = group_counter
             group_counter = incrementar_grupo(group_counter)
+
 
         # Exportar a Excel
         file_name_parts = ["informe_hotel"]
@@ -527,7 +530,6 @@ class HotelScreen(QWidget):
             ws['A6'].font = Font(bold=True)
             ws['B6'] = ciudad_seleccionada if ciudad_seleccionada and ciudad_seleccionada.lower() != "ciudad" else "No especificada"
 
-
             # Filtrar habitaciones
             filtered_df = df[df['Rooms'].str.contains('doble|single', case=False, na=False)]
 
@@ -535,48 +537,40 @@ class HotelScreen(QWidget):
             filtered_df['Rooms'] = filtered_df['Rooms'].str.strip().str.lower()
             filtered_df['Gender'] = filtered_df['Gender'].str.strip().str.lower()
 
-            # Agrupación y conteo
-            conteo_habitaciones = (
-                filtered_df.groupby(['Categoria', 'Rooms', 'Gender']).size()
-                .reset_index(name='Count')
-            )
+            def ajustar_conteo_dobles(df):
+                conteos = []
+                for categoria in df['Categoria'].unique():
+                    
+                    # Sub DataFrame por categoría
+                    sub_df = df[df['Categoria'] == categoria]
 
-            # Ajustar el conteo para dobles
-            conteo_habitaciones['Count'] = conteo_habitaciones.apply(
-                lambda x: x['Count'] // 2 if x['Rooms'] == 'doble' else x['Count'], axis=1
-            )
+                    # Contar habitaciones dobles y singles para cada género
+                    dobles_m = len(sub_df[(sub_df['Rooms'].str.contains('doble')) & (sub_df['Gender'] == 'm')]) // 2
+                    dobles_f = len(sub_df[(sub_df['Rooms'].str.contains('doble')) & (sub_df['Gender'] == 'f')]) // 2
+                    singles_m = len(sub_df[(sub_df['Rooms'].str.contains('single')) & (sub_df['Gender'] == 'm')])
+                    singles_f = len(sub_df[(sub_df['Rooms'].str.contains('single')) & (sub_df['Gender'] == 'f')])
 
-            # Asegurar consistencia separando 'Rooms' y 'Gender' en columnas
-            conteo_habitaciones['Rooms'] = conteo_habitaciones['Rooms'].str.extract(r'(single|doble)', expand=False)
-            conteo_habitaciones['Gender'] = conteo_habitaciones['Gender'].str.extract(r'(m|f)', expand=False)
+                    # Manejar casos de habitaciones dobles incompletas
+                    dobles_m_extra = len(sub_df[(sub_df['Rooms'].str.contains('doble')) & (sub_df['Gender'] == 'm')]) % 2
+                    dobles_f_extra = len(sub_df[(sub_df['Rooms'].str.contains('doble')) & (sub_df['Gender'] == 'f')]) % 2
 
-            # Crear combinaciones completas
-            categorias = sorted(filtered_df['Categoria'].unique())
-            room_types = ['single', 'doble']
-            genders = ['m', 'f']
 
-            # Generar combinaciones completas de categorías, tipos de habitación y géneros
-            full_index = pd.DataFrame(list(product(categorias, room_types, genders)), columns=['Categoria', 'Rooms', 'Gender'])
+                    conteos.append({
+                        'Categoria': categoria,
+                        'Singles M': singles_m,
+                        'Dobles M': dobles_m + dobles_m_extra,
+                        'Singles F': singles_f,
+                        'Dobles F': dobles_f + dobles_f_extra,
+                    })
 
-            # Asegurar que los tipos sean consistentes
-            full_index['Categoria'] = full_index['Categoria'].astype(str)
-            conteo_habitaciones['Categoria'] = conteo_habitaciones['Categoria'].astype(str)
+                return pd.DataFrame(conteos)
 
-            # Realizar el merge
-            conteo_habitaciones = pd.merge(full_index, conteo_habitaciones, on=['Categoria', 'Rooms', 'Gender'], how='left').fillna(0)
-
-            # Pivot para reestructurar datos
-            conteo_habitaciones = conteo_habitaciones.pivot(index='Categoria', columns=['Rooms', 'Gender'], values='Count').fillna(0)
-
-            # Renombrar columnas
-            conteo_habitaciones.columns = ['Singles M', 'Dobles M', 'Singles F', 'Dobles F']
+            # Aplicar ajuste de conteo
+            conteo_habitaciones = ajustar_conteo_dobles(filtered_df)
 
             # Agregar totales
             conteo_habitaciones['Total Singles'] = conteo_habitaciones['Singles M'] + conteo_habitaciones['Singles F']
             conteo_habitaciones['Total Dobles'] = conteo_habitaciones['Dobles M'] + conteo_habitaciones['Dobles F']
-
-            # Resetear índice
-            conteo_habitaciones.reset_index(inplace=True)
 
             # Escribir los datos en Excel
             conteo_start_row = 2  # La fila donde comenzará el conteo
@@ -590,10 +584,11 @@ class HotelScreen(QWidget):
                 cell.alignment = Alignment(horizontal="center", vertical="center")
 
             for idx, row in conteo_habitaciones.iterrows():
-                for col_offset, key in enumerate(['Categoria', 'Singles M', 'Dobles M', 'Singles F', 'Dobles F', 'Total Singles', 'Total Dobles']):
+                for col_offset, key in enumerate(conteo_headers):
                     cell = ws.cell(row=conteo_start_row + 1 + idx, column=conteo_start_col + col_offset)
                     cell.value = row[key]
                     cell.alignment = Alignment(horizontal="center", vertical="center")
+
 
             # Fila en blanco antes de los encabezados
             header_start_row = 8  # Fila donde comienzan los encabezados de la tabla
