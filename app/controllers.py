@@ -244,7 +244,13 @@ class Controller:
             tripulantes += self._create_tripulantes(tripulantes_off, self.buque_off, self.asistencias_off, "OFF")
 
             #self._create_hotel(self.hoteles_on, self.tripulantes_on)
-            #self._create_hotel(self.hoteles_off, self.tripulantes_off)
+            self._create_hotel(self.hoteles_off, self.tripulantes_off)
+
+            results = self.db_session.query(Hotel).filter(
+                func.lower(Hotel.nombre).like('%diego de almagro%'),
+                func.lower(Hotel.ciudad) == 'puq'
+            ).all()
+            print(f"Resultados encontrados: {results}")
 
             #self._create_restaurantes(self.restaurantes_on,self.tripulantes_on)
             #self._create_restaurantes(self.restaurantes_off,self.tripulantes_off)
@@ -252,7 +258,7 @@ class Controller:
             #self._create_transporte(self.transportes_on, self.tripulantes_on)
             #self._create_transporte(self.transportes_off, self.tripulantes_off)
 
-            self._create_vuelos(self.vuelos_internacionales_on, self.tripulantes_on, 'ON', 'INTERNACIONAL')
+            #self._create_vuelos(self.vuelos_internacionales_on, self.tripulantes_on, 'ON', 'INTERNACIONAL')
             #self._create_vuelos(self.vuelos_internacionales_off, self.tripulantes_off, 'OFF', 'INTERNACIONAL')
 
             #self._create_vuelos(self.vuelos_domesticos_on, self.tripulantes_on, 'ON', 'DOMESTICO')
@@ -266,12 +272,9 @@ class Controller:
             raise Exception(f"Error al procesar el archivo: {e}")
 
     def _extraer_hoteles_fechas(self, hotel_df):
-        # Inicializa una lista vacía para almacenar información de hoteles
         hoteles_info = []
 
-        # Recorre cada fila del DataFrame original
         for _, row in hotel_df.iterrows():
-            # Inicializa una lista para almacenar la información de hoteles en la fila
             hotel_entries = []
 
             # Variable para indicar si se encontró al menos un hotel válido
@@ -313,7 +316,6 @@ class Controller:
                     'habitacion': None
                 }])
 
-        # Crea un DataFrame con la información de hoteles
         # Expande la lista de hoteles en el DataFrame
         hoteles_df = pd.DataFrame(hoteles_info)
         # Mantiene el índice del DataFrame original
@@ -323,7 +325,6 @@ class Controller:
 
     def _extraer_ciudades_y_horarios(self, vuelo_info):        
         try:
-            print(f"Datos originales recibidos: {vuelo_info}")  # Agregar este print
             vuelo = vuelo_info['vuelo']
 
             # Verifica si el vuelo es NaN o None
@@ -554,7 +555,6 @@ class Controller:
                     print(vuelo_info)
                     # Verificar que haya información válida sobre el vuelo
                     if pd.notna(vuelo_info) and isinstance(vuelo_info, dict) and vuelo_info.get('vuelo') != 'No disponible':
-                        print(f"Datos antes de llamar a _extraer_ciudades_y_horarios: {vuelo_info}")   
                         vuelo_info = self._extraer_ciudades_y_horarios(vuelo_info)
 
                         if vuelo_info is None or 'codigo_vuelo' not in vuelo_info:
@@ -636,31 +636,25 @@ class Controller:
                 hotel_entries = hoteles_info.iloc[i] if i < len(hoteles_info) else None
                 
                 if hotel_entries is not None:
-                    # pd.set_option('display.max_colwidth', None)  # Muestra todo el contenido de las columnas
-                    # pd.set_option('display.max_rows', None)  # Muestra todas las filas
-                    # pd.set_option('display.max_columns', None)
-
-                    # print(hotel_entries)
                     for hotel_info in hotel_entries:  # Iterar sobre la lista de hoteles
                         if hotel_info is None:
                             #print(f"No hay información de hotel disponible para el tripulante ID {tripulante.tripulante_id}.")
                             continue  # Omitir si hotel_info es None
 
                         # Verificar si el nombre del hotel es NaN
-                        #print(hotel_info)
                         hotel_nombre = hotel_info['nombre_hotel']
-                        hotel_ciudad = hotel_info['ciudad']
+
                         if pd.isna(hotel_nombre):
                             #print(f"Nombre de hotel no disponible para el tripulante ID {tripulante.tripulante_id}.")
                             continue  # Omitir si el nombre del hotel es NaN
 
                         # Normalizar el nombre del hotel para la búsqueda
-                        hotel_nombre_normalizado = hotel_nombre.strip().lower()
-                        hotel_ciudad_normalizado = hotel_ciudad.strip().lower()
+                        hotel_nombre_normalizado = self.clean_string(hotel_info['nombre_hotel'])
+                        hotel_ciudad_normalizado = self.clean_string(hotel_info['ciudad'])
 
                         if hotel_ciudad_normalizado == "hotel":
                             continue
-                        #print(f"Verificando existencia del hotel: {hotel_nombre_normalizado}")  # Para depuración
+                        print(f"Verificando existencia del hotel: {hotel_nombre_normalizado} en {hotel_ciudad_normalizado}")  # Para depuración
 
                         # Comprobar si el hotel ya existe en la base de datos
                         existing_hotel = self.db_session.query(Hotel).filter(
@@ -670,16 +664,17 @@ class Controller:
 
                         if existing_hotel:
                             hotel = existing_hotel
-                            #print(f"Hotel existente encontrado: {hotel.nombre}")  # Para depuración
-                        else:
+                            print(f"Hotel encontrado en la base de datos: {existing_hotel.nombre}, {existing_hotel.ciudad}")                       
+                        else: 
+                            print("No se encontró el hotel en la base de datos.")
                             # Crear nuevo hotel si no existe
                             hotel = Hotel(
-                                nombre=hotel_info['nombre_hotel'],
-                                ciudad=hotel_info['ciudad'],
+                                nombre=hotel_info['nombre_hotel'].strip(),
+                                ciudad=hotel_info['ciudad'].strip(),
                             )
                             self.db_session.add(hotel)
                             self.db_session.flush()  # Para obtener el ID del hotel recién creado
-                            #print(f"Nuevo hotel creado: {hotel.nombre}")  # Para depuración
+                            print(f"Nuevo hotel creado: {hotel.nombre}")  # Para depuración
 
                         # Crear relación Tripulante-Hotel, asegurándose de que los valores no sean NaN
                         existing_tripulante_hotel = self.db_session.query(TripulanteHotel).filter(
@@ -717,6 +712,9 @@ class Controller:
             print(f"Error al crear hoteles o asignar tripulantes: {e}")
             traceback.print_exc()
             self.db_session.rollback()
+    
+    def clean_string(self, value):
+        return value.strip().replace('\u200b', '').lower() if isinstance(value, str) else value
 
     def _create_restaurantes(self, restaurantes_df, tripulantes_df):        
         try:

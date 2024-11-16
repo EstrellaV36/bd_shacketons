@@ -158,7 +158,7 @@ class HotelScreen(QWidget):
         layout = QVBoxLayout(self)
         session = get_db_session()
 
-        self.label = QLabel("Lista de Hoteles")
+        self.label = QLabel("REQUERIMIENTO HOTEL")
         font = QFont()
         font.setPointSize(20)  # Tamaño de fuente
         font.setBold(True)      # Negrita
@@ -252,7 +252,10 @@ class HotelScreen(QWidget):
         ciudad_seleccionada = self.combo_ciudades.currentText()
         buque_seleccionado = self.combo_buques.currentText()
         owner_seleccionado = self.combo_owner.currentText()
-        self.label.setText(f"Lista de hoteles en {ciudad_seleccionada}")
+        if ciudad_seleccionada != "Ciudad":
+            self.label.setText(f"REQUERIMIENTO HOTEL EN {ciudad_seleccionada.upper()}")
+        else: 
+            self.label.setText(f"REQUERIMIENTO HOTEL")
 
         # Cargar datos basados en los filtros seleccionados
         self.cargar_datos(ciudad_seleccionada, buque_seleccionado, owner_seleccionado)
@@ -424,7 +427,7 @@ class HotelScreen(QWidget):
             # Añadir el título al principio de todo
             ws.merge_cells('A1:K1')
             title_cell = ws['A1']
-            title_cell.value = "Requerimiento Hotel"
+            title_cell.value = "REQUERIMIENTO HOTEL"
             title_cell.font = Font(size=20, bold=True, underline="single")
             title_cell.alignment = Alignment(horizontal="center", vertical="center")
 
@@ -505,7 +508,7 @@ class RoomListScreen(QWidget):
         session = get_db_session()
         layout = QVBoxLayout(self)
 
-        self.label = QLabel("Room List")
+        self.label = QLabel("ROOM LIST")
         font = QFont()
         font.setPointSize(20)  # Tamaño de fuente
         font.setBold(True)      # Negrita
@@ -608,7 +611,9 @@ class RoomListScreen(QWidget):
         ciudad_seleccionada = self.combo_ciudades.currentText()  # Obtiene la ciudad seleccionada
         owner_seleccionado = self.combo_owners.currentText()  # Obtiene la ciudad seleccionada
         if hotel_seleccionado != "Hotel":
-            self.label.setText(f"Room list en {hotel_seleccionado}")  # Actualiza el label
+            self.label.setText(f"ROOM LIST EN {hotel_seleccionado.upper()}")  # Actualiza el label con texto en mayúscula
+        else: 
+            self.label.setText(f"ROOM LIST")
 
         # Cargar datos en la tabla
         self.cargar_datos(hotel_seleccionado, buque_seleccionado, ciudad_seleccionada, owner_seleccionado)
@@ -1021,7 +1026,7 @@ class TransportesScreen(QWidget):
         session = get_db_session()
         layout = QVBoxLayout(self)
 
-        self.label = QLabel("Requerimiento transportes")
+        self.label = QLabel("REQUERIMIENTO TRANSPORTES")
         font = QFont()
         font.setPointSize(20)  # Tamaño de fuente
         font.setBold(True)      # Negrita
@@ -1094,7 +1099,10 @@ class TransportesScreen(QWidget):
     def actualizar_datos(self):
         ciudad_seleccionada = self.combo_ciudades.currentText()  # Obtiene la ciudad seleccionada
         if ciudad_seleccionada != "Ciudad":
-            self.label.setText(f"Requerimiento transportes en {ciudad_seleccionada}")  # Actualiza el label
+            self.label.setText(f"REQUERIMIENTO TRANSPORTES EN {ciudad_seleccionada.upper()}")  # Actualiza el label
+        else:
+            self.label.setText(f"REQUERIMIENTO TRANSPORTES")  # Actualiza el label
+
 
         # Cargar datos en la tabla
         self.cargar_datos(ciudad_seleccionada)
@@ -1484,7 +1492,7 @@ class AsistenciasScreen(QWidget):
         layout = QVBoxLayout(self)
 
         # Label para mostrar asistencias
-        self.label = QLabel("Asistencias")  # Mover el label aquí para que sea un atributo de la clase
+        self.label = QLabel("ASISTENCIAS")  # Mover el label aquí para que sea un atributo de la clase
         font = QFont()
         font.setPointSize(20)  # Tamaño de fuente
         font.setBold(True)      # Negrita
@@ -1576,7 +1584,9 @@ class AsistenciasScreen(QWidget):
         proveedor_seleccionado = self.combo_ciudades.currentText()
         tipo_tripulante = self.tipo_tripulante.currentText()
         if ciudad_seleccionada.lower() != "ciudad":
-            self.label.setText(f"Asistencias en {ciudad_seleccionada}")  # Actualiza el label
+            self.label.setText(f"ASISTENCIAS EN {ciudad_seleccionada.upper()}")  # Actualiza el label
+        else:
+            self.label.setText(f"ASISTENCIAS")  # Actualiza el label
 
         # Cargar datos en la tabla
         self.cargar_datos(ciudad_seleccionada, proveedor_seleccionado, tipo_tripulante)
@@ -2143,7 +2153,7 @@ class AlimentosScreen(QWidget):
         session = get_db_session()
         layout = QVBoxLayout(self)
 
-        self.label = QLabel("Requerimientos alimentación")
+        self.label = QLabel("REQUERIMIENTOS ALIMENTACIÓN")
         font = QFont()
         font.setPointSize(20)  # Tamaño de fuente
         font.setBold(True)      # Negrita
