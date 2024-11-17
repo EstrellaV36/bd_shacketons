@@ -612,7 +612,6 @@ class Controller:
 
             # Extraer información de hoteles
             hoteles_info = self._extraer_hoteles_fechas(hotel_df)
-            #print(f"hoteles_info extraida: {hoteles_info}")
 
             # Asignar hoteles a tripulantes
             for i, tripulante_data in tripulantes_df.iterrows():
@@ -622,54 +621,42 @@ class Controller:
 
                 tripulante = self.db_session.query(Tripulante).filter_by(pasaporte=tripulante_data['Pasaporte']).first()
                 if not tripulante:
-                    #print(f"No se encontró tripulante con pasaporte {tripulante_data['Pasaporte']} en la fila {i}.")
+                    print(f"No se encontró tripulante con pasaporte {tripulante_data['Pasaporte']} en la fila {i}.")
                     continue
 
                 # Obtener la información de hoteles correspondiente al tripulante
                 hotel_entries = hoteles_info.iloc[i] if i < len(hoteles_info) else None
-                
+
                 if hotel_entries is not None:
-                    for hotel_info in hotel_entries:  # Iterar sobre la lista de hoteles
-                        if hotel_info is None:
-                            #print(f"No hay información de hotel disponible para el tripulante ID {tripulante.tripulante_id}.")
-                            continue  # Omitir si hotel_info es None
+                    for hotel_info in hotel_entries:  # Iterar sobre todos los hoteles asignados al tripulante
+                        if hotel_info is None or pd.isna(hotel_info['nombre_hotel']):
+                            continue  # Omitir si el hotel no tiene nombre
 
-                        # Verificar si el nombre del hotel es NaN
-                        hotel_nombre = hotel_info['nombre_hotel']
-
-                        if pd.isna(hotel_nombre):
-                            #print(f"Nombre de hotel no disponible para el tripulante ID {tripulante.tripulante_id}.")
-                            continue  # Omitir si el nombre del hotel es NaN
-
-                        # Normalizar el nombre del hotel para la búsqueda
+                        # Normalizar el nombre del hotel y la ciudad para la búsqueda
                         hotel_nombre_normalizado = self.clean_string(hotel_info['nombre_hotel'])
                         hotel_ciudad_normalizado = self.clean_string(hotel_info['ciudad'])
 
                         if hotel_ciudad_normalizado == "hotel":
                             continue
-                        #print(f"Verificando existencia del hotel: {hotel_nombre_normalizado} en {hotel_ciudad_normalizado}")  # Para depuración
 
-                        # Comprobar si el hotel ya existe en la base de datos
+                        # Verificar si el hotel ya existe en la base de datos
                         existing_hotel = self.db_session.query(Hotel).filter(
                             func.lower(Hotel.nombre) == hotel_nombre_normalizado,
                             func.lower(Hotel.ciudad) == hotel_ciudad_normalizado
                         ).first()
 
-                        if existing_hotel:
-                            hotel = existing_hotel
-                            #print(f"Hotel encontrado en la base de datos: {existing_hotel.nombre}, {existing_hotel.ciudad}")                       
-                        else: 
-                            print("No se encontró el hotel en la base de datos.")
+                        if not existing_hotel:
                             # Crear nuevo hotel si no existe
                             hotel = Hotel(
                                 nombre=hotel_info['nombre_hotel'].strip(),
                                 ciudad=hotel_info['ciudad'].strip(),
                             )
                             self.db_session.add(hotel)
-                            self.db_session.flush()  # Para obtener el ID del hotel recién creado
-                            #print(f"Nuevo hotel creado: {hotel.nombre}")  # Para depuración
+                            self.db_session.flush()  # Obtener el ID del hotel recién creado
+                        else:
+                            hotel = existing_hotel
 
-                        # Crear relación Tripulante-Hotel, asegurándose de que los valores no sean NaN
+                        # Verificar si ya existe la relación entre tripulante y hotel
                         existing_tripulante_hotel = self.db_session.query(TripulanteHotel).filter(
                             TripulanteHotel.tripulante_id == tripulante.tripulante_id,
                             TripulanteHotel.hotel_id == hotel.hotel_id,
@@ -678,8 +665,8 @@ class Controller:
                         ).first()
 
                         if existing_tripulante_hotel:
-                            #print(f"Ya existe una relación para Tripulante ID {tripulante.tripulante_id} con el Hotel ID {hotel.hotel_id}.")
-                            continue  # Omitir la creación de una nueva relación si ya existe
+                            print(f"Ya existe una relación para Tripulante ID {tripulante.tripulante_id} con el Hotel ID {hotel.hotel_id}.")
+                            continue  # Omitir creación de nueva relación si ya existe
 
                         # Crear nueva relación Tripulante-Hotel si no existe
                         nuevo_tripulante_hotel = TripulanteHotel(
@@ -693,18 +680,14 @@ class Controller:
                             day_room=False  # O ajusta según sea necesario
                         )
                         self.db_session.add(nuevo_tripulante_hotel)
-                        self.db_session.flush()  # Para obtener el ID del hotel recién creado
-                        #print(f"Nueva relación Tripulante-Hotel creada: Tripulante ID {tripulante.tripulante_id}, Hotel ID {hotel.hotel_id}")  HAY QUE REVISAR ESTA PARTE PORQUE NO SE SUPONE QUE CREE SIEMPRE LAS MISMAS RELACIONES PERO MIENTRAS SIRVE
-                else:
-                    print(f"No hay hotel válido asignado para el tripulante ID {tripulante.tripulante_id}.")
+                        print(f"Relacion creada: Tripulante ID {tripulante.tripulante_id}, Hotel ID {hotel.hotel_id}.")
 
             # Confirmar los cambios en la base de datos
             self.db_session.commit()
-
+            print("Asignación de hoteles completada.")
         except Exception as e:
-            print(f"Error al crear hoteles o asignar tripulantes: {e}")
-            traceback.print_exc()
             self.db_session.rollback()
+            print(f"Error al asignar hoteles: {e}")
     
     def clean_string(self, value):
         return value.strip().replace('\u200b', '').lower() if isinstance(value, str) else value
@@ -936,7 +919,7 @@ class Controller:
             )
             self.db_session.add(viaje)
             self.db_session.commit()    
-            print(f"Viaje creado para Tripulante: {tripulante_id} en Buque ID: {buque_id}")
+            print(f"Viaje creado para Tripulante: {tripulante_id} en Buque ID: {buque_id} eta_id: {eta_ciudad.eta_id}")
         except Exception as e:
             self.db_session.rollback()  # Revertir en caso de error
             raise Exception(f"Error al crear viaje: {e}")
