@@ -260,6 +260,8 @@ class Controller:
             self._create_vuelos(self.vuelos_regionales_on, self.tripulantes_on, 'ON', 'REGIONAL')
             self._create_vuelos(self.vuelos_regionales_off, self.tripulantes_off, 'OFF', 'REGIONAL')
 
+            self._create_viajes_from_dataframes()
+
             return self.buque_on, self.buque_off, self.tripulantes_on, self.tripulantes_off
 
         except Exception as e:
@@ -415,7 +417,6 @@ class Controller:
                 if not tripulante_existente:
                     # Si el tripulante no existe, lo creamos
                     tripulante = Tripulante(
-                        activo=activo,
                         nombre=row['First name'],
                         apellido=row['Last name'],
                         sexo=row['Gender'],
@@ -425,7 +426,6 @@ class Controller:
                         condicion=condicion,
                         fecha_nacimiento=pd.to_datetime(row['DOB']).date() if not pd.isna(row['DOB']) else None,
                         buque_id=buque_id,
-                        estado=estado
                     )
 
                     self.db_session.add(tripulante)
@@ -442,7 +442,7 @@ class Controller:
                     etd=buque_df.loc[i]['ETD Vessel'],
                     date_arrive_cl=buque_df.loc[i]['Date arrive CL'] if estado == 'ON' else None,  # Solo asignar si estado es 'on'
                     date_first_flight=(
-                        buque_df.loc[i]['Date First flight'] if estado == 'off' and not pd.isna(buque_df.loc[i]['Date First flight'])
+                        buque_df.loc[i]['Date First flight'] if estado == 'OFF' and not pd.isna(buque_df.loc[i]['Date First flight'])
                         else None
                     )                
                 )
@@ -918,6 +918,78 @@ class Controller:
             self.db_session.rollback()  # Revertir la sesión en caso de error
 
         return transportes  # Retornar la lista de vuelos creados
+    
+    def _create_viaje(self, tripulante_id, buque_id, estado, activo):
+        try:
+            # Buscar el registro EtaCiudad correspondiente
+            eta_ciudad = self.db_session.query(EtaCiudad).filter_by(tripulante_id=tripulante_id, buque_id=buque_id).first()
+            if not eta_ciudad:
+                raise Exception(f"No se encontró EtaCiudad para tripulante ID {tripulante_id} y buque ID {buque_id}")
+
+            # Crear el viaje asignando el tripulante y buque
+            viaje = Viaje(
+                tripulante_id=tripulante_id,
+                buque_id=buque_id,
+                eta_id=eta_ciudad.eta_id,  # Asignar el ID de EtaCiudad
+                estado=estado,
+                activo=activo
+            )
+            self.db_session.add(viaje)
+            self.db_session.commit()    
+            print(f"Viaje creado para Tripulante: {tripulante_id} en Buque ID: {buque_id}")
+        except Exception as e:
+            self.db_session.rollback()  # Revertir en caso de error
+            raise Exception(f"Error al crear viaje: {e}")
+
+    def _create_viajes_from_dataframes(self):
+        try:
+            # Iterar sobre los DataFrames ON
+            for index, row in self.buque_on.iterrows():
+                # Buscar el buque en la base de datos por nombre y empresa
+                buque = self.db_session.query(Buque).filter_by(nombre=row["Vessel"], empresa=row["Owner"]).first()
+                if not buque:
+                    #print(f"Error: No se encontró el buque con nombre '{row['Vessel']}' y empresa '{row['Owner']}'")
+                    continue  # Saltar esta fila para no detener el proceso
+
+                # Buscar el tripulante en la base de datos por pasaporte
+                pasaporte = self.tripulantes_on.loc[index, "Pasaporte"]
+                tripulante = self.db_session.query(Tripulante).filter_by(pasaporte=pasaporte).first()
+                if not tripulante:
+                    #print(f"Error: No se encontró el tripulante con pasaporte '{pasaporte}'")
+                    continue  # Saltar esta fila
+
+                # Verificar la columna 'Activo'
+                activo = self.buque_on.loc[index].get("Activo")
+                if activo is None:
+                    #print(f"Advertencia: Columna 'Activo' faltante o vacía en fila {index}")
+                    continue
+                self._create_viaje(tripulante_id=tripulante.tripulante_id, buque_id=buque.buque_id, estado="ON", activo=activo)
+
+            # Iterar sobre los DataFrames OFF
+            for index, row in self.buque_off.iterrows():
+                # Buscar el buque en la base de datos por nombre y empresa
+                buque = self.db_session.query(Buque).filter_by(nombre=row["Vessel"], empresa=row["Owner"]).first()
+                if not buque:
+                    #print(f"Error: No se encontró el buque con nombre '{row['Vessel']}' y empresa '{row['Owner']}'")
+                    continue
+
+                # Buscar el tripulante en la base de datos por pasaporte
+                pasaporte = self.tripulantes_off.loc[index, "Pasaporte"]
+                tripulante = self.db_session.query(Tripulante).filter_by(pasaporte=pasaporte).first()
+                if not tripulante:
+                    #print(f"Error: No se encontró el tripulante con pasaporte '{pasaporte}'")
+                    continue
+
+                # Verificar la columna 'Activo'
+                activo = self.buque_off.loc[index].get("Activo")
+                if activo is None:
+                    #print(f"Advertencia: Columna 'Activo' faltante o vacía en fila {index}")
+                    continue
+                self._create_viaje(tripulante_id=tripulante.tripulante_id, buque_id=buque.buque_id, estado="OFF", activo=activo)
+
+            print("\nViajes creados exitosamente.")
+        except Exception as e:
+            print(f"Error al crear los viajes: {e}")
 
     def _extraer_transportes(self, transporte_info):        
         transportes_info = []
@@ -945,22 +1017,6 @@ class Controller:
         
         return transportes_info
 
-    def _create_viaje(self, tripulante_id, buque_id, equipaje_perdido=False, asistencia_medica=False):
-        try:
-            # Crear el viaje asignando el tripulante y buque
-            viaje = Viaje(
-                tripulante_id=tripulante_id,
-                buque_id=buque_id,
-                equipaje_perdido=equipaje_perdido,
-                asistencia_medica=asistencia_medica
-            )
-            self.db_session.add(viaje)
-            self.db_session.commit()    
-            #print(f"Viaje creado para Tripulante: {tripulante_id} en Buque ID: {buque_id}")
-        except Exception as e:
-            self.db_session.rollback()  # Revertir en caso de error
-            raise Exception(f"Error al crear viaje: {e}")
-        
     def _extract_international_flights(self, excel_data, start_row, state):
         vuelos = []
         
@@ -1139,7 +1195,6 @@ class Controller:
             print(f"{len(hotels)} hoteles procesados. ({state})")
             
         return pd.DataFrame(hotels)  # Retornar el DataFrame con la información de hoteles
-
 
     def _extract_flights(self, excel_data, start_row, state):
         vuelos = []

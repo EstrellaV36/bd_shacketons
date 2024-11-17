@@ -67,8 +67,6 @@ class Tripulante(Base):
     condicion: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     puerto_desembarque: Mapped[str] = mapped_column(String, nullable=True)
     pref_alimenticia: Mapped[Optional[str]] = mapped_column(String, default='NORMAL')
-    estado: Mapped[str] = mapped_column(String, nullable=False)
-    activo: Mapped[str] = mapped_column(String, nullable=False)
 
     buque_id: Mapped[Optional[int]] = mapped_column(ForeignKey("buques.buque_id"))
     tipo: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)  #Este no se si se mantiene porque es algo del viaje
@@ -223,11 +221,14 @@ class Viaje(Base):
     equipaje_perdido: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True, default=False)
     asistencia_medica: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True, default=False)
     estado: Mapped[str] = mapped_column(String, nullable=False)  # Añadido para diferenciar ON/OFF
+    activo: Mapped[str] = mapped_column(String, nullable=False)
 
     tripulante_id: Mapped[int] = mapped_column(ForeignKey("tripulantes.tripulante_id"))
     buque_id: Mapped[int] = mapped_column(ForeignKey("buques.buque_id"))
-    vuelo_id: Mapped[int] = mapped_column(ForeignKey("vuelos.vuelo_id"))
+    eta_id: Mapped[Optional[int]] = mapped_column(ForeignKey("etas_ciudades.eta_id"))  # Relación con EtaCiudad
     """
+
+    vuelo_id: Mapped[int] = mapped_column(ForeignKey("vuelos.vuelo_id"))
     hotel_id: Mapped[int] = mapped_column(ForeignKey("hoteles.hotel_id"))
     restaurante_id: Mapped[int] = mapped_column(ForeignKey("restaurantes.restaurante_id"))
     transporte_id: Mapped[int] = mapped_column(ForeignKey("transportes.transporte_id"))
@@ -235,8 +236,9 @@ class Viaje(Base):
     #relaciones
     tripulante: Mapped["Tripulante"] = relationship(back_populates="viajes")
     buque: Mapped["Buque"] = relationship(back_populates="viajes")
-    vuelo: Mapped["Vuelo"] = relationship()
+    eta_ciudad: Mapped["EtaCiudad"] = relationship("EtaCiudad")  # Relación con EtaCiudad
     """
+    vuelo: Mapped["Vuelo"] = relationship()
     hotel: Mapped["Hotel"] = relationship()
     restaurante: Mapped["Restaurante"] = relationship()
     transporte: Mapped["Transporte"] = relationship()

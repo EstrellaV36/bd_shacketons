@@ -24,14 +24,14 @@ class BasicApp(QMainWindow):
 
     def set_global_styles(self):
         """Configura estilos globales para la aplicación."""
-        initial_button_color = "#00272d"  # Color inicial del botón
+        dark_blue = "#00272d"  # Color inicial del botón
         button_hover_color = "#134647"  # Color del botón al pasar el ratón
         border_color = "#bfac8b"  # Color del borde del botón
         text_color_hover = "white"  # Color del texto al pasar el ratón
 
         app_stylesheet = f"""
             QPushButton {{
-                    background-color: {initial_button_color};
+                    background-color: white;
                     color: #00272d;
                     font-size: 18px;
                     font-weight: bold;
