@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayo
 from PyQt6.QtCore import Qt, QDate
 from PyQt6.QtGui import QFont
 from app.database import get_db_session
-from app.models import Buque, EtaCiudad, Tripulante, Vuelo, TripulanteVuelo, Restaurante, TripulanteRestaurante, Transporte, TripulanteTransporte, Hotel, TripulanteHotel, Buque, TripulanteAsistencia
+from app.models import Buque, EtaCiudad, Tripulante, Vuelo, TripulanteVuelo, Restaurante, TripulanteRestaurante, Transporte, TripulanteTransporte, Hotel, TripulanteHotel, Buque, TripulanteAsistencia, Viaje
 from app.controllers import CITY_AIRPORT_CODES, CITY_TO_AIRPORT_CODES
 from openpyxl.styles import PatternFill
 from openpyxl import Workbook
@@ -285,7 +285,7 @@ class HotelScreen(QWidget):
             session.query(
                 Buque.empresa.label("Owner"),
                 Tripulante.tripulante_id,
-                Tripulante.estado.label("Estado"),
+                Viaje.estado.label("Estado"),
                 Tripulante.nombre.label("First_Name"),
                 Tripulante.apellido.label("Last_Name"),
                 Tripulante.sexo.label("Genero"),
@@ -299,6 +299,7 @@ class HotelScreen(QWidget):
                 TripulanteHotel.tipo_habitacion.label("Rooms")
             )
             .join(TripulanteHotel, Tripulante.tripulante_id == TripulanteHotel.tripulante_id)
+            .join(Viaje, Tripulante.tripulante_id==Viaje.tripulante_id)
             .join(Buque, Tripulante.buque_id == Buque.buque_id)
             .join(Hotel, Hotel.hotel_id == TripulanteHotel.hotel_id)
             .filter(or_(
@@ -1259,7 +1260,6 @@ class TransportesScreen(QWidget):
         else:
             self.label.setText(f"REQUERIMIENTO TRANSPORTES")  # Actualiza el label
 
-
         # Cargar datos en la tabla
         self.cargar_datos(ciudad_seleccionada)
 
@@ -1283,7 +1283,7 @@ class TransportesScreen(QWidget):
         transporte_necesario = (
             session.query(
                 Tripulante.tripulante_id,
-                Tripulante.estado.label("Estado"),
+                Viaje.estado.label("Estado"),
                 Tripulante.nombre.label("First_Name"),
                 Tripulante.apellido.label("Last_Name"),
                 Tripulante.nacionalidad.label("Nacionalidad"),
@@ -1295,6 +1295,7 @@ class TransportesScreen(QWidget):
                 TripulanteTransporte.hours_pickup.label("Hora_Pickup")
             )
             .join(TripulanteTransporte, Tripulante.tripulante_id == TripulanteTransporte.tripulante_id)
+            .join(Viaje, Tripulante.tripulante_id == Viaje.tripulante_id)
             .filter(Transporte.transporte_id == TripulanteTransporte.transporte_id)
             .filter(and_(func.lower(Transporte.city_in) == ciudad_seleccionada),
                                                                Transporte.transporte_id == TripulanteTransporte.transporte_id)
@@ -1309,7 +1310,7 @@ class TransportesScreen(QWidget):
         hotel_necesario = (
             session.query(
                 Tripulante.tripulante_id,
-                Tripulante.estado.label("Estado"),
+                Viaje.estado.label("Estado"),
                 Tripulante.nombre.label("First_Name"),
                 Tripulante.apellido.label("Last_Name"),
                 Hotel.ciudad.label("Ciudad_Hotel"),
@@ -1317,6 +1318,7 @@ class TransportesScreen(QWidget):
                 TripulanteHotel.fecha_salida.label("Check_Out")
             )
             .join(TripulanteHotel, Tripulante.tripulante_id == TripulanteHotel.tripulante_id)
+            .join(Viaje, Tripulante.tripulante_id == Viaje.tripulante_id)
             .filter(Hotel.hotel_id == TripulanteHotel.hotel_id)
             .filter(func.lower(Hotel.ciudad) == ciudad_seleccionada)
             .distinct()
@@ -1328,7 +1330,7 @@ class TransportesScreen(QWidget):
         vuelo_necesario = (
             session.query(
                 Tripulante.tripulante_id,
-                Tripulante.estado.label("Estado"),
+                Viaje.estado.label("Estado"),
                 Tripulante.nombre.label("First_Name"),
                 Tripulante.apellido.label("Last_Name"),
                 Vuelo.codigo.label("Codigo"),
@@ -1339,6 +1341,7 @@ class TransportesScreen(QWidget):
                 Vuelo.aeropuerto_llegada.label("Aeropuerto_Llegada")
             )
             .join(TripulanteVuelo, Tripulante.tripulante_id == TripulanteVuelo.tripulante_id)
+            .join(Viaje, Tripulante.tripulante_id == Viaje.tripulante_id)
             .filter(Vuelo.vuelo_id == TripulanteVuelo.vuelo_id)
             .filter(or_(
                 func.lower(Vuelo.aeropuerto_salida) == ciudad_seleccionada.lower(),
@@ -1779,12 +1782,13 @@ class AsistenciasScreen(QWidget):
                 Tripulante.nombre.label("First_Name"),
                 Tripulante.apellido.label("Last_Name"),
                 Tripulante.condicion.label("Condition"),
-                Tripulante.estado.label("Type"),
+                Viaje.estado.label("Type"),
                 Vuelo.codigo.label("Nro_Vuelo_Arribo"),
                 Tripulante.tripulante_id,
                 Vuelo.fecha.label("Fecha_Vuelo_Arribo")
             )
             .outerjoin(TripulanteVuelo, TripulanteVuelo.tripulante_id == Tripulante.tripulante_id)
+            .outerjoin(Viaje, Tripulante.tripulante_id == Viaje.tripulante_id)
             .outerjoin(Vuelo, TripulanteVuelo.vuelo_id == Vuelo.vuelo_id)
             .outerjoin(Buque, Tripulante.buque_id == Buque.buque_id)
             .outerjoin(EtaCiudad, Buque.buque_id == EtaCiudad.buque_id)
@@ -1849,9 +1853,10 @@ class AsistenciasScreen(QWidget):
                 Vuelo.codigo.label("Nro_Vuelo_Salida"),
                 Vuelo.fecha.label("Fecha_Vuelo_Salida"),
                 Tripulante.tripulante_id,
-                Tripulante.estado.label("Estado")
+                Viaje.estado.label("Estado")
             )
             .outerjoin(TripulanteVuelo, TripulanteVuelo.tripulante_id == Tripulante.tripulante_id)
+            .outerjoin(Viaje, Tripulante.tripulante_id == Viaje.tripulante_id)
             .outerjoin(Vuelo, TripulanteVuelo.vuelo_id == Vuelo.vuelo_id)
             .filter((Vuelo.aeropuerto_salida) == ciudad_seleccionada)
             .all()
@@ -1878,7 +1883,7 @@ class AsistenciasScreen(QWidget):
         transporte_necesario = (
             session.query(
                 Tripulante.tripulante_id,
-                Tripulante.estado.label("Estado"),
+                Viaje.estado.label("Estado"),
                 Tripulante.nombre.label("First_Name"),
                 Tripulante.apellido.label("Last_Name"),
                 Tripulante.nacionalidad.label("Nacionalidad"),
@@ -1889,7 +1894,8 @@ class AsistenciasScreen(QWidget):
                 ).label("Tiene_Transporte")
             )
             .join(TripulanteTransporte, Tripulante.tripulante_id == TripulanteTransporte.tripulante_id)
-            .group_by(Tripulante.tripulante_id, Tripulante.estado, Tripulante.nombre, Tripulante.apellido, Tripulante.nacionalidad)
+            .join(Viaje, Tripulante.tripulante_id == Viaje.tripulante_id)
+            .group_by(Tripulante.tripulante_id, Viaje.estado, Tripulante.nombre, Tripulante.apellido, Tripulante.nacionalidad)
         )
 
         resultados_transporte = transporte_necesario.all()
