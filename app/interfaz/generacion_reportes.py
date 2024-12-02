@@ -1402,12 +1402,7 @@ class TransportesScreen(QWidget):
 
                 # Caso 'ATO-HOTEL'
                 if 'ATO-HOTEL' == tramo:
-                    vuelos_llegada = [
-                        v for v in vuelos
-                        if v is not None and v.get('Aeropuerto_Llegada') and ciudad_seleccionada
-                        and v['Aeropuerto_Llegada'].lower() == ciudad_seleccionada.lower()
-                    ]
-
+                    vuelos_llegada = [v for v in vuelos if v.Aeropuerto_Llegada.lower() == city_select]
                     for vuelo in vuelos_llegada:
                         codigo = f"{str(vuelo.Codigo)} {CITY_TO_AIRPORT_CODES.get(vuelo.Aeropuerto_Salida)}-{CITY_TO_AIRPORT_CODES.get(vuelo.Aeropuerto_Llegada)}"
                         data_rows.append({
@@ -1421,6 +1416,7 @@ class TransportesScreen(QWidget):
                             "lugar_transporte_end": transporte.Lugar_Transporte_end,
                             "codigo_vuelo": codigo,
                             "fecha_vuelo": vuelo.Fecha.date(),
+                            "hora_salida": None,
                             "hora_llegada": vuelo.Hora_Llegada.time(),
                             "owner": owner,
                             "buque": buque,
@@ -1448,7 +1444,8 @@ class TransportesScreen(QWidget):
                             "lugar_transporte_end": transporte.Lugar_Transporte_end,
                             "codigo_vuelo": codigo,
                             "fecha_vuelo": vuelo.Fecha.date(),
-                            "hora_llegada": vuelo.Hora_Llegada.time(),
+                            "hora_salida": vuelo.Hora_Salida.time(),
+                            "hora_llegada": None,
                             "owner": owner,
                             "buque": buque,
                             "eta": eta,
@@ -1475,6 +1472,7 @@ class TransportesScreen(QWidget):
                             "lugar_transporte_end": transporte.Lugar_Transporte_end,
                             "codigo_vuelo": codigo,
                             "fecha_vuelo": vuelo.Fecha.date(),
+                            "hora_salida": None,
                             "hora_llegada": vuelo.Hora_Llegada.time(),
                             "owner": owner,
                             "buque": buque,
@@ -1499,6 +1497,7 @@ class TransportesScreen(QWidget):
                             "ciudad_transporte_end": transporte.Ciudad_Transporte_end,
                             "lugar_transporte_end": transporte.Lugar_Transporte_end,
                             "codigo_vuelo": codigo,
+                            "hora_salida": None,
                             "fecha_vuelo": vuelo.Fecha.date(),
                             "hora_llegada": vuelo.Hora_Llegada.time(),
                             "owner": owner,
@@ -1509,6 +1508,34 @@ class TransportesScreen(QWidget):
                             "nacionalidad": transporte.Nacionalidad
                         })
 
+                elif 'ATO-NAVE' == tramo:
+                    vuelos_llegada = [v for v in vuelos if v.Aeropuerto_Llegada.lower() == city_select]
+                    for vuelo in vuelos_llegada:
+                        codigo = f"{str(vuelo.Codigo)} {CITY_TO_AIRPORT_CODES.get(vuelo.Aeropuerto_Salida)}-{CITY_TO_AIRPORT_CODES.get(vuelo.Aeropuerto_Llegada)}"
+                        data_rows.append({
+                            "estado": transporte.Estado,
+                            "fecha_pickup": date_pickup,
+                            "hora_pick_up": transporte.Hora_Pickup,
+                            "nombre_hotel": hotel.Nombre_Hotel if hotel else "Sin hotel",
+                            "ciudad_transporte_in": transporte.Ciudad_Transporte_in,
+                            "lugar_transporte_in": transporte.Lugar_Transporte_in,
+                            "ciudad_transporte_end": transporte.Ciudad_Transporte_end,
+                            "lugar_transporte_end": transporte.Lugar_Transporte_end,
+                            "codigo_vuelo": codigo,
+                            "fecha_vuelo": vuelo.Fecha.date(),
+                            "hora_salida": None,
+                            "hora_llegada": vuelo.Hora_Llegada.time(),
+                            "owner": owner,
+                            "buque": buque,
+                            "eta": eta,
+                            "first_name": transporte.First_Name,
+                            "last_name": transporte.Last_Name,
+                            "nacionalidad": transporte.Nacionalidad
+                        })
+
+        
+        data_rows = [row for row in data_rows if row["fecha_pickup"] is not None]
+                
         # Ordenar la lista de filas por `fecha_pickup`
         data_rows = sorted(data_rows, key=lambda x: x["fecha_pickup"])
 
@@ -1523,9 +1550,14 @@ class TransportesScreen(QWidget):
             self.table_widget.setItem(row, 5, QTableWidgetItem(row_data["lugar_transporte_in"]))
             self.table_widget.setItem(row, 6, QTableWidgetItem(row_data["ciudad_transporte_end"]))
             self.table_widget.setItem(row, 7, QTableWidgetItem(row_data["lugar_transporte_end"]))
-            self.table_widget.setItem(row, 8, QTableWidgetItem(row_data["codigo_vuelo"]))
-            self.table_widget.setItem(row, 9, QTableWidgetItem(str(row_data["fecha_vuelo"])))
-            self.table_widget.setItem(row, 10, QTableWidgetItem(str(row_data["hora_llegada"])))
+            if row_data["lugar_transporte_end"] != 'ATO':
+                self.table_widget.setItem(row, 8, QTableWidgetItem(row_data["codigo_vuelo"]))
+                self.table_widget.setItem(row, 9, QTableWidgetItem(str(row_data["fecha_vuelo"])))
+                self.table_widget.setItem(row, 10, QTableWidgetItem(str(row_data["hora_llegada"])))
+            else:
+                self.table_widget.setItem(row, 11, QTableWidgetItem(row_data["codigo_vuelo"]))
+                self.table_widget.setItem(row, 12, QTableWidgetItem(str(row_data["fecha_vuelo"])))
+                self.table_widget.setItem(row, 13, QTableWidgetItem(str(row_data["hora_salida"])))
             self.table_widget.setItem(row, 14, QTableWidgetItem(row_data["owner"]))
             self.table_widget.setItem(row, 15, QTableWidgetItem(row_data["buque"]))
             self.table_widget.setItem(row, 16, QTableWidgetItem(str(row_data["eta"])))
@@ -2049,34 +2081,36 @@ class AsistenciasScreen(QWidget):
 
                     for vuelo in vuelos_salida:
                         a1 = CITY_TO_AIRPORT_CODES.get(str(vuelo['Aeropuerto_Salida']))
-                        try:
-                            a2 = CITY_TO_AIRPORT_CODES.get(str(vuelo['Aeropuerto_Llegada']))
-                        except KeyError:
-                            #print(f"Error: 'Aeropuerto_Llegada' no encontrado en vuelo: {vuelo}")
-                            a2 = None  # O alguna otra acción que consideres necesaria                      
+                        a2 = CITY_TO_AIRPORT_CODES.get(str(vuelo.get('Aeropuerto_Llegada', '')))  # Evitar errores si falta 'Aeropuerto_Llegada'
+
+                        # Calcular `a1` correctamente según el contexto
                         if a1 == 'SCL' and a2 == 'PUQ':
                             a1 = f"{a1} Nacional"
                         elif a1 == 'SCL' and a2 != 'PUQ':
                             a1 = f"{a1} Internacional"
 
-                            if a1 == "PUQ":
-                                tiempo_a_restar = timedelta(hours=2, minutes=30)
-                            elif a1 == "SCL Nacional":
-                                tiempo_a_restar = timedelta(hours=2, minutes=30)
-                            elif a1 == "SCL Internacional":
-                                tiempo_a_restar = timedelta(hours=3, minutes=30)
-                            elif a1 == "WPU":
-                                tiempo_a_restar = timedelta(hours=1, minutes=30)
-                            elif a1 == "KGI":
-                                tiempo_a_restar = timedelta(hours=3, minutes=30)
-                            else:
-                                tiempo_a_restar = timedelta()
+                        # Solo calcular `tiempo_a_restar` si es necesario
+                        tiempo_a_restar = None  # Inicializar como None para verificar más adelante
+                        if a1 == "PUQ":
+                            tiempo_a_restar = timedelta(hours=2, minutes=30)
+                        elif a1 == "SCL Nacional":
+                            tiempo_a_restar = timedelta(hours=2, minutes=30)
+                        elif a1 == "SCL Internacional":
+                            tiempo_a_restar = timedelta(hours=3, minutes=30)
+                        elif a1 == "WPU":
+                            tiempo_a_restar = timedelta(hours=1, minutes=30)
+                        elif a1 == "KGI":
+                            tiempo_a_restar = timedelta(hours=3, minutes=30)
 
-                        # Ajustar el tiempo
-                        hora_pick_up = (vuelo['Hora_Salida'] - tiempo_a_restar).time()
-                        tripulantes_info[tripulante_id]['Fecha_Pick_Up'] = vuelo['Fecha_Vuelo_Salida']
-                        tripulantes_info[tripulante_id]["Hora_Pick_Up"] = hora_pick_up
-
+                        # Verifica si `tiempo_a_restar` fue calculado
+                        if tiempo_a_restar is not None:
+                            # Ajustar el tiempo para calcular la hora de pick-up
+                            hora_pick_up = (vuelo['Hora_Salida'] - tiempo_a_restar).time()
+                            tripulantes_info[tripulante_id]['Fecha_Pick_Up'] = vuelo['Fecha_Vuelo_Salida']
+                            tripulantes_info[tripulante_id]["Hora_Pick_Up"] = hora_pick_up
+                        else:
+                            # Log o manejar el caso donde no se necesita transporte
+                            print(f"No se requiere transporte para el vuelo con salida {vuelo['Nro_Vuelo_Salida']}.")
 
         # Asegurarse de que todos los tripulantes tengan asignada la información del hotel y habitación
         for tripulante_id in tripulantes_info.keys():
@@ -2575,10 +2609,13 @@ class AlimentosScreen(QWidget):
             self.table_widget.insertRow(row)
             self.tripulante_ids.append(tripulante.ID)
             
-            self.table_widget.setItem(row, 0, QTableWidgetItem(str(tripulante.First_Name)))  # First Name
-            self.table_widget.setItem(row, 1, QTableWidgetItem(str(tripulante.Last_Name)))  # Last Name
-            self.table_widget.setItem(row, 2, QTableWidgetItem(str(tripulante.Preferencia)))  # Gender
-            self.table_widget.setItem(row, 3, QTableWidgetItem(str(tripulante.Categoria)))  # Gender
+            self.table_widget.setItem(row, 0, QTableWidgetItem(str(tripulante.First_Name)))
+            self.table_widget.setItem(row, 1, QTableWidgetItem(str(tripulante.Last_Name))) 
+            if str(tripulante.Preferencia) == "Desconocido":
+                self.table_widget.setItem(row, 2, QTableWidgetItem(""))
+            else:
+                self.table_widget.setItem(row, 2, QTableWidgetItem(str(tripulante.Preferencia))) 
+            self.table_widget.setItem(row, 3, QTableWidgetItem(str(tripulante.Categoria)))
             
     def generar_excel(self, ciudad_seleccionada, buque_seleccionado, restaurant_seleccionado, owner_seleccionado, fecha_inicio_eta, fecha_inicio_rango, fecha_fin_rango, eta_check, rango_check, tipo_comida_seleccionado):
         # Crear un DataFrame con los datos de la tabla

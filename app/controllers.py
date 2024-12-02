@@ -924,6 +924,7 @@ class Controller:
                         continue
 
                     tripulante = self.db_session.query(Tripulante).filter_by(pasaporte=tripulante_data['Pasaporte']).first()
+
                     if not tripulante:
                         print(f"No se encontró tripulante con pasaporte {tripulante_data['Pasaporte']} en la fila {i}. Omitiendo...")
                         continue
@@ -948,6 +949,10 @@ class Controller:
                                         print(f"Datos faltantes en transporte en la fila {i}: {_transporte}")
                                         continue
 
+                                    if tripulante_data['First name'] == 'TAMARA':
+                                        print(f"TRANSPORTE {_transporte}")
+
+                                    print(f"Buscando transporte con: City In: {_transporte['City In']}, Place In: {_transporte['Place In']}, City End: {_transporte['City End']}, Place End: {_transporte['Place End']}")
                                     # Buscar el transporte en la base de datos
                                     transporte = (
                                         self.db_session.query(Transporte)
@@ -978,25 +983,39 @@ class Controller:
                                     tripulante_transporte_existente = self.db_session.query(TripulanteTransporte).filter_by(
                                         tripulante_id=tripulante.tripulante_id,
                                         transporte_id=transporte.transporte_id,
-                                    ).first()
+                                    ).first()                                        
 
-                                    if tripulante_transporte_existente:
+                                    #print(f"HOLA {type(hours_pickup)}")
+                                    
+                                    if not tripulante_transporte_existente and transporte.transporte_id != None:
+                                        # Asociar el tripulante al transporte
+                                        print(f"Asociando tripulante {tripulante.tripulante_id} con transporte {transporte.transporte_id}.")
+
+                                        hours_pickup = _transporte.get('Hours Pickup', None)
+                                        if isinstance(hours_pickup, str):
+                                            try:
+                                                hours_pickup = datetime.strptime(hours_pickup, "%H:%M").time()  # Convierte cadena a time
+                                            except ValueError:
+                                                hours_pickup = None  # Maneja valores inválidos de hora
+                                        elif isinstance(hours_pickup, datetime):
+                                            hours_pickup = hours_pickup.time()  # Extrae la hora si es un DateTime
+
+                                        tripulante_transporte = TripulanteTransporte(
+                                            tripulante_id=tripulante.tripulante_id,
+                                            transporte_id=transporte.transporte_id,
+                                            date_pickup=_transporte['Date Pickup'] if 'Date Pickup' in _transporte else None,
+                                            hours_pickup=hours_pickup
+                                        )
+                                        self.db_session.add(tripulante_transporte)
+                                        self.db_session.flush()
+                                        self.db_session.commit()
+
+                                    elif tripulante_transporte_existente:
                                         print(f"Ya existe relación para Tripulante ID {tripulante.tripulante_id} y Transporte ID {transporte.transporte_id}.")
                                         continue
-
-                                    # Asociar el tripulante al transporte
-                                    print(f"Asociando tripulante {tripulante.tripulante_id} con transporte {transporte.transporte_id}.")
-                                    tripulante_transporte = TripulanteTransporte(
-                                        tripulante_id=tripulante.tripulante_id,
-                                        transporte_id=transporte.transporte_id,
-                                        date_pickup=_transporte['Date Pickup'] if 'Date Pickup' in _transporte else None,
-                                        hours_pickup=_transporte['Hours Pickup'] if 'Hours Pickup' in _transporte else None,
-                                    )
-                                    self.db_session.add(tripulante_transporte)
-                                    self.db_session.flush()
-
+                                    
                                 except Exception as transporte_error:
-                                    print(f"Error procesando transporte en fila {i}, transporte: {_transporte} {tripulante.nombre}")
+                                    #print(f"Error procesando transporte en fila {i}, transporte: {_transporte} {tripulante.nombre}")
                                     traceback.print_exc()
                                     self.db_session.rollback()
                                     continue
@@ -1016,8 +1035,6 @@ class Controller:
             print(f"Error general al crear transportes: {e}")
             traceback.print_exc()
             self.db_session.rollback()
-
-        return transportes  # Retornar la lista de transportes creados
 
     
     def _create_viaje(self, tripulante_id, buque_id, estado, activo):
