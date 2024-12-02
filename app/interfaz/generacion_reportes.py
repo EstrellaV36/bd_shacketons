@@ -4,7 +4,7 @@ from app.interfaz.programar.roomlist import RoomListScreen
 from app.interfaz.programar.hoteles import HotelScreen
 from app.interfaz.programar.alimentos import AlimentosScreen
 
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QPushButton, QHBoxLayout
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QPushButton, QHBoxLayout, QLabel
 from PyQt6.QtCore import Qt
 
 class GeneracionReportesScreen(QWidget):
@@ -12,15 +12,9 @@ class GeneracionReportesScreen(QWidget):
         super().__init__()
         self.main_window = main_window
         self.main_window.generacion_reportes_index = self.main_window.stacked_widget.addWidget(self)
-        #print("Índice asignado a GeneracionReportesScreen:", self.main_window.generacion_reportes_index)
         self.setup_ui()
 
     def setup_ui(self):
-
-        # print("Índices en stacked_widget:")
-        # for i in range(self.main_window.stacked_widget.count()):
-        #     print(f"Índice {i}: {self.main_window.stacked_widget.widget(i)}")
-            
         layout = QVBoxLayout(self)
 
         # Añadir un botón "Volver" al menú principal
@@ -29,30 +23,39 @@ class GeneracionReportesScreen(QWidget):
         self.button_volver.clicked.connect(self.volver_al_menu_principal)
         layout.addWidget(self.button_volver, alignment=Qt.AlignmentFlag.AlignLeft)
 
-        # Crear un layout horizontal para los botones
+        # Añadir título al inicio
+        title_label = QLabel("Generación de reportes")
+        title_label.setStyleSheet("""
+            font-size: 30px;
+            font-weight: bold;
+            color: #00272d;
+            margin-bottom: 1px; /* Espacio debajo del título */
+        """)
+        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(title_label)
+
+        # Layout para botones principales
         layout_botones = QHBoxLayout()
         layout_botones.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        # Botones
-        button_informar = QPushButton("Informar")
-        button_informar.setFixedSize(140, 40)
-        layout_botones.addWidget(button_informar)
+        # Botones de opciones
+        botones = [
+            {"texto": "Informar", "callback": self.dummy_action},
+            {"texto": "Programar", "callback": self.mostrar_opciones_programar},
+            {"texto": "Liquidar", "callback": self.dummy_action},
+            {"texto": "Cuadrar Proveedor", "callback": self.dummy_action},
+        ]
 
-        button_programar = QPushButton("Programar")
-        button_programar.setFixedSize(140, 40)
-        button_programar.clicked.connect(self.mostrar_opciones_programar)
-        layout_botones.addWidget(button_programar)
+        for boton_info in botones:
+            boton = QPushButton(boton_info["texto"])
+            boton.setSizePolicy(self.main_window.sizePolicy())  # Aplica las políticas de tamaño global
+            boton.clicked.connect(boton_info["callback"])
+            layout_botones.addWidget(boton)
 
-        button_liquidar = QPushButton("Liquidar")
-        button_liquidar.setFixedSize(140, 40)
-        layout_botones.addWidget(button_liquidar)
-
-        button_cuadrar_proveedor = QPushButton("Cuadrar Proveedor")
-        button_cuadrar_proveedor.setFixedSize(140, 40)
-        layout_botones.addWidget(button_cuadrar_proveedor)
-
-        # Añadir el layout de botones al layout principal
         layout.addLayout(layout_botones)
+
+    def dummy_action(self):
+        print("Botón presionado")
 
     def mostrar_opciones_programar(self):
         opciones_programar_screen = OpcionesProgramarScreen(self.main_window)
@@ -67,50 +70,50 @@ class OpcionesProgramarScreen(QWidget):
         super().__init__()
         self.main_window = main_window
         self.setup_ui()
+        self.menu_reportes_index = main_window.stacked_widget.addWidget(self)
 
     def setup_ui(self):
         layout = QVBoxLayout(self)
 
         # Botón "Volver" para regresar a la pantalla anterior (Generación de Reportes)
         button_volver = QPushButton("Volver")
-        button_volver.setFixedWidth(100)
+        self.main_window.setup_dynamic_button(button_volver)  # Aplica tamaño dinámico
         button_volver.clicked.connect(self.volver_a_reportes)
         layout.addWidget(button_volver, alignment=Qt.AlignmentFlag.AlignLeft)
 
         layout_botones = QHBoxLayout()
         layout_botones.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        # Botones
-        button_asistencias = QPushButton("Asistencias")
-        button_asistencias.setFixedSize(140, 40)
-        button_asistencias.clicked.connect(self.mostrar_asistencias)
-        layout_botones.addWidget(button_asistencias)
+        # Añadir título al inicio
+        title_label = QLabel("Opciones programar")
+        title_label.setStyleSheet("""
+            font-size: 30px;
+            font-weight: bold;
+            color: #00272d;
+            margin-bottom: 1px; /* Espacio debajo del título */
+        """)
+        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(title_label)
+        # Lista de botones con texto y callbacks
+        botones = [
+            {"texto": "Asistencias", "callback": self.mostrar_asistencias},
+            {"texto": "Req. transportes", "callback": self.mostrar_transportes},
+            {"texto": "Room List", "callback": self.mostrar_room_list},
+            {"texto": "Req. Hoteles", "callback": self.mostrar_req_hoteles},
+            {"texto": "Solicitud SS Alimentación", "callback": self.mostrar_solicitud_alimentacion},
+        ]
 
-        button_transportes = QPushButton("Req. transportes")
-        button_transportes.setFixedSize(140, 40)
-        button_transportes.clicked.connect(self.mostrar_transportes)
-        layout_botones.addWidget(button_transportes)
-
-        button_room_list = QPushButton("Room List")
-        button_room_list.setFixedSize(140, 40)
-        button_room_list.clicked.connect(self.mostrar_room_list)
-        layout_botones.addWidget(button_room_list)
-
-        button_hoteles = QPushButton("Req. Hoteles")
-        button_hoteles.setFixedSize(140, 40)
-        button_hoteles.clicked.connect(self.mostrar_req_hoteles)
-        layout_botones.addWidget(button_hoteles)
-
-        button_alimentos = QPushButton("Solicitud SS Alimentación")
-        button_alimentos.setFixedSize(160, 40)
-        button_alimentos.clicked.connect(self.mostrar_solicitud_alimentacion)
-        layout_botones.addWidget(button_alimentos)
+        for boton_info in botones:
+            button = QPushButton(boton_info["texto"])
+            button.clicked.connect(boton_info["callback"])
+            layout_botones.addWidget(button)
 
         # Añadir el layout de botones al layout principal
         layout.addLayout(layout_botones)
 
     def mostrar_asistencias(self):
         asistencias_screen = AsistenciasScreen(self.main_window)
+        asistencias_screen.opciones_programar_index = self.main_window.opciones_programar_index
         self.main_window.stacked_widget.addWidget(asistencias_screen)
         self.main_window.stacked_widget.setCurrentWidget(asistencias_screen)
 
@@ -135,5 +138,5 @@ class OpcionesProgramarScreen(QWidget):
         self.main_window.stacked_widget.setCurrentWidget(alimentos_screen)
 
     def volver_a_reportes(self):
-        #print(f"Regresando a GeneracionReportesScreen con índice {self.main_window.generacion_reportes_index}")
+        print(f"Regresando a GeneracionReportesScreen con índice {self.main_window.generacion_reportes_index}")
         self.main_window.stacked_widget.setCurrentIndex(self.main_window.generacion_reportes_index)

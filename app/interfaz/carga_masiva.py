@@ -28,11 +28,6 @@ class CargaMasivaScreen(QWidget):
         self.button_load.clicked.connect(self.load_excel_file)
         layout.addWidget(self.button_load)
 
-        self.button_add_row = QPushButton("Agregar Fila Vacía")
-        self.button_add_row.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        self.button_add_row.clicked.connect(self.add_empty_row)
-        layout.addWidget(self.button_add_row)
-
         self.tabs = QTabWidget()
         layout.addWidget(self.tabs)
 
@@ -64,11 +59,6 @@ class CargaMasivaScreen(QWidget):
         self.on_sheets = {}
         self.off_sheets = {}
 
-        self.button_save_changes = QPushButton("Guardar Cambios")
-        self.button_save_changes.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        self.button_save_changes.clicked.connect(self.save_changes)
-        layout.addWidget(self.button_save_changes)
-
     def load_excel_file(self):
         file_dialog = QFileDialog(self)
         file_dialog.setFileMode(QFileDialog.FileMode.ExistingFiles)
@@ -93,33 +83,29 @@ class CargaMasivaScreen(QWidget):
     def show_sheet(self, df, table_view):
         model = PandasModel(df)
         table_view.setModel(model)
-        table_view.resizeColumnsToContents()
 
-    def add_empty_row(self):
-        current_index = self.tabs.currentIndex()
-        model = None
-        
-        if current_index == 0:
-            model = self.eta_on_buque_table_view.model()
-        elif current_index == 1:
-            model = self.eta_off_buque_table_view.model()
-        
-        if isinstance(model, PandasModel):
-            model.add_empty_row()
-
-    def save_changes(self):
-        try:
-            model_on_buque = self.eta_on_buque_table_view.model()
-            model_on_tripulante = self.eta_on_tripulante_table_view.model()
-            model_off_buque = self.eta_off_buque_table_view.model()
-            model_off_tripulante = self.eta_off_tripulante_table_view.model()
-
-            df_on_buque = model_on_buque.get_dataframe() if isinstance(model_on_buque, PandasModel) else None
-            df_on_tripulante = model_on_tripulante.get_dataframe() if isinstance(model_on_tripulante, PandasModel) else None
-            df_off_buque = model_off_buque.get_dataframe() if isinstance(model_off_buque, PandasModel) else None
-            df_off_tripulante = model_off_tripulante.get_dataframe() if isinstance(model_off_tripulante, PandasModel) else None
-
-            self.controller.save_tripulantes_to_db(df_on_buque, df_on_tripulante, df_off_buque, df_off_tripulante)
-            QMessageBox.information(self, "Éxito", "Datos guardados correctamente.")
-        except Exception as e:
-            QMessageBox.critical(self, "Error", f"Error al guardar los datos: {e}")
+        # Configura el estilo y formato del QTableView
+        table_view.resizeColumnsToContents()  # Ajusta el ancho de las columnas
+        table_view.setAlternatingRowColors(True)  # Alterna colores de filas
+        table_view.setStyleSheet("""
+            QTableView {
+                gridline-color: #00272d;
+                background-color: white;  /* Fondo blanco */
+                alternate-background-color: #f9f9f9;  /* Fondo alternado */
+                font-size: 14px;
+                font-family: Arial, sans-serif;
+                color: #00272d;  /* Color del texto */
+                selection-background-color: #134647;  /* Fondo para filas seleccionadas */
+                selection-color: white;  /* Texto de las filas seleccionadas */
+            }
+            QHeaderView::section {
+                background-color: #134647;  /* Fondo del encabezado */
+                color: white;  /* Color del texto del encabezado */
+                font-size: 15px;
+                font-weight: bold;
+                border: 1px solid #134647;  /* Bordes del encabezado */
+            }
+        """)
+        table_view.setEditTriggers(QTableView.EditTrigger.NoEditTriggers)  # Deshabilita edición
+        table_view.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)  # Selección por filas
+        table_view.setSelectionMode(QTableView.SelectionMode.SingleSelection)  # Solo permite seleccionar una fila
