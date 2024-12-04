@@ -4,7 +4,7 @@ from PyQt6.QtCore import Qt, QDate
 from PyQt6.QtGui import QFont
 from app.database import get_db_session
 from app.models import Buque, EtaCiudad, Tripulante, Hotel, TripulanteHotel, Buque
-from app.controllers import CITY_AIRPORT_CODES, CITY_TO_AIRPORT_CODES
+from app.controller.controllers import CITY_AIRPORT_CODES, CITY_TO_AIRPORT_CODES
 from openpyxl.styles import PatternFill
 from openpyxl import Workbook
 from openpyxl.utils import get_column_letter

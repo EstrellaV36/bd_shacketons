@@ -6,7 +6,7 @@ from app.interfaz.carga_masiva import CargaMasivaScreen
 from app.interfaz.visualizacion_datos import VisualizacionDatosScreen
 from app.interfaz.generacion_reportes import GeneracionReportesScreen
 from app.database import get_db_session
-from app.controllers import Controller
+from app.controller.controllers import Controller
 
 class BasicApp(QMainWindow):
     def __init__(self):

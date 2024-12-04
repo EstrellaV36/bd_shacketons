@@ -5,7 +5,7 @@ from PyQt6.QtCore import Qt, QDate
 from PyQt6.QtGui import QFont
 from app.database import get_db_session
 from app.models import Buque, EtaCiudad, Tripulante, Vuelo, TripulanteVuelo, Transporte, TripulanteTransporte, Hotel, TripulanteHotel, Buque, Viaje
-from app.controllers import CITY_AIRPORT_CODES, CITY_TO_AIRPORT_CODES
+from app.controller.controllers import CITY_AIRPORT_CODES, CITY_TO_AIRPORT_CODES
 from openpyxl.styles import PatternFill
 from openpyxl import Workbook
 from openpyxl.styles import Font
@@ -353,7 +353,7 @@ class TransportesScreen(QWidget):
                             "nacionalidad": transporte.Nacionalidad
                         })
                 
-                elif 'ATO-NAVE' == tramo:
+                elif 'ATO-NAVE' or 'NAVE-ATO' == tramo:
                     vuelos_llegada = [v for v in vuelos if v.Aeropuerto_Llegada.lower() == city_select]
                     for vuelo in vuelos_llegada:
                         codigo = f"{str(vuelo.Codigo)} {CITY_TO_AIRPORT_CODES.get(vuelo.Aeropuerto_Salida)}-{CITY_TO_AIRPORT_CODES.get(vuelo.Aeropuerto_Llegada)}"

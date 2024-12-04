@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QComboBox
 from PyQt6.QtCore import Qt, QDate
 from app.database import get_db_session
 from app.models import Buque, EtaCiudad, Tripulante, Vuelo, TripulanteVuelo, Transporte, TripulanteTransporte, TripulanteAsistencia, Restaurante, TripulanteRestaurante, Hotel, TripulanteHotel, Viaje
-from app.controllers import CITY_AIRPORT_CODES, CITY_TO_AIRPORT_CODES
+from app.controller.controllers import CITY_AIRPORT_CODES, CITY_TO_AIRPORT_CODES
 from openpyxl import Workbook
 from openpyxl.styles import PatternFill, Alignment, Font, Border, Side
 from openpyxl.utils import get_column_letter
@@ -420,34 +420,36 @@ class AsistenciasScreen(QWidget):
 
                     for vuelo in vuelos_salida:
                         a1 = CITY_TO_AIRPORT_CODES.get(str(vuelo['Aeropuerto_Salida']))
-                        try:
-                            a2 = CITY_TO_AIRPORT_CODES.get(str(vuelo['Aeropuerto_Llegada']))
-                        except KeyError:
-                            #print(f"Error: 'Aeropuerto_Llegada' no encontrado en vuelo: {vuelo}")
-                            a2 = None  # O alguna otra acción que consideres necesaria                      
+                        a2 = CITY_TO_AIRPORT_CODES.get(str(vuelo.get('Aeropuerto_Llegada', '')))  # Evitar errores si falta 'Aeropuerto_Llegada'
+
+                        # Calcular `a1` correctamente según el contexto
                         if a1 == 'SCL' and a2 == 'PUQ':
                             a1 = f"{a1} Nacional"
                         elif a1 == 'SCL' and a2 != 'PUQ':
                             a1 = f"{a1} Internacional"
 
-                            if a1 == "PUQ":
-                                tiempo_a_restar = timedelta(hours=2, minutes=30)
-                            elif a1 == "SCL Nacional":
-                                tiempo_a_restar = timedelta(hours=2, minutes=30)
-                            elif a1 == "SCL Internacional":
-                                tiempo_a_restar = timedelta(hours=3, minutes=30)
-                            elif a1 == "WPU":
-                                tiempo_a_restar = timedelta(hours=1, minutes=30)
-                            elif a1 == "KGI":
-                                tiempo_a_restar = timedelta(hours=3, minutes=30)
-                            else:
-                                tiempo_a_restar = timedelta()
+                        # Solo calcular `tiempo_a_restar` si es necesario
+                        tiempo_a_restar = None  # Inicializar como None para verificar más adelante
+                        if a1 == "PUQ":
+                            tiempo_a_restar = timedelta(hours=2, minutes=30)
+                        elif a1 == "SCL Nacional":
+                            tiempo_a_restar = timedelta(hours=2, minutes=30)
+                        elif a1 == "SCL Internacional":
+                            tiempo_a_restar = timedelta(hours=3, minutes=30)
+                        elif a1 == "WPU":
+                            tiempo_a_restar = timedelta(hours=1, minutes=30)
+                        elif a1 == "KGI":
+                            tiempo_a_restar = timedelta(hours=3, minutes=30)
 
-                        # Ajustar el tiempo
-                        hora_pick_up = (vuelo['Hora_Salida'] - tiempo_a_restar).time()
-                        tripulantes_info[tripulante_id]['Fecha_Pick_Up'] = vuelo['Fecha_Vuelo_Salida']
-                        tripulantes_info[tripulante_id]["Hora_Pick_Up"] = hora_pick_up
-
+                        # Verifica si `tiempo_a_restar` fue calculado
+                        if tiempo_a_restar is not None:
+                            # Ajustar el tiempo para calcular la hora de pick-up
+                            hora_pick_up = (vuelo['Hora_Salida'] - tiempo_a_restar).time()
+                            tripulantes_info[tripulante_id]['Fecha_Pick_Up'] = vuelo['Fecha_Vuelo_Salida']
+                            tripulantes_info[tripulante_id]["Hora_Pick_Up"] = hora_pick_up
+                        else:
+                            # Log o manejar el caso donde no se necesita transporte
+                            print(f"No se requiere transporte para el vuelo con salida {vuelo['Nro_Vuelo_Salida']}.")
 
         # Asegurarse de que todos los tripulantes tengan asignada la información del hotel y habitación
         for tripulante_id in tripulantes_info.keys():
@@ -473,7 +475,6 @@ class AsistenciasScreen(QWidget):
                         print(f"El tripulante con ID {tripulante_id} no tiene el campo 'Type' en su información: {info}")
                     elif info["Type"] != tipo_tripulante:
                         print(f"El tripulante con ID {tripulante_id} tiene 'Type' distinto a '{tipo_tripulante}': {info['Type']}")
-
         
         # Filtrar por proveedor si se ha seleccionado uno
         proveedor_seleccionado = self.combo_proveedor.currentText()  # Obtener proveedor seleccionado

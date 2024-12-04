@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTabWidget, QComboBox, QTableView, QSizePolicy, QMessageBox, QFileDialog
 from PyQt6.QtCore import Qt
 from app.interfaz.pandas_model import PandasModel
-from app.controllers import Controller
+from app.controller.controllers import Controller
 from app.database import get_db_session
 
 class CargaMasivaScreen(QWidget):
@@ -71,14 +71,18 @@ class CargaMasivaScreen(QWidget):
                 file_path = file_paths[0]
                 
                 # Procesar el archivo Excel y obtener los DataFrames
-                buque_on, buque_off, tripulantes_on, tripulantes_off = self.controller.process_excel_file(file_path)
+                #buque_on, buque_off, tripulantes_on, tripulantes_off = self.controller.process_excel_file(file_path)
+                #self.controller.buques_on, self.controller.buques_off = self.controller.process_excel_file(file_path)
+                self.controller.buques_on, self.controller.buques_off, self.controller.tripulantes_on, self.controller.tripulantes_off = self.controller.process_excel_file(file_path)
+
+                #print(self.controller.tripulantes_on)
                 
                 # Mostrar los DataFrames en las tablas correspondientes
-                self.show_sheet(buque_on, self.eta_on_buque_table_view)   # Mostrar buques ON
-                self.show_sheet(tripulantes_on, self.eta_on_tripulante_table_view)  # Mostrar tripulantes ON
+                self.show_sheet(self.controller.buques_on, self.eta_on_buque_table_view)   # Mostrar buques ON
+                self.show_sheet(self.controller.tripulantes_on, self.eta_on_tripulante_table_view)  # Mostrar tripulantes ON
                 
-                self.show_sheet(buque_off, self.eta_off_buque_table_view)  # Mostrar buques OFF
-                self.show_sheet(tripulantes_off, self.eta_off_tripulante_table_view)  # Mostrar tripulantes OFF
+                self.show_sheet(self.controller.buques_off, self.eta_off_buque_table_view)  # Mostrar buques OFF
+                self.show_sheet(self.controller.tripulantes_off, self.eta_off_tripulante_table_view)  # Mostrar tripulantes OFF
 
     def show_sheet(self, df, table_view):
         model = PandasModel(df)
