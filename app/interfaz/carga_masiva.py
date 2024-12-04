@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTabWidget, QComboBox, QTableView, QSizePolicy, QMessageBox, QFileDialog
 from PyQt6.QtCore import Qt
 from app.interfaz.pandas_model import PandasModel
-from app.controllers import Controller
+from app.controller.controllers import Controller
 from app.database import get_db_session
 
 class CargaMasivaScreen(QWidget):
