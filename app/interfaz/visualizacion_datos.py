@@ -77,7 +77,7 @@ class VisualizacionDatosScreen(QWidget):
         """Obtiene la lista de ciudades asociadas a los buques en la tabla Buque."""
         try:
             session = get_db_session()
-            ciudades = session.query(Buque.ciudad).distinct()
+            ciudades = session.query(EtaCiudad.puerto).distinct()
             
             ciudades_unicas = sorted({ciudad[0] for ciudad in ciudades if ciudad[0]})
             

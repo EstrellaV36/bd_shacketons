@@ -53,11 +53,11 @@ class Tripulantes:
                     nombre_empresa = buque_row['Owner']
                     condicion = buque_row['Condicion']
 
-                    #print(f"Procesando tripulante para buque: {nombre_buque}, Empresa: {nombre_empresa}, Condición: {condicion}")
+                    print(f"Procesando tripulante para buque: {nombre_buque}, Empresa: {nombre_empresa}, Condición: {condicion}")
 
                     buque_id = self.buscar_buque_id(nombre_buque, nombre_empresa, self.db_session)
                     if not buque_id:
-                        #print(f"No se encontró buque_id para: {nombre_buque}. Registro omitido.")
+                        print(f"No se encontró buque_id para: {nombre_buque}. Registro omitido.")
                         continue  # Omitir esta fila si no se encuentra el buque_id
 
                     # Buscar si el tripulante ya existe en la base de datos
@@ -85,10 +85,18 @@ class Tripulantes:
                     etd_vessel = pd.to_datetime(buque_row['ETD Vessel'], errors='coerce', format="%Y-%m-%d %H:%M:%S")
                     date_arrive_cl = pd.to_datetime(buque_row['Date arrive CL'], errors='coerce', format="%Y-%m-%d %H:%M:%S") if estado == 'ON' else None
 
+                    # Normalizar las cadenas de texto con la primera letra en mayúsculas y el resto en minúsculas
+                    def normalize_text(text):
+                        if isinstance(text, str):
+                            return text.strip().title()  # Convierte la primera letra en mayúsculas y el resto en minúsculas
+                        return text  # Si no es una cadena, devuelve el valor original
+
+                    puerto_name = normalize_text(buque_row['Puerto'])
+
                     eta = EtaCiudad(
                         tripulante_id=tripulante_existente.tripulante_id,
                         buque_id=buque_id,
-                        ciudad=buque_row['Puerto'],
+                        puerto=puerto_name,
                         eta=eta_vessel,
                         etd=etd_vessel,
                         date_arrive_cl=(
@@ -106,10 +114,10 @@ class Tripulantes:
                     tripulantes.append(tripulante_existente)
 
                 except Exception as row_error:
-                    #print(f"[Tripulante] Error procesando fila {i}: {row_error}")
+                    print(f"[Tripulante] Error procesando fila {i}: {row_error}")
                     # Imprimir el tripulante y el buque relacionados con la fila actual
-                    #print(f"Datos del tripulante en fila {i}: {tripulantes_df.iloc[i].to_dict()}")
-                    #print(f"Datos del buque en fila {i}: {buque_df.iloc[i].to_dict()}")
+                    print(f"Datos del tripulante en fila {i}: {tripulantes_df.iloc[i].to_dict()}")
+                    print(f"Datos del buque en fila {i}: {buque_df.iloc[i].to_dict()}")
                     self.db_session.rollback()  # Revertir cambios en caso de error en la fila
                     continue  # Continuar con la siguiente fila
 

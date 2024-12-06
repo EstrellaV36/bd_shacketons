@@ -109,37 +109,37 @@ class Controller:
             self.tripulantes_processor._create_tripulantes(self.tripulantes_off, self.buques_off, "OFF")
             update_progress_callback(20)  # 20% después de procesar los tripulantes
 
-            ### AEROLINEAS ###
-            self.aerolineas_on, self.aerolineas_off = self.aerolineas_processor.aerolineas_main(file_path)
-            update_progress_callback(30)  # 30% después de procesar aerolíneas
+            # ### AEROLINEAS ###
+            # self.aerolineas_on, self.aerolineas_off = self.aerolineas_processor.aerolineas_main(file_path)
+            # update_progress_callback(30)  # 30% después de procesar aerolíneas
 
-            ### VUELOS ###
-            self.vuelos_internacionales_on, self.vuelos_internacionales_off, self.vuelos_domesticos_on, self.vuelos_domesticos_off, self.vuelos_regionales_on, self.vuelos_regionales_off = self.vuelos_processor.vuelos_main(file_path)
-            update_progress_callback(50)  # 50% después de procesar vuelos
+            # ### VUELOS ###
+            # self.vuelos_internacionales_on, self.vuelos_internacionales_off, self.vuelos_domesticos_on, self.vuelos_domesticos_off, self.vuelos_regionales_on, self.vuelos_regionales_off = self.vuelos_processor.vuelos_main(file_path)
+            # update_progress_callback(50)  # 50% después de procesar vuelos
 
-            ### ASISTENCIAS ###
-            self.asistencias_on = self.asistencias_processor.asistencias_main(file_path)
-            update_progress_callback(60)  # 60% después de procesar asistencias
+            # ### ASISTENCIAS ###
+            # self.asistencias_on = self.asistencias_processor.asistencias_main(file_path)
+            # update_progress_callback(60)  # 60% después de procesar asistencias
 
-            ### HOTELES ###
-            self.hoteles_on, self.hoteles_off = self.hoteles_processor.hoteles_main(file_path)
-            update_progress_callback(70)  # 70% después de procesar hoteles
+            # ### HOTELES ###
+            # self.hoteles_on, self.hoteles_off = self.hoteles_processor.hoteles_main(file_path)
+            # update_progress_callback(70)  # 70% después de procesar hoteles
 
-            ### TRANSPORTES ###
-            self.transportes_on, self.transportes_off = self.transportes_processor.transportes_main(file_path)
-            update_progress_callback(80)  # 80% después de procesar transportes
+            # ### TRANSPORTES ###
+            # self.transportes_on, self.transportes_off = self.transportes_processor.transportes_main(file_path)
+            # update_progress_callback(80)  # 80% después de procesar transportes
 
-            ### RESTAURANTES ###
-            self.restaurantes_on, self.restaurantes_off = self.restaurantes_processor.restaurantes_main(file_path)
-            update_progress_callback(90)  # 90% después de procesar restaurantes
+            # ### RESTAURANTES ###
+            # self.restaurantes_on, self.restaurantes_off = self.restaurantes_processor.restaurantes_main(file_path)
+            # update_progress_callback(90)  # 90% después de procesar restaurantes
 
-            ### EXTRAS ###
-            self.extras_on, self.extras_off = self.extras_processor.extras_main(file_path)
-            update_progress_callback(95)  # 95% después de procesar extras
+            # ### EXTRAS ###
+            # self.extras_on, self.extras_off = self.extras_processor.extras_main(file_path)
+            # update_progress_callback(95)  # 95% después de procesar extras
 
-            ### VIAJES ###
-            self.viaje_processor._create_viajes_from_dataframes(self.tripulantes_on, self.tripulantes_off, self.buques_on, self.buques_off)
-            update_progress_callback(100)  # 100% después de procesar viajes
+            # ### VIAJES ###
+            # self.viaje_processor._create_viajes_from_dataframes(self.tripulantes_on, self.tripulantes_off, self.buques_on, self.buques_off)
+            # update_progress_callback(100)  # 100% después de procesar viajes
 
             return self.buques_on, self.buques_off, self.tripulantes_on, self.tripulantes_off
         except Exception as e:

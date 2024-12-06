@@ -160,6 +160,28 @@ class BasicApp(QMainWindow):
                 font-size: 16px;
                 border: 0.5px solid #134647;
             }}
+            QProgressBar {{
+                border: 2px solid #bfac8b;  /* Usamos el color de borde definido */
+                text-align: center;
+                height: 30px;  /* Ajusta la altura */
+                width: 400px;  /* Ajusta el ancho */
+                background-color: #00272d;  /* Fondo gris oscuro para la barra */
+                color: #fff;  /* Color de texto blanco */
+                font-size: 14px;  /* Tamaño de texto */
+                font-family: Arial, sans-serif;  /* Fuente legible */
+            }}
+
+            QProgressBar::chunk {{
+                background-color: #3b8bba;  /* Color de progreso en azul vibrante */
+                width: 10px;  /* Ancho del chunk */
+            }}
+
+            QProgressBar::text {{
+                color: white;  /* Color de texto blanco dentro de la barra */
+                font-weight: bold;  /* Texto en negrita */
+                font-size: 16px;  /* Tamaño de fuente ajustado */
+            }}
+
         """
         
         self.setStyleSheet(app_stylesheet)

@@ -26,7 +26,8 @@ class EtaCiudad(Base):
     eta_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     buque_id: Mapped[int] = mapped_column(ForeignKey("buques.buque_id"))
     tripulante_id: Mapped[int] = mapped_column(ForeignKey("tripulantes.tripulante_id"))
-    ciudad: Mapped[str] = mapped_column(String, nullable=False)  # PUQ, SCL, WPU, etc.
+    puerto: Mapped[str] = mapped_column(String, nullable=False)  # PUQ, SCL, WPU, etc.
+
     date_arrive_cl: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     date_first_flight: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     eta: Mapped[datetime] = mapped_column(DateTime, nullable=False)
@@ -43,8 +44,6 @@ class Buque(Base):
     buque_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     nombre: Mapped[str] = mapped_column(String, nullable=False)
     empresa: Mapped[str] = mapped_column(String, nullable=False)
-    cobrar_a: Mapped[str] = mapped_column(String, nullable=True) #ver donde correspondería poner a quien cobrar
-    ciudad: Mapped[str] = mapped_column(String, nullable=False)
     
     etas: Mapped[list["EtaCiudad"]] = relationship(back_populates="buque")
     tripulantes: Mapped[list["Tripulante"]] = relationship(back_populates="buque")

@@ -3,6 +3,7 @@ from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from app.interfaz.pandas_model import PandasModel
 from app.controller.controllers import Controller
 from app.database import get_db_session
+import pandas as pd
 
 class CargaMasivaScreen(QWidget):
     def __init__(self, controller, main_window):
@@ -37,36 +38,21 @@ class CargaMasivaScreen(QWidget):
         self.tabs.addTab(self.on_tab, "ON")
         self.tabs.addTab(self.off_tab, "OFF")
 
-        # Layouts horizontales para tener buques y tripulantes uno al lado del otro
-        self.on_layout = QHBoxLayout()
-        self.off_layout = QHBoxLayout()
-        
-        self.on_tab.setLayout(self.on_layout)
-        self.off_tab.setLayout(self.off_layout)
+        # Layout para la tabla en cada pestaña
+        self.layout_on_table = QVBoxLayout()
+        self.layout_off_table = QVBoxLayout()
 
-        # Tablas para buques y tripulantes ON
-        self.eta_on_buque_table_view = QTableView()  # Tabla para buques ON
-        self.eta_on_tripulante_table_view = QTableView()  # Tabla para tripulantes ON
-        self.on_layout.addWidget(self.eta_on_buque_table_view)
-        self.on_layout.addWidget(self.eta_on_tripulante_table_view)
+        self.on_tab.setLayout(self.layout_on_table)
+        self.off_tab.setLayout(self.layout_off_table)
 
-        # Tablas para buques y tripulantes OFF
-        self.eta_off_buque_table_view = QTableView()  # Tabla para buques OFF
-        self.eta_off_tripulante_table_view = QTableView()  # Tabla para tripulantes OFF
-        self.off_layout.addWidget(self.eta_off_buque_table_view)
-        self.off_layout.addWidget(self.eta_off_tripulante_table_view)
+        # Crear las tablas para cada pestaña
+        self.on_table_view = QTableView()  # Tabla para los datos "ON"
+        self.off_table_view = QTableView()  # Tabla para los datos "OFF"
+
+        self.layout_on_table.addWidget(self.on_table_view)
+        self.layout_off_table.addWidget(self.off_table_view)
 
     def load_excel_file(self):
-        # Crear y mostrar el diálogo de progreso
-        self.progress_dialog = QDialog(self)
-        self.progress_dialog.setWindowTitle("Cargando archivo Excel...")
-        progress_layout = QVBoxLayout(self.progress_dialog)
-        self.progress_bar = QProgressBar(self.progress_dialog)
-        self.progress_bar.setRange(0, 100)
-        progress_layout.addWidget(self.progress_bar)
-        self.progress_dialog.setLayout(progress_layout)
-        self.progress_dialog.show()
-
         # Crear el diálogo de selección de archivos
         file_dialog = QFileDialog(self)
         file_dialog.setFileMode(QFileDialog.FileMode.ExistingFiles)
@@ -78,12 +64,22 @@ class CargaMasivaScreen(QWidget):
             if file_paths:
                 file_path = file_paths[0]
                 
+                # Crear y mostrar el diálogo de progreso
+                self.progress_dialog = QDialog(self)
+                self.progress_dialog.setWindowTitle("Cargando archivo Excel...")
+                progress_layout = QVBoxLayout(self.progress_dialog)
+                self.progress_bar = QProgressBar(self.progress_dialog)
+                self.progress_bar.setRange(0, 100)
+                progress_layout.addWidget(self.progress_bar)
+                self.progress_dialog.setLayout(progress_layout)
+                self.progress_dialog.show()  # Mostrar el diálogo de progreso
+
                 # Crear el hilo para la carga masiva y pasar el file_path
                 self.load_thread = LoadExcelThread(self.controller, file_path)
                 
                 # Conectar las señales
                 self.load_thread.update_progress.connect(self.update_progress_bar)
-                self.load_thread.update_tables.connect(self.update_tables)  # Conectar la señal de actualización de tablas
+                self.load_thread.update_tables.connect(self.update_tables)  # Conectar la señal de actualización de la tabla
                 self.load_thread.finished.connect(self.on_load_finished)
                 self.load_thread.start()
 
@@ -91,11 +87,22 @@ class CargaMasivaScreen(QWidget):
         self.progress_bar.setValue(progress_value)
 
     def update_tables(self, buque_on, buque_off, tripulantes_on, tripulantes_off):
-        # Actualizar las tablas en la interfaz
-        self.show_sheet(buque_on, self.eta_on_buque_table_view)
-        self.show_sheet(tripulantes_on, self.eta_on_tripulante_table_view)
-        self.show_sheet(buque_off, self.eta_off_buque_table_view)
-        self.show_sheet(tripulantes_off, self.eta_off_tripulante_table_view)
+        # Convertir las columnas ETA y ETD a solo fecha, sin la hora
+        buque_on['ETA Vessel'] = pd.to_datetime(buque_on['ETA Vessel']).dt.date
+        buque_on['ETD Vessel'] = pd.to_datetime(buque_on['ETD Vessel']).dt.date
+        buque_off['ETA Vessel'] = pd.to_datetime(buque_off['ETA Vessel']).dt.date
+        buque_off['ETD Vessel'] = pd.to_datetime(buque_off['ETD Vessel']).dt.date
+        tripulantes_on['DOB'] = pd.to_datetime(tripulantes_on['DOB']).dt.date
+        tripulantes_off['DOB'] = pd.to_datetime(tripulantes_off['DOB']).dt.date
+
+
+        # Actualiza la tabla de "ON"
+        combined_on_df = pd.concat([buque_on, tripulantes_on], axis=1)
+        self.show_sheet(combined_on_df, self.on_table_view)  # Mostrar en la pestaña "ON"
+        
+        # Actualiza la tabla de "OFF"
+        combined_off_df = pd.concat([buque_off, tripulantes_off], axis=1)
+        self.show_sheet(combined_off_df, self.off_table_view)  # Mostrar en la pestaña "OFF"
 
     def show_sheet(self, df, table_view):
         model = PandasModel(df)
@@ -128,7 +135,7 @@ class CargaMasivaScreen(QWidget):
         table_view.setSelectionMode(QTableView.SelectionMode.SingleSelection)  # Solo permite seleccionar una fila
 
     def on_load_finished(self):
-        self.progress_dialog.accept()  # Cerrar el diálogo de progreso
+        self.progress_dialog.accept()
 
 class LoadExcelThread(QThread):
     update_progress = pyqtSignal(int)
@@ -141,7 +148,6 @@ class LoadExcelThread(QThread):
 
     def run(self):
         try:
-            # Abre y lee el archivo Excel
             buque_on, buque_off, tripulantes_on, tripulantes_off = None, None, None, None
 
             # Pasar la función de actualización de progreso al Controller
