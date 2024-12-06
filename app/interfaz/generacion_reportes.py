@@ -56,7 +56,7 @@ class GeneracionReportesScreen(QWidget):
         layout.addLayout(layout_botones)
 
     def dummy_action(self):
-        print("Botón presionado")
+        print("Botón presionado!!!!")
 
     def mostrar_opciones_programar(self):
         opciones_programar_screen = OpcionesProgramarScreen(self.main_window)
@@ -114,6 +114,7 @@ class OpcionesProgramarScreen(QWidget):
         layout.addLayout(layout_botones)
 
     def mostrar_asistencias(self):
+        print("Asistencias!!")
         asistencias_screen = AsistenciasScreen(self.main_window)
         asistencias_screen.opciones_programar_index = self.main_window.opciones_programar_index
         self.main_window.stacked_widget.addWidget(asistencias_screen)
@@ -140,5 +141,5 @@ class OpcionesProgramarScreen(QWidget):
         self.main_window.stacked_widget.setCurrentWidget(alimentos_screen)
 
     def volver_a_reportes(self):
-        print(f"Regresando a GeneracionReportesScreen con índice {self.main_window.generacion_reportes_index}")
+        #print(f"Regresando a GeneracionReportesScreen con índice {self.main_window.generacion_reportes_index}")
         self.main_window.stacked_widget.setCurrentIndex(self.main_window.generacion_reportes_index)

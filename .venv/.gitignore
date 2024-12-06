@@ -1,4 +1,2 @@
 # created by virtualenv automatically
-build/main/main.pkg
-dist/main
-
+*
