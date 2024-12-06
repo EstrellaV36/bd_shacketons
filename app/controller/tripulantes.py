@@ -43,59 +43,52 @@ class Tripulantes:
             # Iterar simultáneamente sobre tripulantes_df y buque_df
             for (i, tripulante_row), (_, buque_row) in zip(tripulantes_df.iterrows(), buque_df.iterrows()):
                 try:
+                    # Normalizar los nombres y apellidos para evitar problemas de mayúsculas/minúsculas
+                    nombre_normalizado = tripulante_row['First name'].strip().title()
+                    apellido_normalizado = tripulante_row['Last name'].strip().title()
+
                     # Validación de datos importantes
                     if pd.isna(tripulante_row['Pasaporte']) or not tripulante_row['Pasaporte']:
-                        #print(f"Pasaporte vacío o nulo en fila {i}. Registro omitido: {tripulante_row.to_dict()}")
-                        continue  # Omitir esta fila y continuar con el siguiente registro
+                        # Si el pasaporte está vacío, verificar por nombre, apellido e ID
+                        print(f"Pasaporte vacío en fila {i}. Verificando por nombre, apellido e ID.")
+                        
+                        # Realizamos la búsqueda normalizada
+                        tripulante_existente = self.db_session.query(Tripulante).filter(
+                            Tripulante.nombre == nombre_normalizado,
+                            Tripulante.apellido == apellido_normalizado,
+                        ).first()
+                    else:
+                        # Buscar si el tripulante ya existe por pasaporte
+                        tripulante_existente = self.db_session.query(Tripulante).filter_by(pasaporte=tripulante_row['Pasaporte']).first()
 
-                    # Datos del buque
-                    nombre_buque = buque_row['Vessel']
-                    nombre_empresa = buque_row['Owner']
-                    condicion = buque_row['Condicion']
-
-                    print(f"Procesando tripulante para buque: {nombre_buque}, Empresa: {nombre_empresa}, Condición: {condicion}")
-
-                    buque_id = self.buscar_buque_id(nombre_buque, nombre_empresa, self.db_session)
-                    if not buque_id:
-                        print(f"No se encontró buque_id para: {nombre_buque}. Registro omitido.")
-                        continue  # Omitir esta fila si no se encuentra el buque_id
-
-                    # Buscar si el tripulante ya existe en la base de datos
-                    tripulante_existente = self.db_session.query(Tripulante).filter_by(pasaporte=tripulante_row['Pasaporte']).first()
-
+                    # Si no se encuentra el tripulante, lo creamos
                     if not tripulante_existente:
-                        # Crear tripulante si no existe
                         tripulante = Tripulante(
-                            nombre=tripulante_row['First name'],
-                            apellido=tripulante_row['Last name'],
+                            nombre=nombre_normalizado,  # Usamos el nombre normalizado
+                            apellido=apellido_normalizado,  # Usamos el apellido normalizado
                             sexo=tripulante_row['Gender'],
                             nacionalidad=tripulante_row['Nacionalidad'],
                             posicion=tripulante_row['Position'],
-                            pasaporte=tripulante_row['Pasaporte'],
-                            condicion=condicion,
+                            pasaporte=tripulante_row['Pasaporte'] if tripulante_row['Pasaporte'] else None,
+                            condicion=buque_row['Condicion'],
                             fecha_nacimiento=pd.to_datetime(tripulante_row['DOB']).date() if not pd.isna(tripulante_row['DOB']) else None,
-                            buque_id=buque_id,
+                            buque_id=self.buscar_buque_id(buque_row['Vessel'], buque_row['Owner'], self.db_session)
                         )
                         self.db_session.add(tripulante)
                         self.db_session.flush()  # Genera el tripulante_id sin hacer commit
                         tripulante_existente = tripulante  # Asignar a la variable existente
 
-                    # Convertir campos a timestamp
+                    # Datos de ETA
                     eta_vessel = pd.to_datetime(buque_row['ETA Vessel'], errors='coerce', format="%Y-%m-%d %H:%M:%S")
                     etd_vessel = pd.to_datetime(buque_row['ETD Vessel'], errors='coerce', format="%Y-%m-%d %H:%M:%S")
                     date_arrive_cl = pd.to_datetime(buque_row['Date arrive CL'], errors='coerce', format="%Y-%m-%d %H:%M:%S") if estado == 'ON' else None
 
-                    # Normalizar las cadenas de texto con la primera letra en mayúsculas y el resto en minúsculas
-                    def normalize_text(text):
-                        if isinstance(text, str):
-                            return text.strip().title()  # Convierte la primera letra en mayúsculas y el resto en minúsculas
-                        return text  # Si no es una cadena, devuelve el valor original
-
-                    puerto_name = normalize_text(buque_row['Puerto'])
+                    # Normalización de otros campos, como el puerto
+                    puerto_name = self.normalize_text(buque_row['Puerto'])
 
                     eta = EtaCiudad(
                         tripulante_id=tripulante_existente.tripulante_id,
-                        buque_id=buque_id,
+                        buque_id=tripulante_existente.buque_id,
                         puerto=puerto_name,
                         eta=eta_vessel,
                         etd=etd_vessel,
@@ -121,7 +114,6 @@ class Tripulantes:
                     self.db_session.rollback()  # Revertir cambios en caso de error en la fila
                     continue  # Continuar con la siguiente fila
 
-            # Retornar la lista de tripulantes y vuelos asociados
             return tripulantes, vuelos_tripulante
 
         except Exception as e:
@@ -129,6 +121,11 @@ class Tripulantes:
             ###traceback.print_exc()
             self.db_session.rollback()  # Revertir la sesión en caso de error crítico
             return [], []  # Devolver listas vacías en caso de error
+
+    def normalize_text(self, text):
+        if isinstance(text, str):
+            return text.strip().title()  # Convierte la primera letra en mayúsculas y el resto en minúsculas
+        return text  # Si no es una cadena, devuelve el valor original
 
     def read_all_rows(self, data, start_row, column_range, column_names):
         # Leer todas las filas a partir de una fila específica, incluyendo filas con celdas vacías.

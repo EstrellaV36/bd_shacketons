@@ -12,6 +12,7 @@ from sqlalchemy.sql import case
 from app.database import get_db_session
 from app.models import Buque, EtaCiudad, Tripulante, Viaje, Vuelo, TripulanteVuelo, Restaurante, TripulanteRestaurante, Transporte, TripulanteTransporte, Hotel, TripulanteHotel, Buque, TripulanteAsistencia
 
+from PyQt6.QtCore import QAbstractTableModel
 
 class VisualizacionDatosScreen(QWidget):
     def __init__(self, controller, main_window):
@@ -133,7 +134,7 @@ class VisualizacionDatosScreen(QWidget):
                 ).label("Fecha relevante"),
                 EtaCiudad.eta.label("ETA Vessel"),
                 EtaCiudad.etd.label("ETD Vessel"),
-                EtaCiudad.ciudad.label("Puerto"),  
+                EtaCiudad.puerto.label("Puerto"),  
                 Tripulante.nombre.label("First name"),
                 Tripulante.apellido.label("Last name"),
                 Tripulante.condicion.label("Condition")
@@ -141,7 +142,13 @@ class VisualizacionDatosScreen(QWidget):
             .join(EtaCiudad, Viaje.eta_id == EtaCiudad.eta_id) \
             .join(Tripulante, Viaje.tripulante_id == Tripulante.tripulante_id) \
             .filter(func.lower(Buque.nombre) == func.lower(selected_buque.strip()))
-            
+
+            # Ejecutar la consulta y obtener los resultados como una lista
+            buque_data = buque_data.all()
+
+            # Verificar si la consulta retorna datos
+            print(f"Datos obtenidos para {selected_buque}: {len(buque_data)} registros")
+
             # Dividir los datos en ON y OFF
             on_data = [row for row in buque_data if row.Estado == "ON"]
             off_data = [row for row in buque_data if row.Estado == "OFF"]
@@ -160,3 +167,63 @@ class VisualizacionDatosScreen(QWidget):
             print(f"Error al cargar datos: {e}")
         finally:
             session.close()
+
+    def show_data_in_tab(self, data, table_view, columns, puerto_label):
+        """Convierte los datos a un DataFrame y los muestra en el QTableView."""
+        if not data:
+            print(f"No hay datos para mostrar en la pestaña {puerto_label}")
+            return
+
+        df = pd.DataFrame(data, columns=columns)
+        
+        # Normalización de las fechas
+        df['ETA Vessel'] = pd.to_datetime(df['ETA Vessel'], errors='coerce').dt.strftime('%d-%m-%Y')
+        df['ETD Vessel'] = pd.to_datetime(df['ETD Vessel'], errors='coerce').dt.strftime('%d-%m-%Y')
+
+        model = PandasModel(df)
+        table_view.setModel(model)
+        
+        # Configura el estilo de la tabla
+        table_view.resizeColumnsToContents()
+        table_view.setAlternatingRowColors(True)
+        table_view.setStyleSheet("""
+            QTableView {
+                gridline-color: #00272d;
+                background-color: white;
+                alternate-background-color: #f9f9f9;
+                font-size: 14px;
+                font-family: Arial, sans-serif;
+                color: #00272d;
+                selection-background-color: #134647;
+                selection-color: white;
+            }
+            QHeaderView::section {
+                background-color: #134647;
+                color: white;
+                font-weight: bold;
+            }
+        """)
+
+    class PandasModel(QAbstractTableModel):
+        def __init__(self, data: pd.DataFrame):
+            super().__init__()
+            self._data = data
+
+        def rowCount(self, parent=None):
+            return len(self._data)
+
+        def columnCount(self, parent=None):
+            return len(self._data.columns)
+
+        def data(self, index, role=Qt.ItemDataRole.DisplayRole):
+            if index.isValid():
+                if role == Qt.ItemDataRole.DisplayRole:
+                    return str(self._data.iloc[index.row(), index.column()])
+            return None
+
+        def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
+            if role == Qt.ItemDataRole.DisplayRole:
+                if orientation == Qt.Orientation.Horizontal:
+                    return self._data.columns[section]
+                else:
+                    return section + 1  # Índice de fila
