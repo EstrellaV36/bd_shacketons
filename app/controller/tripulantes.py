@@ -47,25 +47,17 @@ class Tripulantes:
                     nombre_normalizado = tripulante_row['First name'].strip().title()
                     apellido_normalizado = tripulante_row['Last name'].strip().title()
 
-                    # Validación de datos importantes
-                    if pd.isna(tripulante_row['Pasaporte']) or not tripulante_row['Pasaporte']:
-                        # Si el pasaporte está vacío, verificar por nombre, apellido e ID
-                        print(f"Pasaporte vacío en fila {i}. Verificando por nombre, apellido e ID.")
-                        
-                        # Realizamos la búsqueda normalizada
-                        tripulante_existente = self.db_session.query(Tripulante).filter(
-                            Tripulante.nombre == nombre_normalizado,
-                            Tripulante.apellido == apellido_normalizado,
-                        ).first()
-                    else:
-                        # Buscar si el tripulante ya existe por pasaporte
-                        tripulante_existente = self.db_session.query(Tripulante).filter_by(pasaporte=tripulante_row['Pasaporte']).first()
+                    # Verificar si ya existe un tripulante con el mismo nombre y apellido (independientemente de si tiene pasaporte o no)
+                    tripulante_existente = self.db_session.query(Tripulante).filter(
+                        Tripulante.nombre == nombre_normalizado,
+                        Tripulante.apellido == apellido_normalizado
+                    ).first()
 
-                    # Si no se encuentra el tripulante, lo creamos
+                    # Si no existe el tripulante, lo creamos
                     if not tripulante_existente:
                         tripulante = Tripulante(
-                            nombre=nombre_normalizado,  # Usamos el nombre normalizado
-                            apellido=apellido_normalizado,  # Usamos el apellido normalizado
+                            nombre=nombre_normalizado,
+                            apellido=apellido_normalizado,
                             sexo=tripulante_row['Gender'],
                             nacionalidad=tripulante_row['Nacionalidad'],
                             posicion=tripulante_row['Position'],
@@ -77,6 +69,18 @@ class Tripulantes:
                         self.db_session.add(tripulante)
                         self.db_session.flush()  # Genera el tripulante_id sin hacer commit
                         tripulante_existente = tripulante  # Asignar a la variable existente
+                    else:
+                        # Si el tripulante ya existe, actualizamos los datos
+                        tripulante_existente.sexo = tripulante_row['Gender']
+                        tripulante_existente.nacionalidad = tripulante_row['Nacionalidad']
+                        tripulante_existente.posicion = tripulante_row['Position']
+                        tripulante_existente.condicion = buque_row['Condicion']
+                        tripulante_existente.fecha_nacimiento = pd.to_datetime(tripulante_row['DOB']).date() if not pd.isna(tripulante_row['DOB']) else tripulante_existente.fecha_nacimiento
+                        tripulante_existente.buque_id = self.buscar_buque_id(buque_row['Vessel'], buque_row['Owner'], self.db_session)
+
+                        # Si el tripulante ya existe y no tiene pasaporte, lo actualizamos con el nuevo pasaporte (si está presente)
+                        if tripulante_row['Pasaporte'] and not tripulante_existente.pasaporte:
+                            tripulante_existente.pasaporte = tripulante_row['Pasaporte']
 
                     # Datos de ETA
                     eta_vessel = pd.to_datetime(buque_row['ETA Vessel'], errors='coerce', format="%Y-%m-%d %H:%M:%S")
@@ -118,7 +122,6 @@ class Tripulantes:
 
         except Exception as e:
             print(f"Error general al crear tripulantes o encontrar vuelos: {e}")
-            ###traceback.print_exc()
             self.db_session.rollback()  # Revertir la sesión en caso de error crítico
             return [], []  # Devolver listas vacías en caso de error
 

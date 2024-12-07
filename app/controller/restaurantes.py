@@ -62,12 +62,14 @@ class Restaurantes:
                 ]
                 #print(f"Nombres de Restaurantes: {nombre_restaurantes}")  # Línea de depuración para los restaurantes
 
-                # Procesar cada servicio de comida
-                for i in range(1, 4):
-                    # Asegúrate de que el nombre del restaurante no sea None
-                    if not nombre_restaurantes[i - 1]:
-                        #print(f"No hay nombre de restaurante para Restaurante {i}, continuando...")
-                        continue
+                                # Procesar cada servicio de comida
+                # Asegurarse de que no se accede fuera de rango en los nombres de los restaurantes
+                for i in range(1, 4):  # Solo 3 restaurantes
+                    if i - 1 < len(nombre_restaurantes):  # Verifica si el índice existe
+                        nombre_restaurante = nombre_restaurantes[i - 1]
+                    else:
+                        continue  # Si no existe, saltar al siguiente ciclo
+
 
                     servicio_comida = restaurante_row[f'Restaurante {i}']['Servicio Comida']
                     if pd.isna(servicio_comida):
@@ -128,7 +130,7 @@ class Restaurantes:
                                 restaurante_id=restaurante.restaurante_id,
                                 fecha_reserva=fecha_desde,
                                 tipo_comida=tipo_comida,
-                                pref_alimenticia = preferencia_alimenticia if preferencia_alimenticia is not None else 'Desconocido'
+                                pref_alimenticia = preferencia_alimenticia if preferencia_alimenticia is not None else 'NORMAL' ##Todos con dieta normal a menos que se diga lo contrario
                             )
                             self.db_session.add(relacion)
                             self.db_session.flush()
@@ -137,7 +139,7 @@ class Restaurantes:
             self.db_session.commit()
 
         except Exception as e:
-            print(f"Error al guardar en la base de datos: {e}")
+            print(f"[RESTAURANTE _create] Error al guardar en la base de datos: {e}")
             ###traceback.print_exc()
             self.db_session.rollback()  # Asegúrate de revertir la sesión en caso de error
 
