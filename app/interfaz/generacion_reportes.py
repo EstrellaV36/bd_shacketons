@@ -3,9 +3,10 @@ from app.interfaz.programar.transportes import TransportesScreen
 from app.interfaz.programar.roomlist import RoomListScreen
 from app.interfaz.programar.hoteles import HotelScreen
 from app.interfaz.programar.alimentos import AlimentosScreen
-
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QPushButton, QHBoxLayout, QLabel
 from PyQt6.QtCore import Qt
+from app.interfaz.utils import setup_dynamic_button
+
 
 class GeneracionReportesScreen(QWidget):
     def __init__(self, main_window):
@@ -48,14 +49,14 @@ class GeneracionReportesScreen(QWidget):
 
         for boton_info in botones:
             boton = QPushButton(boton_info["texto"])
-            boton.setSizePolicy(self.main_window.sizePolicy())  # Aplica las políticas de tamaño global
+            setup_dynamic_button(boton, self.width())
             boton.clicked.connect(boton_info["callback"])
             layout_botones.addWidget(boton)
 
         layout.addLayout(layout_botones)
 
     def dummy_action(self):
-        print("Botón presionado")
+        print("Botón presionado!!!!")
 
     def mostrar_opciones_programar(self):
         opciones_programar_screen = OpcionesProgramarScreen(self.main_window)
@@ -77,7 +78,7 @@ class OpcionesProgramarScreen(QWidget):
 
         # Botón "Volver" para regresar a la pantalla anterior (Generación de Reportes)
         button_volver = QPushButton("Volver")
-        self.main_window.setup_dynamic_button(button_volver)  # Aplica tamaño dinámico
+        setup_dynamic_button(button_volver, self.width())  # Aplica tamaño dinámico
         button_volver.clicked.connect(self.volver_a_reportes)
         layout.addWidget(button_volver, alignment=Qt.AlignmentFlag.AlignLeft)
 
@@ -105,6 +106,7 @@ class OpcionesProgramarScreen(QWidget):
 
         for boton_info in botones:
             button = QPushButton(boton_info["texto"])
+            setup_dynamic_button(button, self.width())
             button.clicked.connect(boton_info["callback"])
             layout_botones.addWidget(button)
 
@@ -112,6 +114,7 @@ class OpcionesProgramarScreen(QWidget):
         layout.addLayout(layout_botones)
 
     def mostrar_asistencias(self):
+        print("Asistencias!!")
         asistencias_screen = AsistenciasScreen(self.main_window)
         asistencias_screen.opciones_programar_index = self.main_window.opciones_programar_index
         self.main_window.stacked_widget.addWidget(asistencias_screen)
@@ -138,5 +141,5 @@ class OpcionesProgramarScreen(QWidget):
         self.main_window.stacked_widget.setCurrentWidget(alimentos_screen)
 
     def volver_a_reportes(self):
-        print(f"Regresando a GeneracionReportesScreen con índice {self.main_window.generacion_reportes_index}")
+        #print(f"Regresando a GeneracionReportesScreen con índice {self.main_window.generacion_reportes_index}")
         self.main_window.stacked_widget.setCurrentIndex(self.main_window.generacion_reportes_index)

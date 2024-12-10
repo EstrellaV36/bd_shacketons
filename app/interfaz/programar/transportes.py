@@ -8,7 +8,7 @@ from app.models import Buque, EtaCiudad, Tripulante, Vuelo, TripulanteVuelo, Tra
 from app.controller.controllers import CITY_AIRPORT_CODES, CITY_TO_AIRPORT_CODES
 from openpyxl.styles import PatternFill
 from openpyxl import Workbook
-from openpyxl.styles import Font
+from openpyxl.styles import Font, Alignment, Side, Border
 from datetime import datetime, time, timedelta
 from sqlalchemy import func, and_, or_
 from collections import defaultdict
@@ -19,19 +19,19 @@ class TransportesScreen(QWidget):
         self.main_window = main_window
         self.setup_ui()
 
-        # print("Índices en stacked_widget:")
-        # for i in range(self.main_window.stacked_widget.count()):
-        #     print(f"Índice {i}: {self.main_window.stacked_widget.widget(i)}")
-
     def setup_ui(self):
         session = get_db_session()
         layout = QVBoxLayout(self)
 
-        self.label = QLabel("Requerimiento transportes")
-        font = QFont()
-        font.setPointSize(20)  # Tamaño de fuente
-        font.setBold(True)      # Negrita
-        self.label.setFont(font)
+        self.label = QLabel("REQUERIMIENTO TRANSPORTES")
+        self.label.setStyleSheet("""
+            font-size: 40px;  /* Tamaño de fuente */
+            font-weight: bold; /* Negrita */
+            color: #00272d;    /* Color del texto */
+            text-align: center; /* Centrar el texto horizontalmente */
+            margin-bottom: 20px; /* Espacio debajo del título */
+        """)
+
         layout.addWidget(self.label, alignment=Qt.AlignmentFlag.AlignCenter)  # Centrar el título
 
         layout.addSpacing(20)
@@ -70,10 +70,6 @@ class TransportesScreen(QWidget):
 
         layout.addLayout(layout_filtro)
 
-        # Label para mostrar asistencias
-        self.label = QLabel()  # Mover el label aquí para que sea un atributo de la clase
-        layout.addWidget(self.label)
-
         # Tabla para mostrar datos
         self.table_widget = QTableWidget()
         layout.addWidget(self.table_widget)
@@ -103,6 +99,10 @@ class TransportesScreen(QWidget):
 
     def actualizar_datos(self):
         ciudad_seleccionada = self.combo_ciudades.currentText()  # Obtiene la ciudad seleccionada
+        if ciudad_seleccionada != "Ciudad":
+            self.label.setText(f"REQUERIMIENTO TRANSPORTES EN {ciudad_seleccionada.upper()}")  # Actualiza el label
+        else:
+            self.label.setText(f"REQUERIMIENTO TRANSPORTES")  # Actualiza el label
 
         # Cargar datos en la tabla
         self.cargar_datos(ciudad_seleccionada)
@@ -138,17 +138,16 @@ class TransportesScreen(QWidget):
                 TripulanteTransporte.date_pickup.label("Fecha_Pickup"),
                 TripulanteTransporte.hours_pickup.label("Hora_Pickup")
             )
-            .join(Viaje, Viaje.tripulante_id == Tripulante.tripulante_id)
             .join(TripulanteTransporte, Tripulante.tripulante_id == TripulanteTransporte.tripulante_id)
-            .filter(Viaje.activo.is_(True))  # Filtrar viajes activos
-            .filter(
-                and_(
-                    func.lower(Transporte.city_in) == ciudad_seleccionada,
-                    Transporte.transporte_id == TripulanteTransporte.transporte_id
-                )
-            )
-            .distinct()
+            .join(Viaje, Tripulante.tripulante_id == Viaje.tripulante_id)
+            .filter(Transporte.transporte_id == TripulanteTransporte.transporte_id,
+                    Viaje.activo == 1)
+            .filter(and_(func.lower(Transporte.city_in) == ciudad_seleccionada),
+                    Transporte.transporte_id == TripulanteTransporte.transporte_id)
         )
+
+        for x in transporte_necesario:
+            print(x)
 
         if self.check_fecha.isChecked():
             transporte_necesario = transporte_necesario.filter(
@@ -166,6 +165,7 @@ class TransportesScreen(QWidget):
                 TripulanteHotel.fecha_salida.label("Check_Out")
             )
             .join(TripulanteHotel, Tripulante.tripulante_id == TripulanteHotel.tripulante_id)
+            .join(Viaje, Tripulante.tripulante_id == Viaje.tripulante_id)
             .filter(Hotel.hotel_id == TripulanteHotel.hotel_id)
             .filter(func.lower(Hotel.ciudad) == ciudad_seleccionada)
             .distinct()
@@ -187,6 +187,7 @@ class TransportesScreen(QWidget):
                 Vuelo.aeropuerto_llegada.label("Aeropuerto_Llegada")
             )
             .join(TripulanteVuelo, Tripulante.tripulante_id == TripulanteVuelo.tripulante_id)
+            .join(Viaje, Tripulante.tripulante_id == Viaje.tripulante_id)
             .filter(Vuelo.vuelo_id == TripulanteVuelo.vuelo_id)
             .filter(or_(
                 func.lower(Vuelo.aeropuerto_salida) == ciudad_seleccionada.lower(),
@@ -241,6 +242,9 @@ class TransportesScreen(QWidget):
             owner, buque, eta = buque_dict.get(tripulante_id, ("", "", ""))
 
             for transporte in transportes:
+                if transporte.Lugar_Transporte_in == "NAVE":
+                    print(f"{transporte.Lugar_Transporte_in}")
+
                 date_pickup = transporte.Fecha_Pickup
                 tramo = f"{transporte.Lugar_Transporte_in}-{transporte.Lugar_Transporte_end}"
                 city_select = CITY_AIRPORT_CODES.get(self.combo_ciudades.currentText(), "").lower()
@@ -342,8 +346,8 @@ class TransportesScreen(QWidget):
                             "ciudad_transporte_end": transporte.Ciudad_Transporte_end,
                             "lugar_transporte_end": transporte.Lugar_Transporte_end,
                             "codigo_vuelo": codigo,
-                            "fecha_vuelo": vuelo.Fecha.date(),
                             "hora_salida": None,
+                            "fecha_vuelo": vuelo.Fecha.date(),
                             "hora_llegada": vuelo.Hora_Llegada.time(),
                             "owner": owner,
                             "buque": buque,
@@ -352,8 +356,8 @@ class TransportesScreen(QWidget):
                             "last_name": transporte.Last_Name,
                             "nacionalidad": transporte.Nacionalidad
                         })
-                
-                elif 'ATO-NAVE' or 'NAVE-ATO' == tramo:
+
+                elif 'ATO-NAVE' == tramo or 'NAVE-ATO' == tramo or 'NAVE-HOTEL' == tramo:
                     vuelos_llegada = [v for v in vuelos if v.Aeropuerto_Llegada.lower() == city_select]
                     for vuelo in vuelos_llegada:
                         codigo = f"{str(vuelo.Codigo)} {CITY_TO_AIRPORT_CODES.get(vuelo.Aeropuerto_Salida)}-{CITY_TO_AIRPORT_CODES.get(vuelo.Aeropuerto_Llegada)}"
@@ -378,10 +382,11 @@ class TransportesScreen(QWidget):
                             "nacionalidad": transporte.Nacionalidad
                         })
 
+        
         data_rows = [row for row in data_rows if row["fecha_pickup"] is not None]
-
+                
         # Ordenar la lista de filas por `fecha_pickup`
-        data_rows = sorted(data_rows, key=lambda x: (x["fecha_pickup"], x["hora_pick_up"]))
+        data_rows = sorted(data_rows, key=lambda x: x["fecha_pickup"])
 
         # Insertar filas ordenadas en la tabla
         self.table_widget.setRowCount(len(data_rows))
@@ -460,44 +465,55 @@ class TransportesScreen(QWidget):
             # Escribir el texto final antes de la tabla
             ws.cell(row=1, column=1, value="Informe requerimientos transportes").font = Font(size=20, bold=True, underline="single")
 
-            # Definir el color de relleno para los encabezados (celeste claro)
-            header_fill = PatternFill(start_color='ADD8E6', end_color='ADD8E6', fill_type='solid')
-            # Definir el color de relleno para los datos (amarillo claro)
-            data_fill = PatternFill(start_color='FFFF99', end_color='FFFF99', fill_type='solid')
-
-            cell = ws.cell(row=2, column=1)
-            cell.value = "Date Pick Up"
-
+            # Escribir "Date Pick Up" y "Ciudad" en negrita
+            ws.cell(row=2, column=1, value="Date Pick Up").font = Font(bold=True)
             if self.check_fecha.isChecked():
                 fecha_inicio = self.date_start1.date().toPyDate()
-                fecha_fin = datetime.combine(self.date_end1.date().toPyDate(), time.max)
+                fecha_fin = self.date_end1.date().toPyDate()
+                ws.cell(row=2, column=2, value=f"({fecha_inicio}) - ({fecha_fin})")
             else:
-                fecha_inicio = None
-                fecha_fin = None
+                ws.cell(row=2, column=2, value="")
 
-            cell = ws.cell(row=2, column=2)
-            if fecha_inicio != None:
-                cell.value = f"({fecha_inicio}) - ({fecha_fin.date()})"
-            else:
-                cell.value = ""
+            ws.cell(row=3, column=1, value="Ciudad").font = Font(bold=True)
+            ws.cell(row=3, column=2, value=ciudad_seleccionada)
 
-            cell = ws.cell(row=3, column=1)
-            cell.value = "Ciudad"
-            cell = ws.cell(row=3, column=2)
-            cell.value = CITY_AIRPORT_CODES.get(ciudad_seleccionada)
+            # Definir estilos de borde, relleno y alineación
+            thin_border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
+            header_fill = PatternFill(start_color='ADD8E6', end_color='ADD8E6', fill_type='solid')
+            data_fill = PatternFill(start_color='FFFF99', end_color='FFFF99', fill_type='solid')
 
-            # Escribir los encabezados del DataFrame manualmente
+            # Escribir los encabezados de la tabla
             for col_num, col_name in enumerate(headers, 1):
                 cell = ws.cell(row=5, column=col_num)
                 cell.value = col_name
-                cell.fill = header_fill  # Aplicar color a los encabezados
+                cell.fill = header_fill
+                cell.font = Font(bold=True)
+                cell.alignment = Alignment(horizontal="center", vertical="center")
+                cell.border = thin_border
 
-            # Escribir los datos del DataFrame y aplicar color a las celdas
+            # Escribir los datos y aplicar estilos
             for row_num, row_data in enumerate(df.values, start=6):
                 for col_num, cell_value in enumerate(row_data, 1):
                     cell = ws.cell(row=row_num, column=col_num)
                     cell.value = cell_value
-                    cell.fill = data_fill  # Aplicar color a los datos
+                    cell.fill = data_fill
+                    cell.border = thin_border
+
+            for col in ws.columns:
+                max_length = 0
+                column = col[0].column_letter  # Obtener la letra de la columna
+
+                for cell in col[1:]:  # Empezar desde el índice 1, que corresponde a la fila 2 en Excel 
+                    try:
+                        if len(str(cell.value)) > max_length:
+                            max_length = len(str(cell.value))
+                    except:
+                        pass
+
+                # Ajustar el ancho de la columna en base al contenido
+                adjusted_width = max_length + 1
+                ws.column_dimensions[column].width = adjusted_width
+
 
             # Guardar el archivo Excel con colores aplicados
             wb.save(file_path)

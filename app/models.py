@@ -26,7 +26,8 @@ class EtaCiudad(Base):
     eta_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     buque_id: Mapped[int] = mapped_column(ForeignKey("buques.buque_id"))
     tripulante_id: Mapped[int] = mapped_column(ForeignKey("tripulantes.tripulante_id"))
-    ciudad: Mapped[str] = mapped_column(String, nullable=False)  # PUQ, SCL, WPU, etc.
+    puerto: Mapped[str] = mapped_column(String, nullable=True)
+
     date_arrive_cl: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     date_first_flight: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     eta: Mapped[datetime] = mapped_column(DateTime, nullable=False)
@@ -43,8 +44,6 @@ class Buque(Base):
     buque_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     nombre: Mapped[str] = mapped_column(String, nullable=False)
     empresa: Mapped[str] = mapped_column(String, nullable=False)
-    cobrar_a: Mapped[str] = mapped_column(String, nullable=True) #ver donde correspondería poner a quien cobrar
-    ciudad: Mapped[str] = mapped_column(String, nullable=False)
     
     etas: Mapped[list["EtaCiudad"]] = relationship(back_populates="buque")
     tripulantes: Mapped[list["Tripulante"]] = relationship(back_populates="buque")
@@ -59,17 +58,15 @@ class Tripulante(Base):
     tripulante_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     nombre: Mapped[str] = mapped_column(String, nullable=False)
     apellido: Mapped[str] = mapped_column(String, nullable=False)
-    nacionalidad: Mapped[str] = mapped_column(String, nullable=False)
-    pasaporte: Mapped[str] = mapped_column(String, nullable=False)
-    sexo: Mapped[str] = mapped_column(String(1), nullable=False)
-    fecha_nacimiento: Mapped[date] = mapped_column(Date, nullable=False)
+    nacionalidad: Mapped[str] = mapped_column(String, nullable=True)
+    pasaporte: Mapped[str] = mapped_column(String, nullable=True)
+    sexo: Mapped[str] = mapped_column(String(1), nullable=True)
+    fecha_nacimiento: Mapped[date] = mapped_column(Date, nullable=True)
     posicion: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     condicion: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    puerto_desembarque: Mapped[str] = mapped_column(String, nullable=True)
     pref_alimenticia: Mapped[Optional[str]] = mapped_column(String, default='NORMAL')
 
     buque_id: Mapped[Optional[int]] = mapped_column(ForeignKey("buques.buque_id"))
-    tipo: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)  #Este no se si se mantiene porque es algo del viaje
 
     vuelos_asociados: Mapped[list["TripulanteVuelo"]] = relationship("TripulanteVuelo", back_populates="tripulante")
 

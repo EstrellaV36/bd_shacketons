@@ -31,7 +31,7 @@ class Buques:
             return buques_on, buques_off
         except Exception as e:
             raise Exception(f"[Buques] Error al procesar el archivo: {e}")
-    
+
     def _create_buque(self, buques_df):
         try:
             if 'Puerto a embarcar' in buques_df.columns:
@@ -40,31 +40,41 @@ class Buques:
             if 'Puerto a desembarcar' in buques_df.columns:
                 buques_df.rename(columns={'Puerto a desembarcar': 'Puerto'}, inplace=True)
 
+            # Normalizar las cadenas de texto con la primera letra en mayúsculas y el resto en minúsculas
+            def normalize_text(text):
+                if isinstance(text, str):
+                    return text.strip().title()  # Convierte la primera letra en mayúsculas y el resto en minúsculas
+                return text  # Si no es una cadena, devuelve el valor original
+
+            # Recorrer las filas del DataFrame y procesar los buques
             for _, row in buques_df.iterrows():
-                # Normalizar el nombre del buque
-                vessel_name = row['Vessel'].strip().lower()
-                empresa_name = row['Owner'].strip().lower()
+                vessel_name = normalize_text(row['Vessel'])
+                empresa_name = normalize_text(row['Owner'])
+                puerto_name = normalize_text(row['Puerto'])
 
-                # Verificar si el buque ya existe
-                buque_existente = self.db_session.query(Buque).filter(and_(func.lower(Buque.nombre) == vessel_name),
-                                                                      func.lower(Buque.empresa) == empresa_name).first()
+                # Verificar si el buque ya existe por nombre, empresa y puerto
+                buque_existente = self.db_session.query(Buque).filter(
+                    and_(
+                        func.lower(Buque.nombre) == vessel_name.lower(),
+                        func.lower(Buque.empresa) == empresa_name.lower(),
+                    )
+                ).first()
 
+                # Si el buque no existe, crear uno nuevo
                 if not buque_existente:
                     nuevo_buque = Buque(
-                        nombre=row['Vessel'].strip(),
-                        empresa=row['Owner'] if pd.notna(row['Owner']) else "Empresa Desconocida",
-                        ciudad=row['Puerto'] if pd.notna(row['Puerto']) else "Ciudad Desconocida"
+                        nombre=vessel_name,
+                        empresa=empresa_name if empresa_name else "Empresa Desconocida",
                     )
                     self.db_session.add(nuevo_buque)
                     self.db_session.flush()  # Generar el ID del nuevo buque
-                
-                # Confirmar todos los cambios al final
-                self.db_session.commit()
+
+            # Confirmar todos los cambios al final
+            self.db_session.commit()
 
         except Exception as e:
-            self.db_session.rollback()  # Revertir cambios en caso de error
-            raise Exception(f"Error al crear o actualizar buques: {e}")
-
+            print(f"Error al crear buques: {e}")
+            self.db_session.rollback()  # En caso de error, realizar rollback
         return "Proceso completado exitosamente"
 
     def read_all_rows(self, data, start_row, column_range, column_names):

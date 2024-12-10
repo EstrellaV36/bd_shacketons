@@ -22,7 +22,7 @@ class AsistenciasScreen(QWidget):
         layout = QVBoxLayout(self)
 
         # Label para mostrar asistencias
-        self.label = QLabel("ASISTENCIAS")  # Mover el label aquí para que sea un atributo de la clase
+        self.label = QLabel("ASISTENCIAS")
         self.label.setStyleSheet("""
             font-size: 40px;  /* Tamaño de fuente */
             font-weight: bold; /* Negrita */
@@ -36,7 +36,7 @@ class AsistenciasScreen(QWidget):
 
         # Llenar el combo de ciudades desde la base de datos
         self.combo_ciudades = QComboBox()
-        self.combo_ciudades.addItem("Ciudad")  # Agregar un valor por defecto
+        self.combo_ciudades.addItem("Ciudad")
         ciudades = session.query(Hotel.ciudad).distinct().all()  # Consulta para obtener las ciudades únicas
         for ciudad in ciudades:
             self.combo_ciudades.addItem(ciudad.ciudad)
@@ -49,11 +49,28 @@ class AsistenciasScreen(QWidget):
         self.tipo_tripulante.addItems(["AMBOS", "ON", "OFF"])  
         layout.addWidget(self.tipo_tripulante)
 
-        # Cuadro de selección de tipo tripulante
         self.combo_proveedor = QComboBox()
-        self.combo_proveedor.addItem("Proveedor")  # Agregar un valor por defecto
-        self.combo_proveedor.addItems(["C&L", "FBAGS", "SHACK", "WPU"])  
+        proveedores = session.query(TripulanteAsistencia.proveedor_puq, 
+                                    TripulanteAsistencia.proveedor_scl,
+                                    TripulanteAsistencia.proveedor_wpu).distinct().all()
+
+        self.combo_proveedor.addItem("Proveedor")  # Primer item como texto predeterminado
+        proveedores_unicos = set()
+        for proveedor in proveedores:
+            for proveedor_ciudad in proveedor:
+                if proveedor_ciudad and proveedor_ciudad not in proveedores_unicos:
+                    self.combo_proveedor.addItem(proveedor_ciudad)
+                    proveedores_unicos.add(proveedor_ciudad)  # Agregar al set para evitar duplicados
+                    print(proveedor_ciudad)
         layout.addWidget(self.combo_proveedor)
+
+        # Cuadro de selección de buque
+        self.combo_owner = QComboBox()
+        self.combo_owner.addItems(["Owner"])
+        owners = session.query(Buque.empresa).distinct().all()  # Consulta para obtener los nombres de los buques
+        for owner in owners:
+            self.combo_owner.addItem(owner.empresa)
+        layout.addWidget(self.combo_owner)
 
         self.check_fecha = QCheckBox("Habilitar filtro por fechas")
         self.check_fecha.setChecked(False)  # Inicialmente deshabilitado
@@ -116,13 +133,15 @@ class AsistenciasScreen(QWidget):
         ciudad_seleccionada = self.combo_ciudades.currentText()  # Obtiene la ciudad seleccionada
         proveedor_seleccionado = self.combo_ciudades.currentText()
         tipo_tripulante = self.tipo_tripulante.currentText()
+        owner_seleccionado = self.combo_owner.currentText()
+
         if ciudad_seleccionada.lower() != "ciudad":
             self.label.setText(f"ASISTENCIAS EN {ciudad_seleccionada.upper()}")  # Actualiza el label
         else:
             self.label.setText(f"ASISTENCIAS")  # Actualiza el label
 
         # Cargar datos en la tabla
-        self.cargar_datos(ciudad_seleccionada, proveedor_seleccionado, tipo_tripulante)
+        self.cargar_datos(ciudad_seleccionada, proveedor_seleccionado, tipo_tripulante, owner_seleccionado)
 
     def toggle_fechas(self, state):
         enabled = state == Qt.CheckState.Checked  # Verificar si el checkbox está marcado
@@ -132,7 +151,7 @@ class AsistenciasScreen(QWidget):
         self.date_start1.setCalendarPopup(enabled)
         self.date_end1.setCalendarPopup(enabled)
 
-    def cargar_datos(self, ciudad_seleccionada, proveedor_seleccionado, tipo_tripulante):
+    def cargar_datos(self, ciudad_seleccionada, proveedor_seleccionado, tipo_tripulante, owner):
         session = get_db_session()  # Obtener la sesión de la base de datos
 
         # Obtener el nombre de la ciudad a partir del código
@@ -166,6 +185,10 @@ class AsistenciasScreen(QWidget):
             .filter(Vuelo.aeropuerto_llegada == ciudad_seleccionada)
         )
 
+        # Filtrar por proveedor si se ha seleccionado uno
+        if owner != "Owner":  # Comprobar que no sea el valor por defecto
+            arribo_vuelos_query = arribo_vuelos_query.filter(Buque.empresa == owner)
+
         # Aplicar filtro de ETA por rango de fechas si está habilitado
         if self.check_fecha.isChecked():
             arribo_vuelos_query = arribo_vuelos_query.filter(
@@ -175,7 +198,6 @@ class AsistenciasScreen(QWidget):
 
         # Ejecutar la consulta
         arribo_vuelos = arribo_vuelos_query.all()
-        # Construir un diccionario para almacenar la información de los tripulantes
         tripulantes_info = {}
 
         vuelos_dict = defaultdict(lambda: {
@@ -233,6 +255,10 @@ class AsistenciasScreen(QWidget):
             .all()
         )
 
+        # Filtrar por proveedor si se ha seleccionado uno
+        if owner != "Owner":  # Comprobar que no sea el valor por defecto
+            salida_vuelos = salida_vuelos.filter(Buque.empresa == owner)
+
         # Agregar la información de vuelos de salida al diccionario
         for salida in salida_vuelos:
             tripulante_id = salida.tripulante_id
@@ -250,6 +276,10 @@ class AsistenciasScreen(QWidget):
 
                 })
 
+        # Obtener los tripulantes que están involucrados en vuelos de arribo o salida en la ciudad seleccionada
+        tripulantes_ids = {arribo.tripulante_id for arribo in arribo_vuelos}  # Obtener tripulantes de vuelos de arribo
+        tripulantes_ids.update({salida.tripulante_id for salida in salida_vuelos})  # Agregar tripulantes de vuelos de salida
+
         # Construir la consulta de transporte
         transporte_necesario = (
             session.query(
@@ -266,11 +296,11 @@ class AsistenciasScreen(QWidget):
             )
             .join(TripulanteTransporte, Tripulante.tripulante_id == TripulanteTransporte.tripulante_id)
             .join(Viaje, Tripulante.tripulante_id == Viaje.tripulante_id)
+            .filter(Tripulante.tripulante_id.in_(tripulantes_ids))  # Filtrar solo los tripulantes de vuelos en la ciudad seleccionada
             .group_by(Tripulante.tripulante_id, Viaje.estado, Tripulante.nombre, Tripulante.apellido, Tripulante.nacionalidad)
         )
 
         resultados_transporte = transporte_necesario.all()
-        # Agregar la información de transporte al diccionario
         for resultado in resultados_transporte:
             tripulante_id = resultado.tripulante_id
             if tripulante_id in tripulantes_info:
@@ -475,6 +505,7 @@ class AsistenciasScreen(QWidget):
                         print(f"El tripulante con ID {tripulante_id} no tiene el campo 'Type' en su información: {info}")
                     elif info["Type"] != tipo_tripulante:
                         print(f"El tripulante con ID {tripulante_id} tiene 'Type' distinto a '{tipo_tripulante}': {info['Type']}")
+
         
         # Filtrar por proveedor si se ha seleccionado uno
         proveedor_seleccionado = self.combo_proveedor.currentText()  # Obtener proveedor seleccionado
@@ -489,6 +520,7 @@ class AsistenciasScreen(QWidget):
             tripulante_id: info for tripulante_id, info in tripulantes_info.items()
             if info.get("First_Name") or info.get("Last_Name") or info.get("Vessel")  # Puedes ajustar según el criterio
         }
+
 
         headers = [
             "Owner", "Vessel", "ETA", "First Name", "Last Name", "Condition", "Type", "Proveedor", "Asistencia", "Transporte",
@@ -557,8 +589,6 @@ class AsistenciasScreen(QWidget):
                 info.get("Hora_Vuelo_Salida", "").strftime("%H:%M") if isinstance(info.get("Hora_Vuelo_Salida", ""), datetime) else ""
             ))
 
-
-    # Mantén las funciones de formateo separadas
     def format_date(self, value):
         """Convierte un valor datetime a solo la fecha."""
         if isinstance(value, datetime):

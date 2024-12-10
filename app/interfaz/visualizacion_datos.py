@@ -12,6 +12,7 @@ from sqlalchemy.sql import case
 from app.database import get_db_session
 from app.models import Buque, EtaCiudad, Tripulante, Viaje, Vuelo, TripulanteVuelo, Restaurante, TripulanteRestaurante, Transporte, TripulanteTransporte, Hotel, TripulanteHotel, Buque, TripulanteAsistencia
 
+from PyQt6.QtCore import QAbstractTableModel
 
 class VisualizacionDatosScreen(QWidget):
     def __init__(self, controller, main_window):
@@ -25,7 +26,6 @@ class VisualizacionDatosScreen(QWidget):
         self.setup_ui()
 
     def setup_ui(self):
-        session = get_db_session()
         layout = QVBoxLayout(self)
 
         # Botón "Volver"
@@ -37,26 +37,17 @@ class VisualizacionDatosScreen(QWidget):
         # ComboBox para seleccionar la ciudad
         self.city_combo_box = QComboBox()
         self.city_combo_box.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-
-        self.city_combo_box.addItem("Ciudad")
-        ciudades = session.query(Buque.ciudad).distinct().all()  # Consulta para obtener las ciudades únicas
-        for ciudad in ciudades:
-            self.city_combo_box.addItem(ciudad.ciudad)
-        layout.addWidget(self.city_combo_box)
-
+        self.city_combo_box.addItem("Ciudad")  # Valor predeterminado
+        ciudades = self.get_city_list()
+        self.city_combo_box.addItems(ciudades)
         self.city_combo_box.currentIndexChanged.connect(self.load_existing_data)
         layout.addWidget(QLabel("Ciudad"))
         layout.addWidget(self.city_combo_box)
 
+        # ComboBox para seleccionar el buque
         self.buque_combo_box = QComboBox()
         self.buque_combo_box.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-
-        self.buque_combo_box.addItem("Vessel")
-        buques = session.query(Buque.nombre).distinct().all()  # Consulta para obtener los nombres de los buques
-        for buque in buques:
-            self.buque_combo_box.addItem(buque.nombre)
-        layout.addWidget(self.buque_combo_box)
-
+        self.buque_combo_box.addItem("Vessel")  # Valor predeterminado
         self.buque_combo_box.currentIndexChanged.connect(self.load_existing_data)  # Conectar la señal
         layout.addWidget(QLabel("Vessel"))
         layout.addWidget(self.buque_combo_box)
@@ -81,6 +72,42 @@ class VisualizacionDatosScreen(QWidget):
         self.off_layout.addWidget(self.off_table_view)
 
         self.setLayout(layout)
+        self.load_buques()
+
+    def get_city_list(self):
+        """Obtiene la lista de ciudades asociadas a los buques en la tabla Buque."""
+        try:
+            session = get_db_session()
+            ciudades = session.query(EtaCiudad.puerto).distinct()
+            
+            ciudades_unicas = sorted({ciudad[0] for ciudad in ciudades if ciudad[0]})
+            
+            if ciudades_unicas:
+                return ciudades_unicas
+            else:
+                return ["No hay ciudades disponibles"]
+        except SQLAlchemyError as e:
+            print(f"Error al obtener las ciudades: {e}")
+            return ["Error al cargar ciudades"]
+        finally:
+            session.close()
+
+    def load_buques(self):
+        """Carga la lista de buques en el ComboBox, eliminando duplicados."""
+        try:
+            session = get_db_session()
+            # Obtener los nombres de buques únicos
+            buques = session.query(Buque.nombre).distinct().all()
+            unique_buques = sorted({buque[0] for buque in buques})  # Usar conjunto para eliminar duplicados
+            if unique_buques:
+                self.buque_combo_box.addItems(unique_buques)
+            else:
+                self.buque_combo_box.addItem("No hay buques disponibles")
+        except SQLAlchemyError as e:
+            print(f"Error al obtener los buques: {e}")
+            self.buque_combo_box.addItem("Error al cargar buques")
+        finally:
+            session.close()
 
     def volver_al_menu_principal(self):
         """Vuelve al menú principal."""
@@ -89,19 +116,14 @@ class VisualizacionDatosScreen(QWidget):
     def load_existing_data(self):
         """Carga los datos de buques ON y OFF y los muestra en diferentes pestañas."""
         selected_buque = self.buque_combo_box.currentText()
-        selected_city = self.city_combo_box.currentText()
-
-        # Validar si hay un buque seleccionado y la ciudad no es el valor predeterminado
         if not selected_buque or selected_buque == "No hay buques disponibles":
             return
-        if not selected_city or selected_city == "Ciudad":
-            selected_city = None  # No aplicar filtro de ciudad si es el valor predeterminado
 
         try:
             session = get_db_session()
 
-            # Construir consulta básica
-            query = session.query(
+            # Consulta para obtener todos los datos del buque seleccionado
+            buque_data = session.query(
                 Buque.nombre.label("Vessel"),
                 Viaje.estado.label("Estado"),
                 Viaje.activo.label("Activo"),
@@ -112,7 +134,7 @@ class VisualizacionDatosScreen(QWidget):
                 ).label("Fecha relevante"),
                 EtaCiudad.eta.label("ETA Vessel"),
                 EtaCiudad.etd.label("ETD Vessel"),
-                EtaCiudad.ciudad.label("Puerto"),  
+                EtaCiudad.puerto.label("Puerto"),  
                 Tripulante.nombre.label("First name"),
                 Tripulante.apellido.label("Last name"),
                 Tripulante.condicion.label("Condition")
@@ -120,13 +142,12 @@ class VisualizacionDatosScreen(QWidget):
             .join(EtaCiudad, Viaje.eta_id == EtaCiudad.eta_id) \
             .join(Tripulante, Viaje.tripulante_id == Tripulante.tripulante_id) \
             .filter(func.lower(Buque.nombre) == func.lower(selected_buque.strip()))
-            
-            # Aplicar filtro de ciudad si está seleccionado
-            if selected_city:
-                query = query.filter(func.lower(EtaCiudad.ciudad) == func.lower(selected_city.strip()))
 
-            # Ejecutar la consulta
-            buque_data = query.all()
+            # Ejecutar la consulta y obtener los resultados como una lista
+            buque_data = buque_data.all()
+
+            # Verificar si la consulta retorna datos
+            print(f"Datos obtenidos para {selected_buque}: {len(buque_data)} registros")
 
             # Dividir los datos en ON y OFF
             on_data = [row for row in buque_data if row.Estado == "ON"]
@@ -147,34 +168,62 @@ class VisualizacionDatosScreen(QWidget):
         finally:
             session.close()
 
+    def show_data_in_tab(self, data, table_view, columns, puerto_label):
+        """Convierte los datos a un DataFrame y los muestra en el QTableView."""
+        if not data:
+            print(f"No hay datos para mostrar en la pestaña {puerto_label}")
+            return
 
-    def show_data_in_tab(self, data, table_view, headers, puerto_label):
-        """Muestra los datos en un QTableView dentro de una pestaña."""
-        if data:
-            # Convertir la lista de resultados a un DataFrame
-            formatted_data = []
-            for row in data:
-                formatted_row = {}
-                for col in headers:
-                    value = getattr(row, col, None)
-                    # Formatear fecha para ETA y ETD
-                    if col in ["ETA Vessel", "ETD Vessel"] and isinstance(value, datetime):
-                        value = value.strftime('%Y-%m-%d')
-                    # Convertir "Activo" a "SI" o "NO"
-                    if col == "Activo":
-                        value = "SI" if value else "NO"
-                    formatted_row[col] = value
-                formatted_data.append(formatted_row)
+        df = pd.DataFrame(data, columns=columns)
+        
+        # Normalización de las fechas
+        df['ETA Vessel'] = pd.to_datetime(df['ETA Vessel'], errors='coerce').dt.strftime('%d-%m-%Y')
+        df['ETD Vessel'] = pd.to_datetime(df['ETD Vessel'], errors='coerce').dt.strftime('%d-%m-%Y')
 
-            df = pd.DataFrame(formatted_data, columns=headers)
+        model = PandasModel(df)
+        table_view.setModel(model)
+        
+        # Configura el estilo de la tabla
+        table_view.resizeColumnsToContents()
+        table_view.setAlternatingRowColors(True)
+        table_view.setStyleSheet("""
+            QTableView {
+                gridline-color: #00272d;
+                background-color: white;
+                alternate-background-color: #f9f9f9;
+                font-size: 14px;
+                font-family: Arial, sans-serif;
+                color: #00272d;
+                selection-background-color: #134647;
+                selection-color: white;
+            }
+            QHeaderView::section {
+                background-color: #134647;
+                color: white;
+                font-weight: bold;
+            }
+        """)
 
-            # Cambiar el encabezado de 'Puerto' dinámicamente
-            df.rename(columns={"Puerto": puerto_label}, inplace=True)
+    class PandasModel(QAbstractTableModel):
+        def __init__(self, data: pd.DataFrame):
+            super().__init__()
+            self._data = data
 
-            model = PandasModel(df)
-            table_view.setModel(model)
-            table_view.resizeColumnsToContents()
-        else:
-            # Mostrar tabla vacía
-            empty_model = PandasModel(pd.DataFrame(columns=headers))
-            table_view.setModel(empty_model)
+        def rowCount(self, parent=None):
+            return len(self._data)
+
+        def columnCount(self, parent=None):
+            return len(self._data.columns)
+
+        def data(self, index, role=Qt.ItemDataRole.DisplayRole):
+            if index.isValid():
+                if role == Qt.ItemDataRole.DisplayRole:
+                    return str(self._data.iloc[index.row(), index.column()])
+            return None
+
+        def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
+            if role == Qt.ItemDataRole.DisplayRole:
+                if orientation == Qt.Orientation.Horizontal:
+                    return self._data.columns[section]
+                else:
+                    return section + 1  # Índice de fila

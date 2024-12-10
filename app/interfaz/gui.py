@@ -7,6 +7,8 @@ from app.interfaz.visualizacion_datos import VisualizacionDatosScreen
 from app.interfaz.generacion_reportes import GeneracionReportesScreen
 from app.database import get_db_session
 from app.controller.controllers import Controller
+from app.interfaz.utils import setup_dynamic_button
+
 
 class BasicApp(QMainWindow):
     def __init__(self):
@@ -158,6 +160,28 @@ class BasicApp(QMainWindow):
                 font-size: 16px;
                 border: 0.5px solid #134647;
             }}
+            QProgressBar {{
+                border: 2px solid #bfac8b;  /* Usamos el color de borde definido */
+                text-align: center;
+                height: 30px;  /* Ajusta la altura */
+                width: 400px;  /* Ajusta el ancho */
+                background-color: #00272d;  /* Fondo gris oscuro para la barra */
+                color: #fff;  /* Color de texto blanco */
+                font-size: 14px;  /* Tamaño de texto */
+                font-family: Arial, sans-serif;  /* Fuente legible */
+            }}
+
+            QProgressBar::chunk {{
+                background-color: #3b8bba;  /* Color de progreso en azul vibrante */
+                width: 10px;  /* Ancho del chunk */
+            }}
+
+            QProgressBar::text {{
+                color: white;  /* Color de texto blanco dentro de la barra */
+                font-weight: bold;  /* Texto en negrita */
+                font-size: 16px;  /* Tamaño de fuente ajustado */
+            }}
+
         """
         
         self.setStyleSheet(app_stylesheet)
@@ -218,19 +242,19 @@ class BasicApp(QMainWindow):
 
         # Botón Carga Masiva
         button_carga_masiva = QPushButton("Carga masiva")
-        self.setup_dynamic_button(button_carga_masiva)
+        setup_dynamic_button(button_carga_masiva, self.width())
         button_carga_masiva.clicked.connect(lambda: self.stacked_widget.setCurrentWidget(self.carga_masiva_screen))
         layout.addWidget(button_carga_masiva, alignment=Qt.AlignmentFlag.AlignHCenter)
 
         # Botón Visualización de los datos
         button_visualizacion_datos = QPushButton("Visualización de datos")
-        self.setup_dynamic_button(button_visualizacion_datos)
+        setup_dynamic_button(button_visualizacion_datos, self.width())
         button_visualizacion_datos.clicked.connect(lambda: self.stacked_widget.setCurrentWidget(self.visualizacion_datos_screen))
         layout.addWidget(button_visualizacion_datos, alignment=Qt.AlignmentFlag.AlignHCenter)
 
         # Botón Generación de Reportes
         button_generacion_reportes = QPushButton("Generación de reportes")
-        self.setup_dynamic_button(button_generacion_reportes)
+        setup_dynamic_button(button_generacion_reportes, self.width())
         button_generacion_reportes.clicked.connect(lambda: self.stacked_widget.setCurrentWidget(self.generacion_reportes_screen))
         layout.addWidget(button_generacion_reportes, alignment=Qt.AlignmentFlag.AlignHCenter)
 
@@ -238,20 +262,3 @@ class BasicApp(QMainWindow):
         layout.addStretch()
 
         return main_menu_widget
-
-    def setup_dynamic_button(self, button):
-        """Configura el tamaño dinámico de los botones."""
-        button.setMinimumWidth(int(self.width() * 0.2))  # Convertir a entero
-        button.setMaximumWidth(300)  # Ancho máximo para evitar desbordamientos
-        button.setFixedHeight(60)  # Altura fija
-        button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        button.repaint()  # Forzar renderizado del botón (opcional, pero puedes dejarlo)
-
-    def resizeEvent(self, event):
-        """Actualiza el tamaño de los botones cuando la ventana cambia de tamaño."""
-        for i in range(self.stacked_widget.count()):
-            widget = self.stacked_widget.widget(i)
-            if isinstance(widget, QWidget):
-                for button in widget.findChildren(QPushButton):
-                    button.setMinimumWidth(int(self.width() * 0.2))  # Convertir a entero
-        super().resizeEvent(event)
