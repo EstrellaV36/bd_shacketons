@@ -156,6 +156,7 @@ class BasicApp(QMainWindow):
                 border: 0.5px solid #134647;
             }}
             QTableWidget::item {{
+                color: #000000;
                 padding: 5px;
                 font-size: 16px;
                 border: 0.5px solid #134647;
@@ -170,7 +171,6 @@ class BasicApp(QMainWindow):
                 font-size: 14px;  /* Tamaño de texto */
                 font-family: Arial, sans-serif;  /* Fuente legible */
             }}
-
             QProgressBar::chunk {{
                 background-color: #3b8bba;  /* Color de progreso en azul vibrante */
                 width: 10px;  /* Ancho del chunk */
@@ -180,6 +180,40 @@ class BasicApp(QMainWindow):
                 color: white;  /* Color de texto blanco dentro de la barra */
                 font-weight: bold;  /* Texto en negrita */
                 font-size: 16px;  /* Tamaño de fuente ajustado */
+            }}
+
+            QCalendarWidget {{
+                font-size: 14px;
+            }}
+
+            QCalendarWidget QToolButton {{
+                color: #00272d; /* Color del texto */
+                font-size: 16px; /* Tamaño del texto para mes y año */
+                font-weight: bold; /* Negrita */
+                background-color: #f0f0f0; /* Fondo del botón */
+                border: none; /* Sin borde */
+            }}
+
+            QCalendarWidget QToolButton:hover {{
+                background-color: #e0e0e0; /* Fondo al pasar el ratón */
+            }}
+
+            /* Días que pertenecen al mes actual */
+            QCalendarWidget QAbstractItemView:enabled {{
+                color: #000000; /* Negro para días del mes actual */
+                font-size: 14px;
+            }}
+
+            /* Días que no pertenecen al mes actual */
+            QCalendarWidget QAbstractItemView:disabled {{
+                color: #808080; /* Gris para días fuera del mes actual */
+                font-size: 14px;
+            }}
+
+            /* Día seleccionado */
+            QCalendarWidget QAbstractItemView:selected {{
+                background-color: #0c7e7e; /* Fondo verde azulado */
+                color: white; /* Texto blanco */
             }}
 
         """

@@ -1,4 +1,5 @@
 import pandas as pd
+import calendar
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
 from app.models import Buque, Tripulante, Vuelo, EtaCiudad, Viaje
@@ -18,18 +19,19 @@ class Tripulantes:
             tripulantes_on = self.read_all_rows(excel_data_on, start_row=1, column_range=slice(10, 17), column_names=tripulante_columns)  
             tripulantes_on.reset_index(drop=True, inplace=True)
 
-            self.check_and_clean(tripulantes_on, file_path, "ON")
+            #self.check_and_clean(tripulantes_on, file_path, "ON")
 
             excel_data_off = pd.read_excel(file_path, sheet_name='OFF', header=None)
 
             tripulantes_off = self.read_all_rows(excel_data_off, start_row=1, column_range=slice(10, 17), column_names=tripulante_columns) 
             tripulantes_off.reset_index(drop=True, inplace=True)
 
-            self.check_and_clean(tripulantes_off, file_path, "OFF")
+            #self.check_and_clean(tripulantes_off, file_path, "OFF")
 
             return tripulantes_on, tripulantes_off
         except Exception as e:
-            raise Exception(f"[Tripulantes] Error al procesar el archivo: {e}")
+            #raise Exception(f"[Tripulantes] Error al procesar el archivo: {e}")
+            pass
 
     def _create_tripulantes(self, tripulantes_df, buque_df, estado):
         tripulantes = []  # Lista para almacenar los tripulantes creados
@@ -111,10 +113,10 @@ class Tripulantes:
                     tripulantes.append(tripulante_existente)
 
                 except Exception as row_error:
-                    print(f"[Tripulante] Error procesando fila {i}: {row_error}")
+                    #print(f"[Tripulante] Error procesando fila {i}: {row_error}")
                     # Imprimir el tripulante y el buque relacionados con la fila actual
-                    print(f"Datos del tripulante en fila {i}: {tripulantes_df.iloc[i].to_dict()}")
-                    print(f"Datos del buque en fila {i}: {buque_df.iloc[i].to_dict()}")
+                    #print(f"Datos del tripulante en fila {i}: {tripulantes_df.iloc[i].to_dict()}")
+                    #print(f"Datos del buque en fila {i}: {buque_df.iloc[i].to_dict()}")
                     self.db_session.rollback()  # Revertir cambios en caso de error en la fila
                     continue  # Continuar con la siguiente fila
 
@@ -186,22 +188,44 @@ class Tripulantes:
         file_path = file_path
         state = state
 
+        errors = []
+
         def clean_value(value):
             if isinstance(value, str):  # Verificar si es una cadena
-                print(f"Limpiando valor: {value}")
-                print(f"Resultado valor: {value.strip()}")
                 return value.strip()  # Eliminar espacios en blanco
             return value  # Dejar el valor tal como está si no es cadena
-        
+
+        def is_valid_date(date_str, date_format='%d/%m/%y'):
+            try:
+                # Intentar convertir la fecha usando Pandas
+                date = pd.to_datetime(date_str, format=date_format, errors='raise')
+                day, month, year = date.day, date.month, date.year
+
+                # Verificar si el día es válido para el mes y el año
+                last_day_of_month = calendar.monthrange(year, month)[1]
+                if day > last_day_of_month:
+                    return False  # Día fuera del rango permitido
+
+                return True  # La fecha es válida
+            except Exception:
+                return False  # Error de formato o conversión
+
         def validate_dates(tripulantes_df, column_name, file_path, state):
             for i, value in tripulantes_df[column_name].items():
-                if pd.isna(value):  # Verificar si el valor es NaT (equivalente a NaN para fechas)
-                    sheet_name = state
-                    column_name = column_name
+                error = tripulantes_df.loc[i][column_name]
 
-                    x = i + 2
+                # Determinar si la fecha es válida
+                if not is_valid_date(value):
+                    sheet_name = state
+                    x = i + 2  # Ajustar el índice a la fila de Excel (inicia en 1)
                     y = get_excel_column_letter(file_path, sheet_name, column_name)
-                    print(f"Error: Fecha inválida en la fila {x}, columna '{y}'. Valor: {value}")
+
+                    if isinstance(value, str) and '-' in value and len(value.split('-')) == 3:
+                        print(f"Error [Tripulante]: Fecha inexistente en la fila {x}, columna '{column_name} ({y})'. Valor: '{error}'")
+                        errors.append(i)
+                    elif not pd.isna(value):
+                        print(f"Error [Tripulante]: Formato de fecha incorrecto en la fila {x}, columna '{y}'. Valor: '{error}'")
+                        errors.append(i)
 
         def get_excel_column_letter(file_path, sheet_name, column_name):
             # Cargar el archivo y la hoja
@@ -216,8 +240,13 @@ class Tripulantes:
             
             raise ValueError(f"Columna con nombre '{column_name}' no encontrada en el archivo.")
 
+        # Limpiar los valores en la columna "DOB"
         tripulantes_df["DOB"] = tripulantes_df["DOB"].apply(clean_value)
 
-        tripulantes_df["DOB"] = pd.to_datetime(tripulantes_df["DOB"], format='%d/%m/%y', errors='coerce')
-        
+        # Validar y notificar errores antes de convertir las fechas
         validate_dates(tripulantes_df, "DOB", file_path, state)
+
+        # Convertir finalmente a datetime, asignando NaT para los valores inválidos
+        tripulantes_df["DOB"] = pd.to_datetime(tripulantes_df["DOB"], format='%d/%m/%y', errors='coerce')
+
+        return errors

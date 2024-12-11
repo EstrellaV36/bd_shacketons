@@ -33,7 +33,6 @@ class TransportesScreen(QWidget):
         """)
 
         layout.addWidget(self.label, alignment=Qt.AlignmentFlag.AlignCenter)  # Centrar el título
-
         layout.addSpacing(20)
 
         # Llenar el combo de ciudades desde la base de datos
@@ -43,7 +42,6 @@ class TransportesScreen(QWidget):
         ciudades = session.query(Transporte.city_in).distinct().all()  # Consulta para obtener las ciudades únicas
         for ciudad in ciudades:
             self.combo_ciudades.addItem(ciudad.city_in)
-            #print(ciudad.ciudad)
         layout.addWidget(self.combo_ciudades)
 
         self.check_fecha = QCheckBox("Habilitar filtro por fechas")
@@ -58,14 +56,14 @@ class TransportesScreen(QWidget):
         self.date_start1 = QDateEdit()
         self.date_start1.setCalendarPopup(True)
         self.date_start1.setDate(QDate.currentDate())
-        layout_filtro.addWidget(QLabel("Fecha inicio:"))
+        layout_filtro.addWidget(QLabel("Fecha inicio Pickup:"))
         layout_filtro.addWidget(self.date_start1)
 
         # Selector de fecha de fin
         self.date_end1 = QDateEdit()
         self.date_end1.setCalendarPopup(True)
         self.date_end1.setDate(QDate.currentDate())
-        layout_filtro.addWidget(QLabel("Fecha fin:"))
+        layout_filtro.addWidget(QLabel("Fecha fin Pickup:"))
         layout_filtro.addWidget(self.date_end1)
 
         layout.addLayout(layout_filtro)
@@ -118,7 +116,7 @@ class TransportesScreen(QWidget):
     def cargar_datos(self, ciudad_seleccionada):
         session = get_db_session()
         ciudad_seleccionada = str(ciudad_seleccionada).lower()
-        print(ciudad_seleccionada)
+        #print(ciudad_seleccionada)
 
         fecha_inicio = self.date_start1.date().toPyDate()
         fecha_fin = datetime.combine(self.date_end1.date().toPyDate(), time.max)
@@ -145,9 +143,6 @@ class TransportesScreen(QWidget):
             .filter(and_(func.lower(Transporte.city_in) == ciudad_seleccionada),
                     Transporte.transporte_id == TripulanteTransporte.transporte_id)
         )
-
-        for x in transporte_necesario:
-            print(x)
 
         if self.check_fecha.isChecked():
             transporte_necesario = transporte_necesario.filter(
@@ -214,8 +209,6 @@ class TransportesScreen(QWidget):
         vuelo_necesario = vuelo_necesario.all()
         buque_necesario = buque_necesario.all()
 
-        #print(buque_necesario)
-
         # Organizar vuelos y transportes por tripulante_id
         transporte_dict = defaultdict(list)
         for transporte in transporte_necesario:
@@ -233,6 +226,7 @@ class TransportesScreen(QWidget):
         self.table_widget.setHorizontalHeaderLabels(headers)
         self.table_widget.setRowCount(0)
 
+        self.table_widget.resizeColumnsToContents()
         data_rows = []
 
         # Construir filas para cada tripulante con vuelos y transportes
@@ -242,9 +236,6 @@ class TransportesScreen(QWidget):
             owner, buque, eta = buque_dict.get(tripulante_id, ("", "", ""))
 
             for transporte in transportes:
-                if transporte.Lugar_Transporte_in == "NAVE":
-                    print(f"{transporte.Lugar_Transporte_in}")
-
                 date_pickup = transporte.Fecha_Pickup
                 tramo = f"{transporte.Lugar_Transporte_in}-{transporte.Lugar_Transporte_end}"
                 city_select = CITY_AIRPORT_CODES.get(self.combo_ciudades.currentText(), "").lower()
@@ -381,7 +372,6 @@ class TransportesScreen(QWidget):
                             "last_name": transporte.Last_Name,
                             "nacionalidad": transporte.Nacionalidad
                         })
-
         
         data_rows = [row for row in data_rows if row["fecha_pickup"] is not None]
                 
@@ -520,3 +510,5 @@ class TransportesScreen(QWidget):
 
     def volver_a_opciones_programar(self):
         self.main_window.stacked_widget.setCurrentIndex(self.main_window.opciones_programar_index)
+
+    
