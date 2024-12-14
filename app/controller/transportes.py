@@ -3,7 +3,7 @@ import re
 import pandas as pd
 from sqlalchemy.orm import Session
 import traceback
-from datetime import time
+from datetime import time, date
 from sqlalchemy import func, and_
 from PyQt6.QtWidgets import QMessageBox
 from app.models import Buque, Tripulante, Vuelo, EtaCiudad, Viaje, TripulanteVuelo, Hotel, TripulanteHotel, Restaurante, TripulanteRestaurante, Transporte, TripulanteTransporte, TripulanteAsistencia
@@ -99,7 +99,7 @@ class Transportes:
         except Exception as e:
             raise Exception(f"[Transportes] Error al procesar el archivo: {e}")
 
-    def _create_transporte(self, transportes_df, tripulantes_df):
+    def _create_transporte(self, transportes_df, tripulantes_df, state):
         transportes = []  # Lista para almacenar los transportes creados
         try:
             # Verificar que ambos DataFrames no estén vacíos
@@ -185,34 +185,44 @@ class Transportes:
                                     if not tripulante_transporte_existente and transporte.transporte_id != None:
                                         # Asociar el tripulante al transporte
                                         #print(f"Asociando tripulante {tripulante.tripulante_id} con transporte {transporte.transporte_id}.")
+                                        date_pickup = process_time(
+                                            _transporte.get('Date Pickup', None), 
+                                            'Date Pickup', 
+                                            state, 
+                                            tripulante, 
+                                            transporte_key, 
+                                            row, 
+                                            i, 
+                                            indice_a_letra_columna
+                                        )
 
-                                        hours_pickup = _transporte.get('Hours Pickup', None)
-                                        if isinstance(hours_pickup, str):
-                                            try:
-                                                hours_pickup = datetime.strptime(hours_pickup, "%H:%M").time()  # Convierte cadena a time
-                                            except ValueError:
-                                                hours_pickup = None  # Maneja valores inválidos de hora
-                                                if _transporte['Hours Pickup'] != None:
-                                                    j = row.index.get_loc(transporte_key)
-                                                    x = i+2
-                                                    y = 52+(6*(j+1))
-                                                    letra_columna = indice_a_letra_columna(y)
-                                                    print(f"Se ha producido un error en el tripulante {tripulante.nombre} para el {transporte_key} [{x},{letra_columna}]")
-                                                    #print(f"Se ha producido un error en el tripulante {tripulante.nombre} para su {transporte_key} [{i+2},{j+1}]")
-                                        elif isinstance(hours_pickup, datetime):
-                                            hours_pickup = hours_pickup.time()  # Extrae la hora si es un DateTime
+                                        hours_pickup = process_time(
+                                            _transporte.get('Hours Pickup', None), 
+                                            'Hours Pickup', 
+                                            state, 
+                                            tripulante, 
+                                            transporte_key, 
+                                            row, 
+                                            i, 
+                                            indice_a_letra_columna
+                                        )
 
-                                        #print(hours_pickup)
+                                        #print(f"Transporte {_transporte}")
+                                        if date_pickup is None or hours_pickup is None:
+                                            print(f"{tripulante.tripulante_id} Advertencia: Datos inválidos para transporte. Date Pickup: {date_pickup}, Hours Pickup: {hours_pickup}")
 
                                         tripulante_transporte = TripulanteTransporte(
                                             tripulante_id=tripulante.tripulante_id,
                                             transporte_id=transporte.transporte_id,
-                                            date_pickup=_transporte['Date Pickup'] if 'Date Pickup' in _transporte else None,
+                                            #date_pickup=_transporte['Date Pickup'] if 'Date Pickup' in _transporte else None,
+                                            date_pickup=date_pickup,
                                             hours_pickup=hours_pickup
                                         )
+
                                         self.db_session.add(tripulante_transporte)
                                         self.db_session.flush()
                                         self.db_session.commit()
+                                        print(f"Transporte guardado correctamente: {tripulante_transporte}")
 
                                     elif tripulante_transporte_existente:
                                         #print(f"Ya existe relación para Tripulante ID {tripulante.tripulante_id} y Transporte ID {transporte.transporte_id}.")
@@ -349,7 +359,6 @@ class Transportes:
         # Asegurar que la función retorne la lista de transportes
         return pd.DataFrame(transports)
         
-    
         # Leer todas las filas desde una fila específica hasta que no haya más datos,
         # incluso si las filas tienen valores nulos.
         
@@ -382,3 +391,50 @@ def indice_a_letra_columna(index):
         index, remainder = divmod(index - 1, 26)
         letras = chr(65 + remainder) + letras  # A=65 en ASCII
     return letras
+
+def process_time(value, field_name, state, tripulante, transporte_key, row, i, indice_a_letra_columna):
+    """
+    Procesa un valor de tiempo o fecha, validándolo y convirtiéndolo al formato correcto.
+
+    Args:
+        value (str, datetime.date, datetime.time, or datetime): Valor a procesar.
+        field_name (str): Nombre del campo (para mensajes de error).
+        state (str): Estado del transporte ('ON' o 'OFF').
+        tripulante (Tripulante): Tripulante actual.
+        transporte_key (str): Clave del transporte.
+        row (pandas.Series): Fila del DataFrame.
+        i (int): Índice de la fila.
+        indice_a_letra_columna (function): Función para convertir índices a letras.
+
+    Returns:
+        datetime.date, datetime.time, or None: Valor convertido o None si es inválido.
+    """
+    print(type(value))
+    if isinstance(value, str):
+        try:
+            # Intenta convertir a `time` si es una cadena en formato HH:MM
+            return datetime.strptime(value, "%H:%M").time()
+        except ValueError:
+            if value.upper() == "TBC":
+                return None
+            error = value
+            j = row.index.get_loc(transporte_key)
+            x = i + 2
+            z = 64 if state == "ON" else 52
+            y = z + (6 * (j + 1))
+            letra_columna = indice_a_letra_columna(y)
+            print(f"Se ha producido un error en el tripulante {tripulante.nombre} para el {transporte_key} ({field_name}: {error}) [{x},{letra_columna}]")
+            return None
+    elif isinstance(value, datetime):
+        # Extrae solo la hora si es un `datetime`
+        return value.date()
+    elif isinstance(value, time):
+        # Si ya es de tipo `time`, simplemente devuélvelo
+        return value
+    elif isinstance(value, date):
+        # Si es de tipo `date`, devuélvelo como está
+        return value
+    else:
+        # Si el valor no es manejable, retorna `None`
+        print(f"Tipo de dato inesperado para {field_name}: {type(value)}")
+        return None

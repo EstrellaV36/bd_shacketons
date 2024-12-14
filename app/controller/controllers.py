@@ -164,8 +164,10 @@ class Controller:
             ### TRIPULANTES ###
             self.tripulantes_on, self.tripulantes_off = self.tripulantes_processor.tripulantes_main(file_path)
             self.tripulantes_processor._create_tripulantes(self.tripulantes_on, self.buques_on, "ON")
+            self.errors_on = self.tripulantes_processor.check_and_clean(self.tripulantes_on, file_path, "ON")
             update_progress_callback(15)
             self.tripulantes_processor._create_tripulantes(self.tripulantes_off, self.buques_off, "OFF")
+            self.errors_off = self.tripulantes_processor.check_and_clean(self.tripulantes_off, file_path, "OFF")  # Guardar índices de errores
             update_progress_callback(20)  # 20% después de procesar los tripulantes
 
             ### AEROLINEAS ###
@@ -199,9 +201,9 @@ class Controller:
 
             ### TRANSPORTES ###
             self.transportes_on, self.transportes_off = self.transportes_processor.transportes_main(file_path)
-            self.transportes_processor._create_transporte(self.transportes_on, self.tripulantes_on)
+            self.transportes_processor._create_transporte(self.transportes_on, self.tripulantes_on, "ON")
             update_progress_callback(75)
-            self.transportes_processor._create_transporte(self.transportes_off, self.tripulantes_off)
+            self.transportes_processor._create_transporte(self.transportes_off, self.tripulantes_off, "OFF")
             update_progress_callback(80)  # 80% después de procesar transportes
 
             ### RESTAURANTES ###
@@ -220,6 +222,6 @@ class Controller:
             self.viaje_processor._create_viajes_from_dataframes(self.tripulantes_on, self.tripulantes_off, self.buques_on, self.buques_off)
             update_progress_callback(100)  # 100% después de procesar viajes
 
-            return self.buques_on, self.buques_off, self.tripulantes_on, self.tripulantes_off
+            return self.buques_on, self.buques_off, self.tripulantes_on, self.tripulantes_off, self.errors_on, self.errors_off
         except Exception as e:
             raise Exception(f"[Controller] Error al procesar el archivo: {e}")

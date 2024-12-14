@@ -30,11 +30,12 @@ class Viajes:
             if viaje_existente:
                 # Si el viaje ya existe, actualizar el campo 'activo' si es diferente
                 if viaje_existente.activo != activo:
-                    print(f"El viaje ya existe. Actualizando el campo 'activo' de {viaje_existente.viaje_id} a {activo}")
+                    #print(f"El viaje ya existe. Actualizando el campo 'activo' de {viaje_existente.viaje_id} a {activo}")
                     viaje_existente.activo = activo  # Actualizar el estado 'activo'
                     self.db_session.add(viaje_existente)  # Asegurarse de que se guarde el cambio
                 else:
-                    print(f"El viaje para Tripulante ID {tripulante_id}, Buque ID {buque_id}, Estado {estado} ya existe y está activo como {activo}.")
+                    #print(f"El viaje para Tripulante ID {tripulante_id}, Buque ID {buque_id}, Estado {estado} ya existe y está activo como {activo}.")
+                    pass
                 return viaje_existente  # Retornamos el viaje existente (sin crear uno nuevo)
 
             # Si no existe, crear el nuevo viaje
@@ -56,6 +57,8 @@ class Viajes:
                 print(f"Hoteles asignados al viaje {viaje.viaje_id} para Tripulante ID {tripulante_id}:")
                 for hotel in tripulante_hoteles:
                     print(f"- Hotel: {hotel.hotel.nombre}, Fecha Entrada: {hotel.fecha_entrada}, Fecha Salida: {hotel.fecha_salida}")
+            else:
+                print("Tripulante_hotel no existente")
 
             # Guardar el viaje y los hoteles
             self.db_session.commit()
@@ -79,18 +82,25 @@ class Viajes:
 
                 # Buscar el tripulante en la base de datos por pasaporte o, si es nulo, por nombre y apellido
                 pasaporte = tripulantes_on.loc[index, "Pasaporte"]
+
+                if pd.isna(pasaporte):
+                    pasaporte = None
+
                 if pasaporte:
                     # Si el pasaporte está presente, buscar por pasaporte
                     tripulante = self.db_session.query(Tripulante).filter_by(pasaporte=pasaporte).first()
                 else:
                     # Si el pasaporte es nulo, buscar por nombre y apellido
+                    #print(f"Buscando {tripulantes_on.loc[index, "First name"]} {tripulantes_on.loc[index, "Last name"]}")
                     nombre = tripulantes_on.loc[index, "First name"]
                     apellido = tripulantes_on.loc[index, "Last name"]
+                    #print(f"Encontrado: {nombre} {apellido}")
+
                     tripulante = self.db_session.query(Tripulante).filter_by(nombre=nombre, apellido=apellido).first()
 
                 if not tripulante:
                     # Si no se encontró el tripulante por ninguno de los dos métodos
-                    print(f"Error: No se encontró el tripulante con Pasaporte '{pasaporte}' o Nombre '{nombre}' y Apellido '{apellido}'")
+                    #print(f"Error: No se encontró el tripulante con Pasaporte '{pasaporte}' o Nombre '{nombre}' y Apellido '{apellido}'")
                     continue
 
                 # Verificar y asignar la columna 'Activo'
