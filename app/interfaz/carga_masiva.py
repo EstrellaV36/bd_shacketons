@@ -4,6 +4,9 @@ from app.interfaz.pandas_model import PandasModel
 from app.controller.controllers import Controller
 from app.database import get_db_session
 import pandas as pd
+from openpyxl import load_workbook
+import json
+import os
 
 class CargaMasivaScreen(QWidget):
     def __init__(self, controller, main_window):
@@ -11,6 +14,7 @@ class CargaMasivaScreen(QWidget):
 
         db_session = get_db_session()
         self.controller = Controller(db_session)
+        self.excel_format_manager = ExcelFormatManager()
         
         self.main_window = main_window
         self.setup_ui()
@@ -89,6 +93,12 @@ class CargaMasivaScreen(QWidget):
             file_paths = file_dialog.selectedFiles()
             if file_paths:
                 file_path = file_paths[0]
+
+                # Verificar y guardar estilos de encabezado si no existen
+                if not os.path.exists("header_styles.json"):
+                    self.excel_format_manager.save_header_styles(file_path)
+                else:
+                    print("Archivo de estilos de encabezado ya existe. Usando estilos guardados.")
                 
                 # Crear y mostrar el diálogo de progreso
                 self.progress_dialog = QDialog(self)
@@ -197,3 +207,73 @@ class LoadExcelThread(QThread):
         self.controller.show_sheet(tripulantes_on, self.controller.eta_on_tripulante_table_view)
         self.controller.show_sheet(buque_off, self.controller.eta_off_buque_table_view)
         self.controller.show_sheet(tripulantes_off, self.controller.eta_off_tripulante_table_view)
+
+class ExcelFormatManager:
+    def __init__(self):
+        self.header_styles = {}
+
+    def save_header_styles(self, file_path):
+        """
+        Guarda los estilos de encabezados y otras propiedades del archivo Excel en un archivo JSON.
+        """
+        try:
+            workbook = load_workbook(file_path)
+            self.header_styles = {}
+
+            # Iterar sobre todas las hojas en el libro
+            for sheet_name in workbook.sheetnames:
+                sheet = workbook[sheet_name]
+                sheet_header_styles = {}
+
+                # Obtener los nombres de las columnas (suponiendo que la primera fila contiene los encabezados)
+                column_names = [cell.value.strip() if cell.value else '' for cell in sheet[1]]  # Limpiar posibles espacios en blanco
+
+                # Guardar las propiedades de las filas y columnas
+                row_dimensions = {}
+                column_dimensions = {}
+
+                # Iterar sobre las columnas y guardar los estilos con los nombres de las columnas como claves
+                for col, col_name in enumerate(column_names, start=1):
+                    for cell in sheet.iter_cols(min_col=col, max_col=col, min_row=1, max_row=1):  # Solo la primera fila
+                        for c in cell:
+                            if col_name:  # Asegurarse de que el nombre de la columna no sea None
+                                sheet_header_styles[col_name] = {
+                                    "font": {
+                                        "name": c.font.name,
+                                        "size": c.font.size,
+                                        "bold": c.font.bold,
+                                        "italic": c.font.italic,
+                                        "color": c.font.color.rgb if c.font.color else None,
+                                    },
+                                    "fill": {
+                                        "color": c.fill.fgColor.rgb if c.fill.fgColor else None,
+                                    },
+                                    "border": {
+                                        "top": c.border.top.style if c.border.top else None,
+                                        "bottom": c.border.bottom.style if c.border.bottom else None,
+                                        "left": c.border.left.style if c.border.left else None,
+                                        "right": c.border.right.style if c.border.right else None,
+                                    },
+                                }
+
+                    # Guardar tamaño de columna (ancho)
+                    column_width = sheet.column_dimensions.get(col_name, {}).get('width', 20)  # Valor predeterminado si no se encuentra
+                    column_dimensions[col_name] = column_width
+
+                # Obtener las propiedades de las filas
+                for row_num in range(1, sheet.max_row + 1):
+                    row_dimensions[row_num] = sheet.row_dimensions[row_num].height if row_num in sheet.row_dimensions else None
+
+                # Agregar al diccionario de estilos generales
+                self.header_styles[sheet_name] = {
+                    "styles": sheet_header_styles,
+                    "row_dimensions": row_dimensions,
+                    "column_dimensions": column_dimensions
+                }
+
+            # Guardar los estilos en un archivo JSON
+            with open("header_styles.json", "w") as f:
+                json.dump(self.header_styles, f, indent=4)
+            print("Estilos de encabezado y otras propiedades guardadas exitosamente.")
+        except Exception as e:
+            print(f"Error al guardar estilos: {e}")

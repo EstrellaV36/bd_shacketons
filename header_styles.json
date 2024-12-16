@@ -1,0 +1,3835 @@
+{
+    "ON": {
+        "styles": {
+            "Activo": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Owner": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Vessel": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Date arrive CL": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "ETA Vessel": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": null,
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "ETD Vessel": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Puerto a embarcar": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Condition": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "OKTB": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FFFF0000"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Mail PDI": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FFFF0000"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "First name": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Last name": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Gender": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Nacionalidad": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Position": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Pasaporte": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "DOB": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Aerolinea 1": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Aerolinea 2": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Aerolinea 3": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Aerolinea 4": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Vuelo Int 1": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Fecha Vuelo Int 1": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Hora Vuelo Int 1": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Vuelo Int 2": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Fecha Vuelo Int 2": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Hora Vuelo Int 2": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Vuelo Int 3": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Fecha Vuelo Int 3": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Hora Vuelo Int 3": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Vuelo Int 4": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Fecha Vuelo Int 4": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Hora Vuelo Int 4": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Nro International Flight": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FFFF0000"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Date International Flight": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FFFF0000"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Hora International Flight": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FFFF0000"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Nro Domestic Flight": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": null,
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Date Domestic Flight": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": null,
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Hora Domestic Flight": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": null,
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Nro Regional Flight": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": null,
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Date Regional Flight": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Hora Regional Flight": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Proveedor SCL": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Asistencia 1": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Proveedor PUQ": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Asistencia 2": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Proveedor WPU": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Asistencia 3": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Category": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Hotel 1": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Check in 1": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Check out 1": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Rooms 1": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Nombre Hotel 1": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Hotel 2": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Check in 2": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Check out 2": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Rooms 2": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Nombre Hotel 2": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Hotel 3": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Check in 3": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Check out 3": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Rooms 3": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Nombre Hotel 3": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "City_in_1": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Place_in_1": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "City_end_1": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Place_end_1": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Date_pickup_1": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Hours_pickup_1": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "City_in_2": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Place_in_2": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "City_end_2": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Place_end_2": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Date_pickup_2": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Hours_pickup_2": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "City_in_3": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Place_in_3": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "City_end_3": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Place_end_3": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Date_pickup_3": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Hours_pickup_3": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "City_in_4": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Place_in_4": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "City_end_4": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Place_end_4": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Date_pickup_4": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Hours_pickup_4": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Prefer. Aliment": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Servicio Comida 1": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Fecha Desde 1": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Fecha Hasta 1": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Restaurant 1": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Servicio Comida 2": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Fecha Desde 2": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Fecha Hasta 2": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Restaurant 2": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Servicio Comida 3": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Fecha Desde 3": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Fecha Hasta 3": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Restaurant 3": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Maleta perdida": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FFFFFF00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Transporte": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FFFFFF00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Atencion Medica": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FFF1A983"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Fecha": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FFF1A983"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Ciudad": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FFF1A983"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            }
+        },
+        "row_dimensions": {
+            "1": 23.25,
+            "2": 11.25,
+            "3": 11.25,
+            "4": 11.25,
+            "5": 11.25,
+            "6": 11.25,
+            "7": null,
+            "8": null
+        },
+        "column_dimensions": {
+            "Activo": 20,
+            "Owner": 20,
+            "Vessel": 20,
+            "Date arrive CL": 20,
+            "ETA Vessel": 20,
+            "ETD Vessel": 20,
+            "Puerto a embarcar": 20,
+            "Condition": 20,
+            "OKTB": 20,
+            "Mail PDI": 20,
+            "First name": 20,
+            "Last name": 20,
+            "Gender": 20,
+            "Nacionalidad": 20,
+            "Position": 20,
+            "Pasaporte": 20,
+            "DOB": 20,
+            "Aerolinea 1": 20,
+            "Aerolinea 2": 20,
+            "Aerolinea 3": 20,
+            "Aerolinea 4": 20,
+            "Vuelo Int 1": 20,
+            "Fecha Vuelo Int 1": 20,
+            "Hora Vuelo Int 1": 20,
+            "Vuelo Int 2": 20,
+            "Fecha Vuelo Int 2": 20,
+            "Hora Vuelo Int 2": 20,
+            "Vuelo Int 3": 20,
+            "Fecha Vuelo Int 3": 20,
+            "Hora Vuelo Int 3": 20,
+            "Vuelo Int 4": 20,
+            "Fecha Vuelo Int 4": 20,
+            "Hora Vuelo Int 4": 20,
+            "Nro International Flight": 20,
+            "Date International Flight": 20,
+            "Hora International Flight": 20,
+            "Nro Domestic Flight": 20,
+            "Date Domestic Flight": 20,
+            "Hora Domestic Flight": 20,
+            "Nro Regional Flight": 20,
+            "Date Regional Flight": 20,
+            "Hora Regional Flight": 20,
+            "Proveedor SCL": 20,
+            "Asistencia 1": 20,
+            "Proveedor PUQ": 20,
+            "Asistencia 2": 20,
+            "Proveedor WPU": 20,
+            "Asistencia 3": 20,
+            "Category": 20,
+            "Hotel 1": 20,
+            "Check in 1": 20,
+            "Check out 1": 20,
+            "Rooms 1": 20,
+            "Nombre Hotel 1": 20,
+            "Hotel 2": 20,
+            "Check in 2": 20,
+            "Check out 2": 20,
+            "Rooms 2": 20,
+            "Nombre Hotel 2": 20,
+            "Hotel 3": 20,
+            "Check in 3": 20,
+            "Check out 3": 20,
+            "Rooms 3": 20,
+            "Nombre Hotel 3": 20,
+            "City_in_1": 20,
+            "Place_in_1": 20,
+            "City_end_1": 20,
+            "Place_end_1": 20,
+            "Date_pickup_1": 20,
+            "Hours_pickup_1": 20,
+            "City_in_2": 20,
+            "Place_in_2": 20,
+            "City_end_2": 20,
+            "Place_end_2": 20,
+            "Date_pickup_2": 20,
+            "Hours_pickup_2": 20,
+            "City_in_3": 20,
+            "Place_in_3": 20,
+            "City_end_3": 20,
+            "Place_end_3": 20,
+            "Date_pickup_3": 20,
+            "Hours_pickup_3": 20,
+            "City_in_4": 20,
+            "Place_in_4": 20,
+            "City_end_4": 20,
+            "Place_end_4": 20,
+            "Date_pickup_4": 20,
+            "Hours_pickup_4": 20,
+            "Prefer. Aliment": 20,
+            "Servicio Comida 1": 20,
+            "Fecha Desde 1": 20,
+            "Fecha Hasta 1": 20,
+            "Restaurant 1": 20,
+            "Servicio Comida 2": 20,
+            "Fecha Desde 2": 20,
+            "Fecha Hasta 2": 20,
+            "Restaurant 2": 20,
+            "Servicio Comida 3": 20,
+            "Fecha Desde 3": 20,
+            "Fecha Hasta 3": 20,
+            "Restaurant 3": 20,
+            "Maleta perdida": 20,
+            "Transporte": 20,
+            "Atencion Medica": 20,
+            "Fecha": 20,
+            "Ciudad": 20
+        }
+    },
+    "OFF": {
+        "styles": {
+            "Activo": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Owner": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Vessel": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Date First Flight": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "ETA Vessel": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "ETD Vessel": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Puerto a desembarcar": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Condition": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Carta Desembarco": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FFFF0000"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Mail PDI": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FFFF0000"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "First name": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Last name": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Gender": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Nacionalidad": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Position": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Pasaporte": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "DOB": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Aerolinea 1": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Aerolinea 2": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Aerolinea 3": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Aerolinea 4": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Nro Regional Flight": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Date Regional Flight": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Hora Regional Flight": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Nro Domestic Flight": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Date Domestic Flight": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Hora Domestic Flight": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Nro International Flight": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FFFF0000"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Date International Flight": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FFFF0000"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Hora International Flight": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FFFF0000"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Proveedor SCL": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Asistencia 1": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Proveedor PUQ": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Asistencia 2": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Proveedor WPU": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Asistencia 3": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Category": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Hotel 1": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Check in 1": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Check out 1": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Rooms 1": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Nombre Hotel 1": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Hotel 2": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Check in 2": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Check out 2": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Rooms 2": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Nombre Hotel 2": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Hotel 3": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Check in 3": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Check out 3": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Rooms 3": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Nombre Hotel 3": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "City_in_1": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Place_in_1": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "City_end_1": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Place_end_1": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Date_pickup_1": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Hours_pickup_1": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "City_in_2": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Place_in_2": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "City_end_2": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Place_end_2": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Date_pickup_2": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Hours_pickup_2": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "City_in_3": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Place_in_3": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "City_end_3": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Place_end_3": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Date_pickup_3": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Hours_pickup_3": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "City_in_4": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Place_in_4": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "City_end_4": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Place_end_4": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Date_pickup_4": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Hours_pickup_4": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF2C7FCE"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Prefer. Aliment": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF00CC00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Servicio Comida 1": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF009900"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Fecha Desde 1": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF009900"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Fecha Hasta 1": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF009900"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Restaurant 1": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF009900"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Servicio Comida 2": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF009900"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Fecha Desde 2": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF009900"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Fecha Hasta 2": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF009900"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Restaurant 2": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF009900"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Servicio Comida 3": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF009900"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Fecha Desde 3": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF009900"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Fecha Hasta 3": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF009900"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Restaurant 3": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FF009900"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Maleta perdida": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FFFFFF00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Transporte": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FFFFFF00"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Atencion Medica": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FFF1A983"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Fecha": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FFF1A983"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            },
+            "Ciudad": {
+                "font": {
+                    "name": "Aptos Narrow",
+                    "size": 8.0,
+                    "bold": true,
+                    "italic": false,
+                    "color": "FF000000"
+                },
+                "fill": {
+                    "color": "FFF1A983"
+                },
+                "border": {
+                    "top": "thin",
+                    "bottom": "thin",
+                    "left": "thin",
+                    "right": "thin"
+                }
+            }
+        },
+        "row_dimensions": {
+            "1": 12.0,
+            "2": 12.0,
+            "3": 12.0,
+            "4": 12.0,
+            "5": 12.0,
+            "6": 12.0,
+            "7": 12.0,
+            "8": 12.0,
+            "9": 12.0
+        },
+        "column_dimensions": {
+            "Activo": 20,
+            "Owner": 20,
+            "Vessel": 20,
+            "Date First Flight": 20,
+            "ETA Vessel": 20,
+            "ETD Vessel": 20,
+            "Puerto a desembarcar": 20,
+            "Condition": 20,
+            "Carta Desembarco": 20,
+            "Mail PDI": 20,
+            "First name": 20,
+            "Last name": 20,
+            "Gender": 20,
+            "Nacionalidad": 20,
+            "Position": 20,
+            "Pasaporte": 20,
+            "DOB": 20,
+            "Aerolinea 1": 20,
+            "Aerolinea 2": 20,
+            "Aerolinea 3": 20,
+            "Aerolinea 4": 20,
+            "Nro Regional Flight": 20,
+            "Date Regional Flight": 20,
+            "Hora Regional Flight": 20,
+            "Nro Domestic Flight": 20,
+            "Date Domestic Flight": 20,
+            "Hora Domestic Flight": 20,
+            "Nro International Flight": 20,
+            "Date International Flight": 20,
+            "Hora International Flight": 20,
+            "Proveedor SCL": 20,
+            "Asistencia 1": 20,
+            "Proveedor PUQ": 20,
+            "Asistencia 2": 20,
+            "Proveedor WPU": 20,
+            "Asistencia 3": 20,
+            "Category": 20,
+            "Hotel 1": 20,
+            "Check in 1": 20,
+            "Check out 1": 20,
+            "Rooms 1": 20,
+            "Nombre Hotel 1": 20,
+            "Hotel 2": 20,
+            "Check in 2": 20,
+            "Check out 2": 20,
+            "Rooms 2": 20,
+            "Nombre Hotel 2": 20,
+            "Hotel 3": 20,
+            "Check in 3": 20,
+            "Check out 3": 20,
+            "Rooms 3": 20,
+            "Nombre Hotel 3": 20,
+            "City_in_1": 20,
+            "Place_in_1": 20,
+            "City_end_1": 20,
+            "Place_end_1": 20,
+            "Date_pickup_1": 20,
+            "Hours_pickup_1": 20,
+            "City_in_2": 20,
+            "Place_in_2": 20,
+            "City_end_2": 20,
+            "Place_end_2": 20,
+            "Date_pickup_2": 20,
+            "Hours_pickup_2": 20,
+            "City_in_3": 20,
+            "Place_in_3": 20,
+            "City_end_3": 20,
+            "Place_end_3": 20,
+            "Date_pickup_3": 20,
+            "Hours_pickup_3": 20,
+            "City_in_4": 20,
+            "Place_in_4": 20,
+            "City_end_4": 20,
+            "Place_end_4": 20,
+            "Date_pickup_4": 20,
+            "Hours_pickup_4": 20,
+            "Prefer. Aliment": 20,
+            "Servicio Comida 1": 20,
+            "Fecha Desde 1": 20,
+            "Fecha Hasta 1": 20,
+            "Restaurant 1": 20,
+            "Servicio Comida 2": 20,
+            "Fecha Desde 2": 20,
+            "Fecha Hasta 2": 20,
+            "Restaurant 2": 20,
+            "Servicio Comida 3": 20,
+            "Fecha Desde 3": 20,
+            "Fecha Hasta 3": 20,
+            "Restaurant 3": 20,
+            "Maleta perdida": 20,
+            "Transporte": 20,
+            "Atencion Medica": 20,
+            "Fecha": 20,
+            "Ciudad": 20
+        }
+    }
+}
