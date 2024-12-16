@@ -21,14 +21,10 @@ class Buques:
             buques_on = self.read_all_rows(excel_data_on, start_row=1, column_range=slice(0, 8), column_names=buques_on_columns) 
             buques_on.reset_index(drop=True, inplace=True)
 
-            self.check_and_clean(buques_on, file_path, "ON")
-
             excel_data_off = pd.read_excel(file_path, sheet_name='OFF', header=None)
 
             buques_off = self.read_all_rows(excel_data_off, start_row=1, column_range=slice(0, 8), column_names=buques_off_columns)
             buques_off.reset_index(drop=True, inplace=True)
-
-            self.check_and_clean(buques_off, file_path, "OFF")
 
             return buques_on, buques_off
         except Exception as e:
@@ -111,6 +107,8 @@ class Buques:
         file_path = file_path
         state = state
 
+        errors = []
+
         def clean_value(value):
             if isinstance(value, str):  # Verificar si es una cadena
                 return value.strip()  # Eliminar espacios en blanco
@@ -143,8 +141,10 @@ class Buques:
 
                     if isinstance(value, str) and '-' in value and len(value.split('-')) == 3:
                         print(f"Error [Buques]: Fecha inexistente en la fila {x}, columna '{column_name} ({y})'. Valor: '{error}'")
+                        errors.append(i)
                     elif not pd.isna(value):
                         print(f"Error [Buques]: Formato de fecha incorrecto en la fila {x}, columna '{column_name} ({y})'. Valor: '{error}'")
+                        errors.append(i)
 
         def get_excel_column_letter(file_path, sheet_name, column_name):
             # Cargar el archivo y la hoja
@@ -170,4 +170,6 @@ class Buques:
         # Convertir finalmente a datetime, asignando NaT para los valores inválidos
         buques_df['ETA Vessel'] = pd.to_datetime(buques_df['ETA Vessel'], format='%d/%m/%y', errors='coerce')
         buques_df['ETD Vessel'] = pd.to_datetime(buques_df['ETD Vessel'], format='%d/%m/%y', errors='coerce')
+
+        return errors
     

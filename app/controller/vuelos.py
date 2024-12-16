@@ -1,12 +1,11 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
+import calendar
 import re
 import pandas as pd
 from sqlalchemy.orm import Session
-import traceback
-from datetime import time
-from sqlalchemy import func, and_
-from PyQt6.QtWidgets import QMessageBox
-from app.models import Buque, Tripulante, Vuelo, EtaCiudad, Viaje, TripulanteVuelo, Hotel, TripulanteHotel, Restaurante, TripulanteRestaurante, Transporte, TripulanteTransporte, TripulanteAsistencia
+from app.models import Tripulante, Vuelo, TripulanteVuelo
+from openpyxl import load_workbook
+from openpyxl.utils import get_column_letter
 
 CITY_AIRPORT_CODES = {
     'PUQ': "PUNTA ARENAS",
@@ -169,7 +168,7 @@ class Vuelos:
         except Exception as e:
             raise Exception(f"[Vuelos] Error al procesar el archivo: {e}")
 
-    def _extraer_ciudades_y_horarios(self, vuelo_info):        
+    def _extraer_ciudades_y_horarios(self, vuelo_info, i):        
         try:
             vuelo = vuelo_info['vuelo']
 
@@ -194,38 +193,52 @@ class Vuelos:
 
             # Verificar si 'hora' es una cadena o un objeto datetime.time
             hora = vuelo_info.get('hora', '')
+            print(f"la fecha es 1: {fecha_vuelo} ({type(fecha_vuelo)})")
+            print(f"la hora es 1: {hora} ({type(hora)})")
             if isinstance(hora, str):
                 # Reemplazar caracteres no estándar y limpiar espacios
+                hora = hora.strip()
                 hora = hora.replace("–", "-").replace(" ", "-").strip()
 
                 # Detectar y corregir si los horarios están concatenados sin espacio
-                match_horas_concatenadas = re.match(r'^(\d{2}:\d{2})(\d{2}:\d{2})(\+1)?$', hora)
+                match_horas_concatenadas = re.match(r'^(\d{1,2}:\d{1,2})(\d{1,2}:\d{1,2})(\+1)?$', hora)
                 if match_horas_concatenadas:
                     hora = f"{match_horas_concatenadas.group(1)} {match_horas_concatenadas.group(2)}"
                     if match_horas_concatenadas.group(3):
                         hora += "+1"
                     #print(f"Hora reparada automáticamente: '{hora}'")
 
-                match_horas = re.match(r'^(\d{2}:\d{2})[-\s](\d{2}:\d{2})(\+1)?$', hora)
-                if not match_horas:
-                    #print(f"Formato de hora inválido: '{hora}'")
-                    return None
+                match_horas = re.match(r'^(\d{1,2}:\d{1,2})[-\s](\d{1,2}:\d{1,2})(\+1)?$', hora)
+                #if not match_horas:
+                    #if isinstance(hora, str) and hora != "TBC":
+                        #print(hora)
+                        #hora_llegada, hora_salida = match_horas.split('-')
+                    #else:
+                        #print(f"Formato de hora inválido: '{hora}'")
+                        #return None
                 
                 hora_salida = match_horas.group(1)
                 hora_llegada = match_horas.group(2)
                 dia_siguiente = match_horas.group(3)  # Detectar si hay '+1'
+
+                hora_salida = datetime.combine(fecha_vuelo.date(), datetime.strptime(hora_salida, "%H:%M").time())
+                hora_llegada = datetime.combine(fecha_vuelo.date(), datetime.strptime(hora_llegada, "%H:%M").time())
             # elif isinstance(hora, datetime.time):
             #     print(f"Hora ya es un objeto datetime.time: {hora}")
             #     hora_salida = hora
             #     hora_llegada = None
+            elif isinstance(hora, time):
+                print(f"la hora es 2 AÑA: {hora}")
+                hora_salida = None
+                hora_llegada = hora
+                hora_llegada = datetime.combine(fecha_vuelo.date(), hora)
             else:
-                #print(f"Formato inesperado de hora: {hora}")
-                return None
+                print("Error en esta parte")
+                print(f"Error en la fila {i+2}")
 
             # Convertir horas a objetos datetime
             # print("Intentando convertir hora de salida y llegada a datetime...")
-            hora_salida = datetime.combine(fecha_vuelo.date(), datetime.strptime(hora_salida, "%H:%M").time())
-            hora_llegada = datetime.combine(fecha_vuelo.date(), datetime.strptime(hora_llegada, "%H:%M").time())
+            print(f"{hora_llegada} | {hora_salida}")
 
             # Ajustar fecha de llegada si contiene '+1'
             if dia_siguiente:
@@ -236,6 +249,11 @@ class Vuelos:
             ciudad_salida = CITY_AIRPORT_CODES.get(aeropuerto_salida, "Desconocido")
             ciudad_llegada = CITY_AIRPORT_CODES.get(aeropuerto_llegada, "Desconocido")
             # print(f"Ciudad salida: {ciudad_salida}, Ciudad llegada: {ciudad_llegada}")
+
+            if hora_llegada is None:
+                raise ValueError("Hora de llegada no puede ser nula.")
+
+            print("Retornando")
 
             # Retornar el resultado
             return {
@@ -248,7 +266,7 @@ class Vuelos:
             }
 
         except Exception as e:
-            print(f"Error al procesar el vuelo: {e}")
+            print(f"Error al procesar el vuelo: {e} | HORA : {vuelo_info['hora']} {vuelo_info.loc['hora']}")
             ###traceback.print_exc()  # Imprime el seguimiento completo del error
             # print("=== Depuración final ===")
             # print(f"Datos actuales de vuelo_info: {vuelo_info}")
@@ -280,10 +298,13 @@ class Vuelos:
                     vuelo_info = vuelo_row[vuelo_key]  # Obtener la información del vuelo de la fila de vuelos
                     # Verificar que haya información válida sobre el vuelo
                     if pd.notna(vuelo_info) and isinstance(vuelo_info, dict) and vuelo_info.get('vuelo') != 'No disponible':
-                        vuelo_info = self._extraer_ciudades_y_horarios(vuelo_info)
+                        print(i)
+                        vuelo_info = self._extraer_ciudades_y_horarios(vuelo_info, i)
+
+                        print(f"Vuelo info es: {vuelo_info}")
 
                         if vuelo_info is None or 'codigo_vuelo' not in vuelo_info:
-                            #print(f"Omitiendo vuelo {vuelo_key} en la fila {i} debido a datos faltantes. {vuelo_info}")
+                            print(f"Omitiendo vuelo {vuelo_key} en la fila {i} debido a datos faltantes. {vuelo_info}")
                             continue
 
                         # Buscar el vuelo por código y fecha
@@ -294,6 +315,8 @@ class Vuelos:
                             fecha=vuelo_info['fecha'],
                             hora_salida=vuelo_info['hora_salida']
                         ).first()
+
+                        print(f"HORA LLEGADA: {vuelo_info['hora_llegada']}")
 
                         if not vuelo:
                             # Crear el vuelo si no existe
@@ -309,6 +332,7 @@ class Vuelos:
                             self.db_session.add(vuelo)
                             self.db_session.flush()  # Asegurar que el vuelo esté disponible en la base de datos
                             vuelos.append(vuelo)  # Agregar el vuelo a la lista de vuelos
+                            print(f"Vuelo creado {vuelo}")
 
                         # Verificar si ya existe una asociación entre el tripulante y el vuelo
                         tripulante_vuelo_existente = self.db_session.query(TripulanteVuelo).filter_by(
@@ -374,10 +398,10 @@ class Vuelos:
                             if hora.replace(" ", "") == "":
                                 hora = None
                             else:
-                                hora = hora.replace(" ", "")
+                                hora = hora.strip().replace("-", " ")
                                 #print(f"LA HORA ES {type(hora)} {hora}")
 
-                        #print(f"{vuelo} | {fecha} | {hora}")
+                        print(f"{vuelo} | {fecha} | {hora}")
 
                         # Si hay información válida en las columnas, agregarla
                         if pd.notna(vuelo) and pd.notna(fecha) and pd.notna(hora):
@@ -385,6 +409,12 @@ class Vuelos:
                                 "vuelo": vuelo,
                                 "fecha": pd.to_datetime(fecha, errors='coerce'),
                                 "hora": hora  # Mantener la hora como string, o usar pd.to_datetime si es necesario
+                            }
+                        else:
+                            tripulante_vuelos[f'Vuelo {vuelo_num}'] = {
+                                "vuelo": 'Desconocido',
+                                "fecha": None,
+                                "hora": 'Desconocido'  # Mantener la hora como string, o usar pd.to_datetime si es necesario
                             }
 
                         # Incrementar el vuelo_num para buscar el siguiente conjunto
@@ -410,6 +440,12 @@ class Vuelos:
                                 "nro": nro,
                                 "date": pd.to_datetime(date, format='%d-%m-%Y', errors='coerce'),
                                 "hora": hora  # Mantener la hora como string, o usar pd.to_datetime si es necesario
+                            }
+                        else:
+                            tripulante_vuelos[f'Vuelo {vuelo_num}'] = {
+                                "nro": 'Desconocido',
+                                "date": None,
+                                "hora": 'Desconocido'  # Mantener la hora como string, o usar pd.to_datetime si es necesario
                             }
 
                         break
@@ -480,3 +516,85 @@ class Vuelos:
             print(f"No se encontraron vuelos {state} en las filas procesadas.")
         
         return pd.DataFrame(vuelos)
+    
+    def check_and_clean(self, vuelos_df, file_path, state):
+        file_path = file_path
+        state = state
+
+        errors = []
+
+        def convertir_a_arreglos_por_vuelo(datos_vuelos, vuelo_especifico):
+            # Inicializamos listas vacías para los arreglos
+            print("1")
+            fechas = []
+            horas = []
+
+            # Iteramos sobre los valores del diccionario
+            for columna in datos_vuelos.columns:
+                for fila in datos_vuelos[columna]:
+                    #print(fila)
+                    if isinstance(fila, dict): #and fila['fecha'] != 'nan':
+                        fechas.append(fila['fecha'])
+                        horas.append(fila['hora'])
+
+            print(state)
+            for x in datos_vuelos:
+                #print(x)
+                pass
+            for x in fechas:
+                #print(x)
+                pass
+
+        def clean_value(value):
+            if isinstance(value, str):  # Verificar si es una cadena
+                return value.strip()  # Eliminar espacios en blanco
+            return value  # Dejar el valor tal como está si no es cadena
+
+        def is_valid_date(date_str, date_format='%d/%m/%y'):
+            try:
+                # Intentar convertir la fecha usando Pandas
+                date = pd.to_datetime(date_str, format=date_format, errors='raise')
+                day, month, year = date.day, date.month, date.year
+
+                # Verificar si el día es válido para el mes y el año
+                last_day_of_month = calendar.monthrange(year, month)[1]
+                if day > last_day_of_month:
+                    return False  # Día fuera del rango permitido
+
+                return True  # La fecha es válida
+            except Exception:
+                return False  # Error de formato o conversión
+
+        def validate_dates(buques_df, column_name, file_path, state):
+            for i, value in buques_df[column_name].items():
+                error = buques_df.loc[i][column_name]
+
+                # Determinar si la fecha es válida
+                if not is_valid_date(value):
+                    sheet_name = state
+                    x = i + 2  # Ajustar el índice a la fila de Excel (inicia en 1)
+                    y = get_excel_column_letter(file_path, sheet_name, column_name)
+
+                    if isinstance(value, str) and '-' in value and len(value.split('-')) == 3:
+                        print(f"Error [Buques]: Fecha inexistente en la fila {x}, columna '{column_name} ({y})'. Valor: '{error}'")
+                        errors.append(i)
+                    elif not pd.isna(value):
+                        print(f"Error [Buques]: Formato de fecha incorrecto en la fila {x}, columna '{column_name} ({y})'. Valor: '{error}'")
+                        errors.append(i)
+
+        def get_excel_column_letter(file_path, sheet_name, column_name):
+            # Cargar el archivo y la hoja
+            workbook = load_workbook(file_path)
+            sheet = workbook[sheet_name]
+
+            # Buscar la columna por nombre (suponiendo que los nombres están en la primera fila)
+            for col in sheet.iter_cols(1, sheet.max_column, 1, 1):  # Iterar solo en la primera fila
+                if col[0].value == column_name:
+                    # Devolver la letra de la columna
+                    return get_column_letter(col[0].column)
+
+            raise ValueError(f"Columna con nombre '{column_name}' no encontrada en el archivo.")
+
+        convertir_a_arreglos_por_vuelo(vuelos_df, 'Vuelo 1')
+
+        return errors

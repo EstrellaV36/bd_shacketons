@@ -1,7 +1,7 @@
 import sys
 from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QStackedWidget, QVBoxLayout, QWidget, QLabel, QSizePolicy
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QPixmap
+from PyQt6.QtGui import QPixmap, QIcon
 from app.interfaz.carga_masiva import CargaMasivaScreen
 from app.interfaz.visualizacion_datos import VisualizacionDatosScreen
 from app.interfaz.generacion_reportes import GeneracionReportesScreen
@@ -282,6 +282,8 @@ class BasicApp(QMainWindow):
 
         # Añadir un espacio arriba para centrar los botones verticalmente
         layout.addStretch()
+
+        self.setWindowIcon(QIcon("logo_shack.jpeg"))
 
         # Botón Carga Masiva
         button_carga_masiva = QPushButton("Carga masiva")
