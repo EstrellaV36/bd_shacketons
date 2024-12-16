@@ -339,6 +339,8 @@ class VisualizacionDatosScreen(QWidget):
             asistencia_data = self.get_asistencia_tripulantes(session, tripulantes_on_ids)
             # Obtener los tripulantes ON para hoteles
             hoteles_data = self.get_hoteles_tripulantes(session, tripulantes_on_ids)
+            # Obtener los tripulantes ON para transporte
+            transport_data = self.get_transport_data(session, tripulantes_on_ids)
 
             formatted_on_data = []  
             for row in on_data:
@@ -347,6 +349,8 @@ class VisualizacionDatosScreen(QWidget):
                 vuelos_regional = vuelos_regionales.get(row.tripulante_id, {})
                 asistencia = asistencia_data.get(row.tripulante_id, {})
                 hoteles = hoteles_data.get(row.tripulante_id, {})
+                transportes = transport_data.get(row.tripulante_id, {})
+                
                 row_dict = row._asdict()
 
                 for key, value in vuelos.items():
@@ -358,7 +362,9 @@ class VisualizacionDatosScreen(QWidget):
                 for key, value in asistencia.items():
                     row_dict[key] = value
                 for key, value in hoteles.items():
-                    row_dict[key] = value  # Agregar hoteles al diccionario
+                    row_dict[key] = value
+                for key, value in transportes.items():  # Agregar los transportes al diccionario
+                    row_dict[key] = value
 
                 formatted_on_data.append(row_dict)
 
@@ -380,7 +386,12 @@ class VisualizacionDatosScreen(QWidget):
                 "Proveedor SCL", "Asistencia 1", "Proveedor PUQ", "Asistencia 2", "Proveedor WPU", "Asistencia 3",
                 "Category", "Hotel 1", "Check in 1", "Check out 1", "Rooms 1", "Nombre Hotel 1",
                 "Hotel 2", "Check in 2", "Check out 2", "Rooms 2", "Nombre Hotel 2",
-                "Hotel 3", "Check in 3", "Check out 3", "Rooms 3", "Nombre Hotel 3"
+                "Hotel 3", "Check in 3", "Check out 3", "Rooms 3", "Nombre Hotel 3",
+                # Columnas de transporte
+                "City_in_1", "Place_in_1", "City_end_1", "Place_end_1", "Date_pickup_1", "Hours_pickup_1",
+                "City_in_2", "Place_in_2", "City_end_2", "Place_end_2", "Date_pickup_2", "Hours_pickup_2",
+                "City_in_3", "Place_in_3", "City_end_3", "Place_end_3", "Date_pickup_3", "Hours_pickup_3",
+                "City_in_4", "Place_in_4", "City_end_4", "Place_end_4", "Date_pickup_4", "Hours_pickup_4"
             ], "Puerto a embarcar", "ON")
 
             self.show_data_in_tab(off_data, self.off_table_view, [
@@ -728,6 +739,71 @@ class VisualizacionDatosScreen(QWidget):
             print(f"Tripulante {tripulante_id}: {hoteles}")
 
         return hoteles_formateados
+    
+    def get_transport_data(self, session, tripulantes):
+        """
+        Obtiene los datos de transporte para los tripulantes especificados.
+        
+        Args:
+            session: Sesión de SQLAlchemy.
+            tripulantes: Lista de IDs de tripulantes.
+
+        Returns:
+            dict: Datos de transporte formateados para cada tripulante.
+        """
+        print(f"Buscando datos de transporte para tripulantes: {tripulantes}")  # Depuración inicial
+        
+        # Consulta para obtener los datos
+        transport_data = session.query(
+            TripulanteTransporte.tripulante_id,
+            Transporte.city_in,
+            Transporte.place_in,
+            Transporte.city_end,
+            Transporte.place_end,
+            TripulanteTransporte.date_pickup,
+            TripulanteTransporte.hours_pickup
+        ).join(Transporte, TripulanteTransporte.transporte_id == Transporte.transporte_id) \
+        .filter(TripulanteTransporte.tripulante_id.in_(tripulantes)) \
+        .order_by(TripulanteTransporte.tripulante_id, TripulanteTransporte.date_pickup).all()
+
+        print(f"Datos de transporte recuperados: {transport_data}")  # Depuración
+
+        # Inicializar el diccionario para almacenar datos por tripulante
+        formatted_transport_data = {tripulante_id: {
+            **{f"City_in_{i+1}": None for i in range(4)},
+            **{f"Place_in_{i+1}": None for i in range(4)},
+            **{f"City_end_{i+1}": None for i in range(4)},
+            **{f"Place_end_{i+1}": None for i in range(4)},
+            **{f"Date_pickup_{i+1}": None for i in range(4)},
+            **{f"Hours_pickup_{i+1}": None for i in range(4)},
+        } for tripulante_id in tripulantes}
+
+        # Indices para cada tripulante para llenar hasta 4 transportes
+        tripulante_indices = {tripulante_id: 0 for tripulante_id in tripulantes}
+
+        for transporte in transport_data:
+            tripulante_id = transporte.tripulante_id
+            index = tripulante_indices[tripulante_id]
+
+            if index < 4:  # Limitar a 4 transportes
+                formatted_transport_data[tripulante_id][f"City_in_{index + 1}"] = transporte.city_in
+                formatted_transport_data[tripulante_id][f"Place_in_{index + 1}"] = transporte.place_in
+                formatted_transport_data[tripulante_id][f"City_end_{index + 1}"] = transporte.city_end
+                formatted_transport_data[tripulante_id][f"Place_end_{index + 1}"] = transporte.place_end
+                formatted_transport_data[tripulante_id][f"Date_pickup_{index + 1}"] = (
+                    transporte.date_pickup.strftime("%d/%m/%y") if transporte.date_pickup else None
+                )
+                formatted_transport_data[tripulante_id][f"Hours_pickup_{index + 1}"] = (
+                    transporte.hours_pickup.strftime("%H:%M") if transporte.hours_pickup else None
+                )
+                tripulante_indices[tripulante_id] += 1
+
+        # Depuración final
+        print("Datos de transporte formateados:")
+        for tripulante_id, transportes in formatted_transport_data.items():
+            print(f"Tripulante {tripulante_id}: {transportes}")
+
+        return formatted_transport_data
 
     class PandasModel(QAbstractTableModel):
         def __init__(self, data: pd.DataFrame):
