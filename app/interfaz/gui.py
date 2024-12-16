@@ -85,7 +85,7 @@ class BasicApp(QMainWindow):
             }}
             QComboBox {{
                 background-color: white; /* Fondo del combo box */
-                color: #00272d; /* Color del texto */
+                color: black; /* Color del texto */
                 font-size: 15px; /* Tamaño de fuente */
                 font-weight: bold; /* Negrita */
                 border: 2px solid {border_color}; /* Borde */
@@ -93,9 +93,9 @@ class BasicApp(QMainWindow):
                 padding: 5px; /* Espaciado interno */
             }}
             QComboBox::drop-down {{
-                border-left: 0.5px solid {border_color}; /* Línea entre el texto y el botón de desplegable */
+                border-left: 0.5px solid #bfac8b; /* Línea entre el texto y el botón de desplegable */
                 width: 30px; /* Ancho del botón de desplegable */
-                background-color: {border_color}; /* Fondo del botón desplegable */
+                background-color: #bfac8b; /* Fondo del botón desplegable */
             }}
             QComboBox::down-arrow {{
                 width: 10px;
@@ -103,7 +103,16 @@ class BasicApp(QMainWindow):
             }}
             QComboBox:hover {{
                 background-color: #f0f0f0; /* Color al pasar el ratón */
-                color: #00272d; /* Color del texto */
+                color: black;
+            }}
+            QComboBox QAbstractItemView {{
+                background-color: white; /* Fondo de la lista desplegable */
+                color: black; /* Texto de la lista desplegable */
+                selection-background-color: #0c7e7e; /* Fondo del ítem seleccionado */
+                selection-color: white; /* Texto blanco para el ítem seleccionado */
+            }}
+            QComboBox QAbstractItemView::item {{
+                color: black; /* Color negro para los ítems de la lista */
             }}
             QCheckBox {{
                 font-size: 16px;

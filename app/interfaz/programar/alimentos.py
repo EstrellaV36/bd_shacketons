@@ -21,6 +21,19 @@ class AlimentosScreen(QWidget):
         session = get_db_session()
         layout = QVBoxLayout(self)
 
+        # Botón "Volver" para regresar a la pantalla anterior
+        button_volver = QPushButton("Volver")
+        button_volver.setStyleSheet("""
+            font-size: 16px;  /* Tamaño de la letra */
+            padding: 0px;    /* Elimina el espacio interno */
+            line-height: 18px; /* Asegura que el texto no se corte verticalmente */
+            text-align: center; /* Centra el texto */
+        """)
+        button_volver.setFixedWidth(80)
+        button_volver.setFixedHeight(40)
+        button_volver.clicked.connect(self.volver_a_opciones_programar)
+        layout.addWidget(button_volver, alignment=Qt.AlignmentFlag.AlignLeft)
+
         self.label = QLabel("Requerimientos alimentación")
         font = QFont()
         font.setPointSize(20)  # Tamaño de fuente
@@ -29,6 +42,9 @@ class AlimentosScreen(QWidget):
         layout.addWidget(self.label, alignment=Qt.AlignmentFlag.AlignCenter)  # Centrar el título
 
         layout.addSpacing(20)
+
+        # Crear un QHBoxLayout para agrupar los combos de Owner y Ciudad
+        layout_owner_ciudad = QHBoxLayout()
 
         # Llenar el combo de buques desde la base de datos
         self.combo_buques = QComboBox()
@@ -39,18 +55,7 @@ class AlimentosScreen(QWidget):
             self.combo_buques.addItem(buque.nombre)
         layout.addWidget(self.combo_buques)
 
-        self.check_fecha_eta = QCheckBox("Filtro por ETA")
-        self.check_fecha_eta.setChecked(False)  # Inicialmente deshabilitado
-        self.check_fecha_eta.stateChanged.connect(self.toggle_fechas_eta)  # Conectar evento de cambio de estado
-        self.check_fecha_eta.stateChanged.connect(self.actualizar_datos)  # Conectar evento de cambio de estado
-        layout.addWidget(self.check_fecha_eta)
-
-        # Selector de fecha de inicio
-        self.date_start1_eta = QDateEdit()
-        self.date_start1_eta.setCalendarPopup(True)
-        self.date_start1_eta.setDate(QDate.currentDate())
-        self.date_start1_eta.setEnabled(False)  # Inicialmente deshabilitado
-        layout.addWidget(self.date_start1_eta)
+        layout_owner_ciudad.addWidget(self.combo_buques)
 
         # Llenar el combo de owners desde la base de datos
         self.combo_owners = QComboBox()
@@ -59,7 +64,8 @@ class AlimentosScreen(QWidget):
         owners = session.query(Buque.empresa).distinct().all()  # Consulta para obtener los owners únicos
         for owner in owners:
             self.combo_owners.addItem(owner.empresa)
-        layout.addWidget(self.combo_owners)
+
+        layout_owner_ciudad.addWidget(self.combo_owners)
 
         # Llenar el combo de ciudades desde la base de datos
         self.combo_ciudades = QComboBox()
@@ -68,47 +74,76 @@ class AlimentosScreen(QWidget):
         ciudades = session.query(Hotel.ciudad).distinct().all()  # Consulta para obtener las ciudades únicas
         for ciudad in ciudades:
             self.combo_ciudades.addItem(ciudad.ciudad)
-        layout.addWidget(self.combo_ciudades)
 
-        layout_filtro = QHBoxLayout()  # Crear sin asignar al widget principal
-        layout.addLayout(layout_filtro)  # Agregarlo al layout principal
+        layout_owner_ciudad.addWidget(self.combo_ciudades)
 
+        # Agregar el QHBoxLayout al layout principal
+        layout.addLayout(layout_owner_ciudad)
+
+        layout_filtros_fechas = QHBoxLayout()
+
+        # Checkbox para el filtro por ETA
+        self.check_fecha_eta = QCheckBox("Filtro por ETA")
+        self.check_fecha_eta.setChecked(False)  # Inicialmente deshabilitado
+        self.check_fecha_eta.stateChanged.connect(self.toggle_fechas_eta)  # Conectar evento de cambio de estado
+        self.check_fecha_eta.stateChanged.connect(self.actualizar_datos)  # Conectar evento de cambio de estado
+        layout_filtros_fechas.addWidget(self.check_fecha_eta)
+
+        # Selector de fecha de inicio para ETA
+        self.date_start1_eta = QDateEdit()
+        self.date_start1_eta.setCalendarPopup(True)
+        self.date_start1_eta.setDate(QDate.currentDate())
+        self.date_start1_eta.setEnabled(False)  # Inicialmente deshabilitado
+        layout_filtros_fechas.addWidget(self.date_start1_eta)
+
+        # Checkbox para el filtro por rango de fechas
         self.check_fecha_rango = QCheckBox("Filtro por rango de fechas")
         self.check_fecha_rango.setChecked(False)  # Inicialmente deshabilitado
         self.check_fecha_rango.stateChanged.connect(self.toggle_fechas_rango)  # Conectar evento de cambio de estado
         self.check_fecha_rango.stateChanged.connect(self.actualizar_datos)  # Conectar evento de cambio de estado
-        layout_filtro.addWidget(self.check_fecha_rango)
+        layout_filtros_fechas.addWidget(self.check_fecha_rango)
 
-        # Selector de fecha de inicio
+        # Selector de fecha de inicio para el rango
         self.date_start1_rango = QDateEdit()
         self.date_start1_rango.setCalendarPopup(True)
         self.date_start1_rango.setDate(QDate.currentDate())
         self.date_start1_rango.setEnabled(False)  # Inicialmente deshabilitado
-        layout_filtro.addWidget(self.date_start1_rango)
+        layout_filtros_fechas.addWidget(self.date_start1_rango)
 
-        # Selector de fecha de inicio
+        # Selector de fecha final para el rango
         self.date_end1_rango = QDateEdit()
         self.date_end1_rango.setCalendarPopup(True)
         self.date_end1_rango.setDate(QDate.currentDate())
         self.date_end1_rango.setEnabled(False)  # Inicialmente deshabilitado
-        layout_filtro.addWidget(self.date_end1_rango)
+        layout_filtros_fechas.addWidget(self.date_end1_rango)
+
+        # Agregar el QHBoxLayout al layout principal
+        layout.addLayout(layout_filtros_fechas)
+
+        layout_restaurante_tipo_comida = QHBoxLayout()
 
         # Llenar el combo de restaurantes desde la base de datos
         self.combo_restaurantes = QComboBox()
         self.combo_restaurantes.addItem("Restaurante")  # Agregar un valor por defecto
 
-        restaurantes = session.query(Restaurante.nombre).distinct().all()  # Consulta para obtener los nombres de los hoteles
+        restaurantes = session.query(Restaurante.nombre).distinct().all()  # Consulta para obtener los nombres de los restaurantes
         for restaurante in restaurantes:
             self.combo_restaurantes.addItem(restaurante.nombre)
-        layout.addWidget(self.combo_restaurantes)
 
+        layout_restaurante_tipo_comida.addWidget(self.combo_restaurantes)
+
+        # Llenar el combo de tipo de comidas desde la base de datos
         self.combo_tipo_comidas = QComboBox()
         self.combo_tipo_comidas.addItem("Tipo comida")  # Agregar un valor por defecto
 
-        tipo_comidas = session.query(TripulanteRestaurante.tipo_comida).distinct().all()  # Consulta para obtener los nombres de los hoteles
+        tipo_comidas = session.query(TripulanteRestaurante.tipo_comida).distinct().all()  # Consulta para obtener los tipos de comida
         for tipo_comida in tipo_comidas:
             self.combo_tipo_comidas.addItem(tipo_comida.tipo_comida)
-        layout.addWidget(self.combo_tipo_comidas)
+
+        layout_restaurante_tipo_comida.addWidget(self.combo_tipo_comidas)
+
+        # Agregar el QHBoxLayout al layout principal
+        layout.addLayout(layout_restaurante_tipo_comida)
 
         self.label = QLabel()
         layout.addWidget(self.label)
@@ -119,14 +154,16 @@ class AlimentosScreen(QWidget):
 
         # Botón para generar el Excel
         button_generar_excel = QPushButton("Generar Excel")
+        button_generar_excel.setStyleSheet("""
+            font-size: 18px;  /* Tamaño de la letra */
+            padding: 0px;    /* Elimina el espacio interno */
+            line-height: 18px; /* Asegura que el texto no se corte verticalmente */
+            text-align: center; /* Centra el texto */
+        """)
+        button_generar_excel.setFixedHeight(45)
+        button_generar_excel.setFixedWidth(245)
         button_generar_excel.clicked.connect(self.generar_excel_con_ciudad)
-        layout.addWidget(button_generar_excel)
-
-        # Botón "Volver" para regresar a la pantalla anterior
-        button_volver = QPushButton("Volver")
-        button_volver.setFixedWidth(100)
-        button_volver.clicked.connect(self.volver_a_opciones_programar)
-        layout.addWidget(button_volver, alignment=Qt.AlignmentFlag.AlignLeft)
+        layout.addWidget(button_generar_excel, alignment=Qt.AlignmentFlag.AlignRight)
 
         # Conectar cambios en los QComboBox
         self.combo_buques.currentTextChanged.connect(self.actualizar_datos)

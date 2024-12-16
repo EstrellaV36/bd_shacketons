@@ -20,7 +20,14 @@ class GeneracionReportesScreen(QWidget):
 
         # Añadir un botón "Volver" al menú principal
         self.button_volver = QPushButton("Volver")
-        self.button_volver.setFixedWidth(100)
+        self.button_volver.setStyleSheet("""
+            font-size: 16px;  /* Tamaño de la letra */
+            padding: 0px;    /* Elimina el espacio interno */
+            line-height: 18px; /* Asegura que el texto no se corte verticalmente */
+            text-align: center; /* Centra el texto */
+        """)
+        self.button_volver.setFixedWidth(80)
+        self.button_volver.setFixedHeight(40)
         self.button_volver.clicked.connect(self.volver_al_menu_principal)
         layout.addWidget(self.button_volver, alignment=Qt.AlignmentFlag.AlignLeft)
 
@@ -78,7 +85,14 @@ class OpcionesProgramarScreen(QWidget):
 
         # Botón "Volver" para regresar a la pantalla anterior (Generación de Reportes)
         button_volver = QPushButton("Volver")
-        setup_dynamic_button(button_volver, self.width())  # Aplica tamaño dinámico
+        button_volver.setStyleSheet("""
+            font-size: 16px;  /* Tamaño de la letra */
+            padding: 0px;    /* Elimina el espacio interno */
+            line-height: 18px; /* Asegura que el texto no se corte verticalmente */
+            text-align: center; /* Centra el texto */
+        """)
+        button_volver.setFixedWidth(80)
+        button_volver.setFixedHeight(40)
         button_volver.clicked.connect(self.volver_a_reportes)
         layout.addWidget(button_volver, alignment=Qt.AlignmentFlag.AlignLeft)
 

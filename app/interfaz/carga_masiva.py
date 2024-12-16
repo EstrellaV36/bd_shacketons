@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTabWidget, QComboBox, QTableView, QSizePolicy, QMessageBox, QFileDialog, QProgressBar, QDialog
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTabWidget, QComboBox, QTableView, QSizePolicy, QMessageBox, QFileDialog, QProgressBar, QDialog, QLabel
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from app.interfaz.pandas_model import PandasModel
 from app.controller.controllers import Controller
@@ -20,14 +20,27 @@ class CargaMasivaScreen(QWidget):
 
         # Botón "Volver" al menú principal
         button_volver = QPushButton("Volver")
-        button_volver.setFixedWidth(100)
+        button_volver.setStyleSheet("""
+            font-size: 16px;  /* Tamaño de la letra */
+            padding: 0px;    /* Elimina el espacio interno */
+            line-height: 18px; /* Asegura que el texto no se corte verticalmente */
+            text-align: center; /* Centra el texto */
+        """)
+        button_volver.setFixedWidth(80)
+        button_volver.setFixedHeight(40)
         button_volver.clicked.connect(lambda: self.main_window.stacked_widget.setCurrentIndex(0))
         layout.addWidget(button_volver, alignment=Qt.AlignmentFlag.AlignLeft)
 
-        self.button_load = QPushButton("Cargar Excel")
-        self.button_load.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        self.button_load.clicked.connect(self.load_excel_file)
-        layout.addWidget(self.button_load)
+        # Label para mostrar asistencias
+        self.label = QLabel("CARGA MASIVA")
+        self.label.setStyleSheet("""
+            font-size: 40px;  /* Tamaño de fuente */
+            font-weight: bold; /* Negrita */
+            color: #00272d;    /* Color del texto */
+            text-align: center; /* Centrar el texto horizontalmente */
+            margin-bottom: 20px; /* Espacio debajo del título */
+        """)
+        layout.addWidget(self.label, alignment=Qt.AlignmentFlag.AlignCenter)  # Centrar el título
 
         self.tabs = QTabWidget()
         layout.addWidget(self.tabs)
@@ -37,6 +50,19 @@ class CargaMasivaScreen(QWidget):
         
         self.tabs.addTab(self.on_tab, "ON")
         self.tabs.addTab(self.off_tab, "OFF")
+
+        self.button_load = QPushButton("Cargar Excel")
+        self.button_load.setStyleSheet("""
+            font-size: 18px;  /* Tamaño de la letra */
+            padding: 0px;    /* Elimina el espacio interno */
+            line-height: 18px; /* Asegura que el texto no se corte verticalmente */
+            text-align: center; /* Centra el texto */
+        """)
+        self.button_load.setFixedHeight(45)
+        self.button_load.setFixedWidth(245)
+        self.button_load.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.button_load.clicked.connect(self.load_excel_file)
+        layout.addWidget(self.button_load, alignment=Qt.AlignmentFlag.AlignRight)
 
         # Layout para la tabla en cada pestaña
         self.layout_on_table = QVBoxLayout()
