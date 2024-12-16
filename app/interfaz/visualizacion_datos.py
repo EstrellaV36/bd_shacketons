@@ -341,6 +341,7 @@ class VisualizacionDatosScreen(QWidget):
             hoteles_data = self.get_hoteles_tripulantes(session, tripulantes_on_ids)
             # Obtener los tripulantes ON para transporte
             transport_data = self.get_transport_data(session, tripulantes_on_ids)
+            restaurant_data = self.get_restaurant_data(session, tripulantes_on_ids)
 
             formatted_on_data = []  
             for row in on_data:
@@ -350,6 +351,7 @@ class VisualizacionDatosScreen(QWidget):
                 asistencia = asistencia_data.get(row.tripulante_id, {})
                 hoteles = hoteles_data.get(row.tripulante_id, {})
                 transportes = transport_data.get(row.tripulante_id, {})
+                restaurantes = restaurant_data.get(row.tripulante_id, {})
                 
                 row_dict = row._asdict()
 
@@ -363,13 +365,60 @@ class VisualizacionDatosScreen(QWidget):
                     row_dict[key] = value
                 for key, value in hoteles.items():
                     row_dict[key] = value
-                for key, value in transportes.items():  # Agregar los transportes al diccionario
+                for key, value in transportes.items():
+                    row_dict[key] = value
+                for key, value in restaurantes.items():  
                     row_dict[key] = value
 
                 formatted_on_data.append(row_dict)
 
             # Reemplaza `on_data` con la lista formateada
             on_data = formatted_on_data
+            
+            tripulantes_off_ids = [row.tripulante_id for row in off_data]
+            vuelos_off = self.get_international_flights(session, tripulantes_off_ids)
+            # Obtener los tripulantes ON para vuelos domésticos
+            vuelos_domesticos_off = self.get_domestic_flights(session, tripulantes_off_ids)
+            # Obtener los tripulantes ON para vuelos regionales
+            vuelos_regionales_off = self.get_regional_flights(session, tripulantes_off_ids)
+            # Obtener los tripulantes ON para asistencia
+            asistencia_data_off = self.get_asistencia_tripulantes(session, tripulantes_off_ids)
+            # Obtener los tripulantes ON para hoteles
+            hoteles_data_off = self.get_hoteles_tripulantes(session, tripulantes_off_ids)
+            # Obtener los tripulantes ON para transporte
+            transport_data_off = self.get_transport_data(session, tripulantes_off_ids)
+            restaurant_data_off = self.get_restaurant_data(session, tripulantes_off_ids)
+
+            formatted_off_data = []  
+            for row in off_data:
+                vuelos_off = vuelos_off.get(row.tripulante_id, {})
+                vuelos_domestico_off = vuelos_domesticos_off.get(row.tripulante_id, {})
+                vuelos_regional_off = vuelos_regionales_off.get(row.tripulante_id, {})
+                asistencia_off = asistencia_data_off.get(row.tripulante_id, {})
+                hoteles_off = hoteles_data_off.get(row.tripulante_id, {})
+                transportes_off = transport_data_off.get(row.tripulante_id, {})
+                restaurantes_off = restaurant_data_off.get(row.tripulante_id, {})
+                
+                row_dict = row._asdict()
+
+                for key, value in vuelos.items():
+                    row_dict[key] = value
+                for key, value in vuelos_domestico_off.items():
+                    row_dict[key] = value
+                for key, value in vuelos_regional_off.items():
+                    row_dict[key] = value
+                for key, value in asistencia_off.items():
+                    row_dict[key] = value
+                # for key, value in hoteles_off.items():
+                #     row_dict[key] = value
+                # for key, value in transportes_off.items():
+                #     row_dict[key] = value
+                # for key, value in restaurantes_off.items():  
+                #     row_dict[key] = value
+                formatted_off_data.append(row_dict)
+
+            # Reemplaza `on_data` con la lista formateada
+            off_data = formatted_off_data
 
             self.show_data_in_tab(on_data, self.on_table_view, [
                 "Activo", "Owner", "Vessel", "Date arrive CL", "ETA Vessel", "ETD Vessel",
@@ -391,13 +440,33 @@ class VisualizacionDatosScreen(QWidget):
                 "City_in_1", "Place_in_1", "City_end_1", "Place_end_1", "Date_pickup_1", "Hours_pickup_1",
                 "City_in_2", "Place_in_2", "City_end_2", "Place_end_2", "Date_pickup_2", "Hours_pickup_2",
                 "City_in_3", "Place_in_3", "City_end_3", "Place_end_3", "Date_pickup_3", "Hours_pickup_3",
-                "City_in_4", "Place_in_4", "City_end_4", "Place_end_4", "Date_pickup_4", "Hours_pickup_4"
+                "City_in_4", "Place_in_4", "City_end_4", "Place_end_4", "Date_pickup_4", "Hours_pickup_4",
+                # Columnas de restaurante
+                "Prefer. Aliment", "Servicio Comida 1", "Fecha Desde 1", "Fecha Hasta 1", "Restaurant 1",
+                "Servicio Comida 2", "Fecha Desde 2", "Fecha Hasta 2", "Restaurant 2",
+                "Servicio Comida 3", "Fecha Desde 3", "Fecha Hasta 3", "Restaurant 3"
             ], "Puerto a embarcar", "ON")
 
             self.show_data_in_tab(off_data, self.off_table_view, [
                 "Activo", "Owner", "Vessel", "Date first flight", "ETA Vessel", "ETD Vessel",
                 "Puerto", "Condition", "Carta Desembarco", "Mail PDI", "First name", "Last name", "Gender", "Nacionalidad", "Position",
                 "Pasaporte", "DOB",
+                "Aerolinea 1", "Aerolinea 2", "Aerolinea 3", "Aerolinea 4", "Nro Regional Flight", "Date Regional Flight", "Hora Regional Flight",
+                "Nro Domestic Flight", "Date Domestic Flight", "Hora Domestic Flight",
+                "Nro International Flight", "Date International Flight", "Hora International Flight",
+                "Proveedor SCL", "Asistencia 1", "Proveedor PUQ", "Asistencia 2", "Proveedor WPU", "Asistencia 3",
+                "Category", "Hotel 1", "Check in 1", "Check out 1", "Rooms 1", "Nombre Hotel 1",
+                "Hotel 2", "Check in 2", "Check out 2", "Rooms 2", "Nombre Hotel 2",
+                "Hotel 3", "Check in 3", "Check out 3", "Rooms 3", "Nombre Hotel 3",
+                # Columnas de transporte
+                "City_in_1", "Place_in_1", "City_end_1", "Place_end_1", "Date_pickup_1", "Hours_pickup_1",
+                "City_in_2", "Place_in_2", "City_end_2", "Place_end_2", "Date_pickup_2", "Hours_pickup_2",
+                "City_in_3", "Place_in_3", "City_end_3", "Place_end_3", "Date_pickup_3", "Hours_pickup_3",
+                "City_in_4", "Place_in_4", "City_end_4", "Place_end_4", "Date_pickup_4", "Hours_pickup_4",
+                # Columnas de restaurante
+                "Prefer. Aliment", "Servicio Comida 1", "Fecha Desde 1", "Fecha Hasta 1", "Restaurant 1",
+                "Servicio Comida 2", "Fecha Desde 2", "Fecha Hasta 2", "Restaurant 2",
+                "Servicio Comida 3", "Fecha Desde 3", "Fecha Hasta 3", "Restaurant 3"
             ], "Puerto a desembarcar", "OFF")
 
 
@@ -804,6 +873,71 @@ class VisualizacionDatosScreen(QWidget):
             print(f"Tripulante {tripulante_id}: {transportes}")
 
         return formatted_transport_data
+
+    def get_restaurant_data(self, session, tripulantes):
+        """
+        Obtiene los datos de preferencias alimenticias y reservas de restaurantes para los tripulantes especificados.
+
+        Args:
+            session: Sesión de SQLAlchemy.
+            tripulantes: Lista de IDs de tripulantes.
+
+        Returns:
+            dict: Datos de restaurante formateados para cada tripulante.
+        """
+        print(f"Buscando datos de restaurantes para tripulantes: {tripulantes}")  # Depuración inicial
+        
+        # Consulta para obtener los datos
+        restaurant_data = session.query(
+            TripulanteRestaurante.tripulante_id,
+            TripulanteRestaurante.pref_alimenticia,
+            TripulanteRestaurante.tipo_comida,
+            TripulanteRestaurante.fecha_reserva,
+            Restaurante.nombre.label("nombre_restaurante"),
+            Restaurante.ciudad.label("ciudad_restaurante")
+        ).join(Restaurante, TripulanteRestaurante.restaurante_id == Restaurante.restaurante_id) \
+        .filter(TripulanteRestaurante.tripulante_id.in_(tripulantes)) \
+        .order_by(TripulanteRestaurante.tripulante_id, TripulanteRestaurante.fecha_reserva).all()
+
+        print(f"Datos de restaurantes recuperados: {restaurant_data}")  # Depuración
+
+        # Inicializar el diccionario para almacenar datos por tripulante
+        formatted_restaurant_data = {tripulante_id: {
+            "Prefer. Aliment": None,
+            **{f"Servicio Comida {i+1}": None for i in range(3)},
+            **{f"Fecha Desde {i+1}": None for i in range(3)},
+            **{f"Fecha Hasta {i+1}": None for i in range(3)},
+            **{f"Restaurant {i+1}": None for i in range(3)},
+        } for tripulante_id in tripulantes}
+
+        # Indices para cada tripulante para llenar hasta 3 reservas
+        tripulante_indices = {tripulante_id: 0 for tripulante_id in tripulantes}
+
+        for reserva in restaurant_data:
+            tripulante_id = reserva.tripulante_id
+            index = tripulante_indices[tripulante_id]
+
+            if formatted_restaurant_data[tripulante_id]["Prefer. Aliment"] is None:
+                formatted_restaurant_data[tripulante_id]["Prefer. Aliment"] = reserva.pref_alimenticia
+
+            if index < 3:  # Limitar a 3 reservas
+                formatted_restaurant_data[tripulante_id][f"Servicio Comida {index + 1}"] = reserva.tipo_comida
+                formatted_restaurant_data[tripulante_id][f"Fecha Desde {index + 1}"] = (
+                    reserva.fecha_reserva.strftime("%d-%m-%y") if reserva.fecha_reserva else None
+                )
+                # Aquí puedes agregar lógica para calcular "Fecha Hasta" si aplica
+                formatted_restaurant_data[tripulante_id][f"Fecha Hasta {index + 1}"] = (
+                    reserva.fecha_reserva.strftime("%d-%m-%y") if reserva.fecha_reserva else None
+                )
+                formatted_restaurant_data[tripulante_id][f"Restaurant {index + 1}"] = reserva.nombre_restaurante
+                tripulante_indices[tripulante_id] += 1
+
+        # Depuración final
+        print("Datos de restaurantes formateados:")
+        for tripulante_id, restaurantes in formatted_restaurant_data.items():
+            print(f"Tripulante {tripulante_id}: {restaurantes}")
+
+        return formatted_restaurant_data
 
     class PandasModel(QAbstractTableModel):
         def __init__(self, data: pd.DataFrame):

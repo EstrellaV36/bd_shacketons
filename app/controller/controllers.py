@@ -195,9 +195,10 @@ class Controller:
             #print(self.vuelos_internacionales_on)
 
             ### ASISTENCIAS ###
-            self.asistencias_on = self.asistencias_processor.asistencias_main(file_path)
+            self.asistencias_on, self.asistencias_off = self.asistencias_processor.asistencias_main(file_path)
+            # Procesa las asistencias para ambos conjuntos de datos
+            self.asistencias_processor.procesar_asistencias(self.tripulantes_on, self.asistencias_on, self.tripulantes_off, self.asistencias_off)
 
-            self.asistencias_processor._create_asistencias(self.tripulantes_on, self.asistencias_on)
             update_progress_callback(60)  # 60% después de procesar asistencias
 
             ### HOTELES ###
