@@ -409,7 +409,7 @@ def process_time(value, field_name, state, tripulante, transporte_key, row, i, i
     Returns:
         datetime.date, datetime.time, or None: Valor convertido o None si es inválido.
     """
-    print(type(value))
+    #print(type(value))
     if isinstance(value, str):
         try:
             # Intenta convertir a `time` si es una cadena en formato HH:MM
@@ -436,5 +436,5 @@ def process_time(value, field_name, state, tripulante, transporte_key, row, i, i
         return value
     else:
         # Si el valor no es manejable, retorna `None`
-        print(f"Tipo de dato inesperado para {field_name}: {type(value)}")
+        #print(f"Tipo de dato inesperado para {field_name}: {type(value)}")
         return None

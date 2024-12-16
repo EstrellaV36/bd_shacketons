@@ -154,8 +154,13 @@ class Controller:
 
     def process_excel_file(self, file_path, update_progress_callback):
         try:
+            ### ERRORES ###
+            self.errors_on = []
+            self.errors_off = []
+
             ### BUQUES ###
             self.buques_on, self.buques_off = self.buques_processor.buques_main(file_path)
+
             self.buques_processor._create_buque(self.buques_on)
             update_progress_callback(5)
             self.buques_processor._create_buque(self.buques_off)
@@ -163,11 +168,10 @@ class Controller:
 
             ### TRIPULANTES ###
             self.tripulantes_on, self.tripulantes_off = self.tripulantes_processor.tripulantes_main(file_path)
+
             self.tripulantes_processor._create_tripulantes(self.tripulantes_on, self.buques_on, "ON")
-            self.errors_on = self.tripulantes_processor.check_and_clean(self.tripulantes_on, file_path, "ON")
             update_progress_callback(15)
             self.tripulantes_processor._create_tripulantes(self.tripulantes_off, self.buques_off, "OFF")
-            self.errors_off = self.tripulantes_processor.check_and_clean(self.tripulantes_off, file_path, "OFF")  # Guardar índices de errores
             update_progress_callback(20)  # 20% después de procesar los tripulantes
 
             ### AEROLINEAS ###
@@ -177,6 +181,7 @@ class Controller:
 
             ### VUELOS ###
             self.vuelos_internacionales_on, self.vuelos_internacionales_off, self.vuelos_domesticos_on, self.vuelos_domesticos_off, self.vuelos_regionales_on, self.vuelos_regionales_off = self.vuelos_processor.vuelos_main(file_path)
+
             self.vuelos_processor._create_vuelos(self.vuelos_internacionales_on, self.tripulantes_on, 'ON', 'INTERNACIONAL')
             self.vuelos_processor._create_vuelos(self.vuelos_internacionales_off, self.tripulantes_off, 'OFF', 'INTERNACIONAL')
             update_progress_callback(40)
@@ -187,13 +192,17 @@ class Controller:
             self.vuelos_processor._create_vuelos(self.vuelos_regionales_off, self.tripulantes_off, 'OFF', 'REGIONAL')            
             update_progress_callback(50)  # 50% después de procesar vuelos
 
+            #print(self.vuelos_internacionales_on)
+
             ### ASISTENCIAS ###
             self.asistencias_on = self.asistencias_processor.asistencias_main(file_path)
+
             self.asistencias_processor._create_asistencias(self.tripulantes_on, self.asistencias_on)
             update_progress_callback(60)  # 60% después de procesar asistencias
 
             ### HOTELES ###
             self.hoteles_on, self.hoteles_off = self.hoteles_processor.hoteles_main(file_path)
+
             self.hoteles_processor._create_hotel(self.hoteles_on, self.tripulantes_on)
             update_progress_callback(65)
             self.hoteles_processor._create_hotel(self.hoteles_off, self.tripulantes_off)
@@ -201,6 +210,7 @@ class Controller:
 
             ### TRANSPORTES ###
             self.transportes_on, self.transportes_off = self.transportes_processor.transportes_main(file_path)
+
             self.transportes_processor._create_transporte(self.transportes_on, self.tripulantes_on, "ON")
             update_progress_callback(75)
             self.transportes_processor._create_transporte(self.transportes_off, self.tripulantes_off, "OFF")
@@ -208,6 +218,7 @@ class Controller:
 
             ### RESTAURANTES ###
             self.restaurantes_on, self.restaurantes_off = self.restaurantes_processor.restaurantes_main(file_path)
+            
             self.restaurantes_processor._create_restaurantes(self.restaurantes_on, self.tripulantes_on)
             update_progress_callback(85)
             self.restaurantes_processor._create_restaurantes(self.restaurantes_off, self.tripulantes_off)
@@ -215,12 +226,31 @@ class Controller:
 
             ### EXTRAS ###
             self.extras_on, self.extras_off = self.extras_processor.extras_main(file_path)
+            
             ### FALTA GUARDARLOS EN LA DB
             update_progress_callback(95)  # 95% después de procesar extras
 
             ### VIAJES ###
             self.viaje_processor._create_viajes_from_dataframes(self.tripulantes_on, self.tripulantes_off, self.buques_on, self.buques_off)
             update_progress_callback(100)  # 100% después de procesar viajes
+
+            ### ERRORES ###
+
+            self.errors_on_buques = self.buques_processor.check_and_clean(self.buques_on, file_path, "ON")
+            self.errors_off_buques = self.buques_processor.check_and_clean(self.buques_off, file_path, "OFF")
+
+            self.errors_on_tripulantes = self.tripulantes_processor.check_and_clean(self.tripulantes_on, file_path, "ON")
+            self.errors_off_tripulantes = self.tripulantes_processor.check_and_clean(self.tripulantes_off, file_path, "OFF")
+
+            self.errors_on_vuelos = self.vuelos_processor.check_and_clean(self.vuelos_internacionales_on, file_path, "ON")
+            self.errors_off_vuelos = self.vuelos_processor.check_and_clean(self.vuelos_internacionales_off, file_path, "OFF")
+
+            self.errors_on.extend(self.errors_on_buques)
+            self.errors_on.extend(self.errors_on_tripulantes)
+            self.errors_off.extend(self.errors_off_buques)
+            self.errors_off.extend(self.errors_off_tripulantes)
+
+            print(self.errors_on)
 
             return self.buques_on, self.buques_off, self.tripulantes_on, self.tripulantes_off, self.errors_on, self.errors_off
         except Exception as e:

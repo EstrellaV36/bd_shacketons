@@ -6,13 +6,14 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt
 from sqlalchemy.sql import func
+from sqlalchemy import cast, Integer
 from app.interfaz.pandas_model import PandasModel
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.sql import case
 from app.database import get_db_session
 from app.models import Buque, EtaCiudad, Tripulante, Viaje, Vuelo, TripulanteVuelo, Restaurante, TripulanteRestaurante, Transporte, TripulanteTransporte, Hotel, TripulanteHotel, Buque, TripulanteAsistencia
-
-from PyQt6.QtCore import QAbstractTableModel
+from PyQt6.QtCore import QRunnable, pyqtSignal, QObject
+from PyQt6.QtCore import QAbstractTableModel, QThreadPool
 
 CITY_AIRPORT_CODES = {
     'PUQ': "PUNTA ARENAS",
@@ -141,6 +142,49 @@ CITY_AIRPORT_CODES = {
 }
 
 CITY_TO_AIRPORT_CODES = {city: code for code, city in CITY_AIRPORT_CODES.items()}
+
+class QueryTask(QRunnable):
+    class Signals(QObject):
+        query_finished = pyqtSignal(object, str)  # Emitirá los datos y un identificador de la tarea
+        error_occurred = pyqtSignal(str, str)  # Emitirá el error y un identificador
+
+    def __init__(self, query_func, task_id, *args, **kwargs):
+        super().__init__()
+        self.signals = self.Signals()
+        self.query_func = query_func
+        self.task_id = task_id
+        self.args = args
+        self.kwargs = kwargs
+
+    def run(self):
+        try:
+            # Ejecutar la función de consulta
+            result = self.query_func(*self.args, **self.kwargs)
+            self.signals.query_finished.emit(result, self.task_id)
+        except Exception as e:
+            self.signals.error_occurred.emit(str(e), self.task_id)
+
+class QueryManager(QObject):
+    all_tasks_finished = pyqtSignal(dict)  # Emitirá los datos combinados cuando todas las tareas terminen
+    task_error = pyqtSignal(str)  # Emitirá si alguna tarea falla
+
+    def __init__(self, total_tasks):
+        super().__init__()
+        self.total_tasks = total_tasks
+        self.results = {}
+        self.tasks_completed = 0
+
+    def handle_task_finished(self, result, task_id):
+        self.results[task_id] = result
+        self.tasks_completed += 1
+
+        # Verificar si todas las tareas han terminado
+        if self.tasks_completed == self.total_tasks:
+            self.all_tasks_finished.emit(self.results)
+
+    def handle_task_error(self, error, task_id):
+        print(f"Error en la tarea {task_id}: {error}")
+        self.task_error.emit(f"Tarea {task_id} falló: {error}")
 
 class VisualizacionDatosScreen(QWidget):
     def __init__(self, controller, main_window):
@@ -291,22 +335,34 @@ class VisualizacionDatosScreen(QWidget):
             vuelos_domesticos = self.get_domestic_flights(session, tripulantes_on_ids)
             # Obtener los tripulantes ON para vuelos regionales
             vuelos_regionales = self.get_regional_flights(session, tripulantes_on_ids)
+            # Obtener los tripulantes ON para asistencia
+            asistencia_data = self.get_asistencia_tripulantes(session, tripulantes_on_ids)
+            # Obtener los tripulantes ON para hoteles
+            hoteles_data = self.get_hoteles_tripulantes(session, tripulantes_on_ids)
 
-            formatted_on_data = []  # Nueva lista para almacenar los datos formateados
+            formatted_on_data = []  
             for row in on_data:
                 vuelos = vuelos_on.get(row.tripulante_id, {})
                 vuelos_domestico = vuelos_domesticos.get(row.tripulante_id, {})
-                vuelos_regional = vuelos_regionales.get(row.tripulante_id, {})  # Añadir vuelos regionales
+                vuelos_regional = vuelos_regionales.get(row.tripulante_id, {})
+                asistencia = asistencia_data.get(row.tripulante_id, {})
+                hoteles = hoteles_data.get(row.tripulante_id, {})
                 row_dict = row._asdict()
+
                 for key, value in vuelos.items():
                     row_dict[key] = value
                 for key, value in vuelos_domestico.items():
                     row_dict[key] = value
                 for key, value in vuelos_regional.items():
-                    row_dict[key] = value  # Agregar vuelos regionales al diccionario
+                    row_dict[key] = value
+                for key, value in asistencia.items():
+                    row_dict[key] = value
+                for key, value in hoteles.items():
+                    row_dict[key] = value  # Agregar hoteles al diccionario
+
                 formatted_on_data.append(row_dict)
 
-                        # Reemplaza `on_data` con la lista formateada
+            # Reemplaza `on_data` con la lista formateada
             on_data = formatted_on_data
 
             self.show_data_in_tab(on_data, self.on_table_view, [
@@ -320,7 +376,11 @@ class VisualizacionDatosScreen(QWidget):
                 "Vuelo Int 4", "Fecha Vuelo Int 4", "Hora Vuelo Int 4",
                 "Nro International Flight", "Date International Flight", "Hora International Flight",
                 "Nro Domestic Flight", "Date Domestic Flight", "Hora Domestic Flight",
-                "Nro Regional Flight", "Date Regional Flight", "Hora Regional Flight"  # Nuevas columnas
+                "Nro Regional Flight", "Date Regional Flight", "Hora Regional Flight",
+                "Proveedor SCL", "Asistencia 1", "Proveedor PUQ", "Asistencia 2", "Proveedor WPU", "Asistencia 3",
+                "Category", "Hotel 1", "Check in 1", "Check out 1", "Rooms 1", "Nombre Hotel 1",
+                "Hotel 2", "Check in 2", "Check out 2", "Rooms 2", "Nombre Hotel 2",
+                "Hotel 3", "Check in 3", "Check out 3", "Rooms 3", "Nombre Hotel 3"
             ], "Puerto a embarcar", "ON")
 
             self.show_data_in_tab(off_data, self.off_table_view, [
@@ -561,6 +621,113 @@ class VisualizacionDatosScreen(QWidget):
             print(f"Tripulante {tripulante_id}: {vuelos}")
 
         return vuelos_formateados
+
+    def get_asistencia_tripulantes(self, session, tripulantes):
+        """
+        Recupera información de asistencia y proveedores para los tripulantes.
+        """
+        print(f"Tripulantes recibidos para búsqueda de asistencia: {tripulantes}")  # Depuración inicial
+
+        # Consulta para recuperar los datos de asistencia y proveedores
+        asistencia_data = session.query(
+            TripulanteAsistencia.tripulante_id,
+            TripulanteAsistencia.necesita_asistencia_scl.label("asistencia_scl"),
+            TripulanteAsistencia.proveedor_scl.label("proveedor_scl"),
+            TripulanteAsistencia.necesita_asistencia_puq.label("asistencia_puq"),
+            TripulanteAsistencia.proveedor_puq.label("proveedor_puq"),
+            TripulanteAsistencia.necesita_asistencia_wpu.label("asistencia_wpu"),
+            TripulanteAsistencia.proveedor_wpu.label("proveedor_wpu"),
+        ).filter(TripulanteAsistencia.tripulante_id.in_(tripulantes)).all()
+
+        print(f"Datos de asistencia recuperados: {asistencia_data}")  # Depuración
+
+        # Inicializar diccionario para almacenar los datos formateados
+        asistencia_formateada = {tripulante_id: {
+            "Proveedor SCL": None,
+            "Asistencia 1": None,
+            "Proveedor PUQ": None,
+            "Asistencia 2": None,
+            "Proveedor WPU": None,
+            "Asistencia 3": None
+        } for tripulante_id in tripulantes}
+
+        # Formatear los datos
+        for asistencia in asistencia_data:
+            tripulante_id = asistencia.tripulante_id
+            asistencia_formateada[tripulante_id]["Proveedor SCL"] = asistencia.proveedor_scl if asistencia.proveedor_scl else None
+            asistencia_formateada[tripulante_id]["Asistencia 1"] = "Asistencia SCL" if asistencia.asistencia_scl else None
+
+            asistencia_formateada[tripulante_id]["Proveedor PUQ"] = asistencia.proveedor_puq if asistencia.proveedor_puq else None
+            asistencia_formateada[tripulante_id]["Asistencia 2"] = "Asistencia PUQ" if asistencia.asistencia_puq else None
+
+            asistencia_formateada[tripulante_id]["Proveedor WPU"] = asistencia.proveedor_wpu if asistencia.proveedor_wpu else None
+            asistencia_formateada[tripulante_id]["Asistencia 3"] = "Asistencia WPU" if asistencia.asistencia_wpu else None
+
+        # Depuración final
+        print("Datos de asistencia formateados:")
+        for tripulante_id, asistencia in asistencia_formateada.items():
+            print(f"Tripulante {tripulante_id}: {asistencia}")
+
+        return asistencia_formateada
+
+    def get_hoteles_tripulantes(self, session, tripulantes):
+        """
+        Recupera información de hoteles asignados a los tripulantes.
+        Devuelve hasta 3 hoteles formateados para cada tripulante.
+        """
+        print(f"Tripulantes recibidos para búsqueda de hoteles: {tripulantes}")  # Depuración inicial
+
+        # Consulta para recuperar los datos de los hoteles asignados
+        hoteles_data = session.query(
+            TripulanteHotel.tripulante_id,
+            cast(TripulanteHotel.categoria, Integer).label("categoria"),            
+            TripulanteHotel.fecha_entrada.label("check_in"),
+            TripulanteHotel.fecha_salida.label("check_out"),
+            TripulanteHotel.tipo_habitacion.label("tipo_habitacion"),
+            Hotel.nombre.label("nombre_hotel"),
+            Hotel.ciudad.label("ciudad_hotel")
+        ).join(Hotel, TripulanteHotel.hotel_id == Hotel.hotel_id) \
+        .filter(TripulanteHotel.tripulante_id.in_(tripulantes)) \
+        .order_by(TripulanteHotel.tripulante_id, TripulanteHotel.fecha_entrada).all()
+
+        print(f"Datos de hoteles recuperados: {hoteles_data}")  # Depuración
+
+        # Inicializar diccionario para almacenar hasta 3 hoteles por tripulante
+        hoteles_formateados = {tripulante_id: {
+            "Category": None,
+            **{f"Hotel {i + 1}": None for i in range(3)},
+            **{f"Check in {i + 1}": None for i in range(3)},
+            **{f"Check out {i + 1}": None for i in range(3)},
+            **{f"Rooms {i + 1}": None for i in range(3)},
+            **{f"Nombre Hotel {i + 1}": None for i in range(3)}
+        } for tripulante_id in tripulantes}
+
+        # Asignar hasta 3 hoteles para cada tripulante
+        tripulante_indices = {tripulante_id: 0 for tripulante_id in tripulantes}
+
+        for hotel in hoteles_data:
+            tripulante_id = hotel.tripulante_id
+            index = tripulante_indices[tripulante_id]
+
+            if index < 3:  # Limitar a 3 hoteles por tripulante
+                hoteles_formateados[tripulante_id]["Category"] = int(hotel.categoria) if hotel.categoria is not None else None
+                hoteles_formateados[tripulante_id][f"Hotel {index + 1}"] = f"Hotel {hotel.ciudad_hotel}"
+                hoteles_formateados[tripulante_id][f"Check in {index + 1}"] = (
+                    hotel.check_in.strftime("%d/%m/%y") if hotel.check_in else None
+                )
+                hoteles_formateados[tripulante_id][f"Check out {index + 1}"] = (
+                    hotel.check_out.strftime("%d/%m/%y") if hotel.check_out else None
+                )
+                hoteles_formateados[tripulante_id][f"Rooms {index + 1}"] = hotel.tipo_habitacion
+                hoteles_formateados[tripulante_id][f"Nombre Hotel {index + 1}"] = hotel.nombre_hotel
+                tripulante_indices[tripulante_id] += 1
+
+        # Depuración final
+        print("Datos de hoteles formateados:")
+        for tripulante_id, hoteles in hoteles_formateados.items():
+            print(f"Tripulante {tripulante_id}: {hoteles}")
+
+        return hoteles_formateados
 
     class PandasModel(QAbstractTableModel):
         def __init__(self, data: pd.DataFrame):

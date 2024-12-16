@@ -104,7 +104,7 @@ class Vuelo(Base):
     codigo: Mapped[str] = mapped_column(String, nullable=False)
     fecha: Mapped[datetime] = mapped_column(nullable=False)
     tipo: Mapped[str] = mapped_column(String, nullable=False)
-    hora_salida: Mapped[datetime] = mapped_column(nullable=False)
+    hora_salida: Mapped[datetime] = mapped_column(nullable=True)
     hora_llegada: Mapped[datetime] = mapped_column(nullable=False)
     aeropuerto_salida: Mapped[str] = mapped_column(String, nullable=False)
     aeropuerto_llegada: Mapped[str] = mapped_column(String, nullable=False)
