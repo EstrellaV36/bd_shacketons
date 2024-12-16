@@ -14,6 +14,13 @@ from app.database import get_db_session
 from app.models import Buque, EtaCiudad, Tripulante, Viaje, Vuelo, TripulanteVuelo, Restaurante, TripulanteRestaurante, Transporte, TripulanteTransporte, Hotel, TripulanteHotel, Buque, TripulanteAsistencia
 from PyQt6.QtCore import QRunnable, pyqtSignal, QObject
 from PyQt6.QtCore import QAbstractTableModel, QThreadPool
+from openpyxl.styles import Font, PatternFill, Border, Side
+from openpyxl.utils import get_column_letter
+
+import os
+import json
+from openpyxl import Workbook
+from PyQt6.QtWidgets import QFileDialog
 
 CITY_AIRPORT_CODES = {
     'PUQ': "PUNTA ARENAS",
@@ -143,49 +150,6 @@ CITY_AIRPORT_CODES = {
 
 CITY_TO_AIRPORT_CODES = {city: code for code, city in CITY_AIRPORT_CODES.items()}
 
-class QueryTask(QRunnable):
-    class Signals(QObject):
-        query_finished = pyqtSignal(object, str)  # Emitirá los datos y un identificador de la tarea
-        error_occurred = pyqtSignal(str, str)  # Emitirá el error y un identificador
-
-    def __init__(self, query_func, task_id, *args, **kwargs):
-        super().__init__()
-        self.signals = self.Signals()
-        self.query_func = query_func
-        self.task_id = task_id
-        self.args = args
-        self.kwargs = kwargs
-
-    def run(self):
-        try:
-            # Ejecutar la función de consulta
-            result = self.query_func(*self.args, **self.kwargs)
-            self.signals.query_finished.emit(result, self.task_id)
-        except Exception as e:
-            self.signals.error_occurred.emit(str(e), self.task_id)
-
-class QueryManager(QObject):
-    all_tasks_finished = pyqtSignal(dict)  # Emitirá los datos combinados cuando todas las tareas terminen
-    task_error = pyqtSignal(str)  # Emitirá si alguna tarea falla
-
-    def __init__(self, total_tasks):
-        super().__init__()
-        self.total_tasks = total_tasks
-        self.results = {}
-        self.tasks_completed = 0
-
-    def handle_task_finished(self, result, task_id):
-        self.results[task_id] = result
-        self.tasks_completed += 1
-
-        # Verificar si todas las tareas han terminado
-        if self.tasks_completed == self.total_tasks:
-            self.all_tasks_finished.emit(self.results)
-
-    def handle_task_error(self, error, task_id):
-        print(f"Error en la tarea {task_id}: {error}")
-        self.task_error.emit(f"Tarea {task_id} falló: {error}")
-
 class VisualizacionDatosScreen(QWidget):
     def __init__(self, controller, main_window):
         super().__init__()
@@ -243,8 +207,184 @@ class VisualizacionDatosScreen(QWidget):
         self.on_layout.addWidget(self.on_table_view)
         self.off_layout.addWidget(self.off_table_view)
 
+        # Botón "Exportar a Excel"
+        self.button_exportar = QPushButton("Exportar a Excel")
+        self.button_exportar.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.button_exportar.clicked.connect(self.exportar_excel)
+        layout.addWidget(self.button_exportar)
+
         self.setLayout(layout)
         self.load_buques()
+
+    def exportar_excel(self):
+        # Abrir diálogo para seleccionar la ubicación del archivo
+        options = QFileDialog.Option(0)
+        file_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Guardar archivo Excel",
+            "",
+            "Archivos Excel (*.xlsx);;Todos los archivos (*)",
+            options=options
+        )
+
+        if not file_path:
+            return  # Cancelado
+
+        # Asegurarse de que el archivo tenga la extensión .xlsx
+        if not file_path.endswith(".xlsx"):
+            file_path += ".xlsx"
+
+        # Obtener datos de las tablas ON y OFF
+        on_data = self.get_table_data(self.on_table_view)
+        off_data = self.get_table_data(self.off_table_view)
+
+        # Leer estilos desde el archivo JSON
+        styles_path = os.path.join(os.path.dirname(__file__), "../../header_styles.json")
+        if os.path.exists(styles_path):
+            with open(styles_path, "r") as f:
+                header_styles = json.load(f)
+                # Asegúrate de acceder a la clave 'styles' correctamente
+                styles = header_styles.get('styles', {})
+        else:
+            styles = {}
+            print("Advertencia: Archivo de estilos no encontrado. Los encabezados no tendrán formato.")
+
+        # Crear archivo Excel con estilos
+        self.create_excel(file_path, on_data, off_data, header_styles)
+        print(f"Archivo exportado exitosamente a {file_path}")
+
+    def add_data_to_sheet(self, sheet, data, header_styles, sheet_type):
+        """Agrega datos y aplica estilos a una hoja de Excel."""
+        if data.empty:
+            sheet.append(["Sin datos"])
+            return
+
+        # Obtener los estilos correspondientes según el tipo de hoja (ON o OFF)
+        styles = header_styles.get(sheet_type, {}).get('styles', {})
+
+        # Depuración: Verificar si los estilos se están obteniendo correctamente
+        if not styles:
+            print(f"Advertencia: No se encontraron estilos para la hoja '{sheet_type}'.")
+
+        # Limpiar espacios adicionales de las claves en el JSON
+        styles = {k.strip(): v for k, v in styles.items()}  # Limpiar los espacios en los nombres de las claves del JSON
+
+        # Renombrar la columna 'Puerto' según el estado de la hoja
+        if sheet_type == "ON":
+            data.rename(columns={"Puerto": "Puerto a embarcar"}, inplace=True)
+        elif sheet_type == "OFF":
+            data.rename(columns={"Puerto": "Puerto a desembarcar"}, inplace=True)
+
+        # Ajustar tamaños de las columnas
+        column_dimensions = header_styles.get(sheet_type, {}).get('column_dimensions', {})
+        for col_num, header in enumerate(data.columns, start=1):
+            column_letter = get_column_letter(col_num)
+            header_cleaned = header.strip()  # Limpiar el encabezado de cualquier espacio extra
+            if header_cleaned in column_dimensions and column_dimensions[header_cleaned] is not None:
+                col_width = column_dimensions[header_cleaned]
+                print(f"Ajustando ancho de columna para '{header_cleaned}' a {col_width}")
+                sheet.column_dimensions[column_letter].width = col_width
+
+        # Ajustar tamaños de las filas
+        row_dimensions = header_styles.get(sheet_type, {}).get('row_dimensions', {})
+        for row_num in range(1, len(data) + 2):  # Incluyendo encabezados
+            if row_num in row_dimensions:
+                row_height = row_dimensions[row_num]
+                if row_height:
+                    print(f"Ajustando altura de fila {row_num} a {row_height}")
+                    sheet.row_dimensions[row_num].height = row_height
+
+        # Limpiar encabezados y estilos eliminando espacios adicionales
+        data.columns = [col.strip() for col in data.columns]  # Convertir los encabezados a minúsculas, solo si se necesita
+        print("Encabezados de la tabla:", data.columns)
+        print("Estilos disponibles:", styles.keys())
+
+        # Aplicar estilo a cada encabezado
+        for col_num, header in enumerate(data.columns, start=1):
+            header_cleaned = header.strip()  # Limpiar encabezado
+            print(f"Comparando: '{header_cleaned}'")
+
+            # Verificar si el encabezado limpio está en los estilos
+            if header_cleaned in styles:
+                style = styles[header_cleaned]
+                print(f"Aplicando estilo a '{header_cleaned}': {style}")
+                print(f"Color de fondo: {style.get('fill', {}).get('color', 'sin color')}, "
+                    f"Fuente: {style.get('font', {}).get('name', 'sin fuente')}, "
+                    f"Border: {style.get('border', 'sin borde')}")
+
+                # Configurar fuente
+                if "font" in style:
+                    print(f"Aplicando fuente: {style['font']}")
+                    cell = sheet.cell(row=1, column=col_num, value=header)
+                    cell.font = Font(
+                        name=style["font"]["name"],
+                        size=style["font"]["size"],
+                        bold=style["font"]["bold"],
+                        italic=style["font"]["italic"],
+                        color=style["font"]["color"]
+                    )
+
+                # Configurar relleno (color de fondo)
+                if "fill" in style and "color" in style["fill"]:
+                    fill_color = style["fill"]["color"]
+                    if fill_color:
+                        print(f"Aplicando color de fondo: {fill_color}")
+                        if len(fill_color) == 8:  # Formato de color de 8 dígitos (FF + Hex)
+                            fill_color = fill_color[2:]  # Eliminar los dos primeros caracteres (alpha)
+                        cell.fill = PatternFill(start_color=fill_color, end_color=fill_color, fill_type="solid")
+
+                # Configurar bordes
+                if "border" in style:
+                    border_style = style["border"]
+                    thin = Side(border_style="thin")
+                    print(f"Aplicando bordes: {border_style}")
+                    cell.border = Border(
+                        top=thin if border_style.get("top") else None,
+                        bottom=thin if border_style.get("bottom") else None,
+                        left=thin if border_style.get("left") else None,
+                        right=thin if border_style.get("right") else None
+                    )
+
+        # Agregar datos del DataFrame a partir de la fila 2
+        for row_num, row_data in enumerate(data.values, start=2):
+            for col_num, cell_value in enumerate(row_data, start=1):
+                sheet.cell(row=row_num, column=col_num, value=cell_value)
+
+    def get_table_data(self, table_view):
+        """Obtiene los datos del QTableView como un DataFrame."""
+        model = table_view.model()
+        if not model:
+            return pd.DataFrame()  # No hay datos
+
+        rows = model.rowCount()
+        cols = model.columnCount()
+
+        # Extraer datos del modelo
+        data = []
+        headers = [model.headerData(c, Qt.Orientation.Horizontal) for c in range(cols)]
+        
+        # Eliminar espacios adicionales en los encabezados
+        headers = [header.strip() for header in headers]  # Limpiar los encabezados
+        for row in range(rows):
+            data.append([model.data(model.index(row, col)) for col in range(cols)])
+
+        return pd.DataFrame(data, columns=headers)
+
+    def create_excel(self, file_path, on_data, off_data, header_styles):
+        """Crea un archivo Excel con dos hojas y aplica los estilos a los encabezados."""
+        wb = Workbook()
+        
+        # Crear la hoja "ON"
+        ws_on = wb.active
+        ws_on.title = "ON"
+        self.add_data_to_sheet(ws_on, on_data, header_styles, "ON")
+
+        # Crear la hoja "OFF"
+        ws_off = wb.create_sheet(title="OFF")
+        self.add_data_to_sheet(ws_off, off_data, header_styles, "OFF")
+
+        # Guardar archivo
+        wb.save(file_path)
 
     def get_city_list(self):
         """Obtiene la lista de ciudades asociadas a los buques en la tabla Buque."""
@@ -409,12 +549,12 @@ class VisualizacionDatosScreen(QWidget):
                     row_dict[key] = value
                 for key, value in asistencia_off.items():
                     row_dict[key] = value
-                # for key, value in hoteles_off.items():
-                #     row_dict[key] = value
-                # for key, value in transportes_off.items():
-                #     row_dict[key] = value
-                # for key, value in restaurantes_off.items():  
-                #     row_dict[key] = value
+                for key, value in hoteles_off.items():
+                    row_dict[key] = value
+                for key, value in transportes_off.items():
+                    row_dict[key] = value
+                for key, value in restaurantes_off.items():  
+                    row_dict[key] = value
                 formatted_off_data.append(row_dict)
 
             # Reemplaza `on_data` con la lista formateada
@@ -556,8 +696,6 @@ class VisualizacionDatosScreen(QWidget):
             .filter(Vuelo.tipo == "INTERNACIONAL", Tripulante.tripulante_id.in_(tripulantes)) \
             .order_by(Tripulante.tripulante_id, Vuelo.fecha).all()
 
-        print(f"Datos de vuelos recuperados: {vuelos_data}")  # Depuración
-
         # Inicializar el diccionario que contendrá los vuelos formateados
         vuelos_formateados = {tripulante_id: {
             f"Aerolinea {i + 1}": None for i in range(4)  # Aerolíneas 1-4 primero
@@ -601,19 +739,17 @@ class VisualizacionDatosScreen(QWidget):
             vuelos_formateados[tripulante_id]["Date International Flight"] = vuelo.fecha.strftime("%d/%m/%y")
             vuelos_formateados[tripulante_id]["Hora International Flight"] = f"{vuelo.hora_salida.strftime('%H:%M')} {vuelo.hora_llegada.strftime('%H:%M')}"
 
-        # Depuración final
-        print("Vuelos internacionales formateados finalizados:")
-        for tripulante_id, vuelos in vuelos_formateados.items():
-            print(f"Tripulante {tripulante_id}: {vuelos}")
+        # # Depuración final
+        # print("Vuelos internacionales formateados finalizados:")
+        # for tripulante_id, vuelos in vuelos_formateados.items():
+        #     print(f"Tripulante {tripulante_id}: {vuelos}")
 
         return vuelos_formateados
 
     def get_domestic_flights(self, session, tripulantes):
         """
         Recupera el último vuelo doméstico para cada tripulante,
-        """
-        print(f"Tripulantes recibidos para búsqueda de vuelos domésticos: {tripulantes}")  # Depuración inicial
-        
+        """        
         vuelos_data = session.query(
             Tripulante.tripulante_id,
             Vuelo.aerolinea,
@@ -627,8 +763,6 @@ class VisualizacionDatosScreen(QWidget):
             .join(Vuelo, TripulanteVuelo.vuelo_id == Vuelo.vuelo_id) \
             .filter(Vuelo.tipo == "DOMESTICO", Tripulante.tripulante_id.in_(tripulantes)) \
             .order_by(Tripulante.tripulante_id, Vuelo.fecha).all()
-
-        print(f"Datos de vuelos domésticos recuperados: {vuelos_data}")  # Depuración
 
         # Inicializar el diccionario para almacenar el último vuelo doméstico por tripulante
         vuelos_formateados = {tripulante_id: {
@@ -649,19 +783,17 @@ class VisualizacionDatosScreen(QWidget):
             vuelos_formateados[tripulante_id]["Date Domestic Flight"] = vuelo.fecha.strftime("%d/%m/%y")
             vuelos_formateados[tripulante_id]["Hora Domestic Flight"] = f"{vuelo.hora_salida.strftime('%H:%M')} {vuelo.hora_llegada.strftime('%H:%M')}"
 
-        # Depuración final
-        print("Vuelos domésticos formateados finalizados:")
-        for tripulante_id, vuelos in vuelos_formateados.items():
-            print(f"Tripulante {tripulante_id}: {vuelos}")
+        # # Depuración final
+        # print("Vuelos domésticos formateados finalizados:")
+        # for tripulante_id, vuelos in vuelos_formateados.items():
+        #     print(f"Tripulante {tripulante_id}: {vuelos}")
 
         return vuelos_formateados
 
     def get_regional_flights(self, session, tripulantes):
         """
         Recupera el último vuelo regional para cada tripulante
-        """
-        print(f"Tripulantes recibidos para búsqueda de vuelos regionales: {tripulantes}")  # Depuración inicial
-        
+        """        
         vuelos_data = session.query(
             Tripulante.tripulante_id,
             Vuelo.aerolinea,
@@ -675,8 +807,6 @@ class VisualizacionDatosScreen(QWidget):
             .join(Vuelo, TripulanteVuelo.vuelo_id == Vuelo.vuelo_id) \
             .filter(Vuelo.tipo == "REGIONAL", Tripulante.tripulante_id.in_(tripulantes)) \
             .order_by(Tripulante.tripulante_id, Vuelo.fecha).all()
-
-        print(f"Datos de vuelos regionales recuperados: {vuelos_data}")  # Depuración
 
         # Inicializar el diccionario para almacenar el último vuelo regional por tripulante
         vuelos_formateados = {tripulante_id: {
@@ -695,10 +825,10 @@ class VisualizacionDatosScreen(QWidget):
             vuelos_formateados[tripulante_id]["Date Regional Flight"] = vuelo.fecha.strftime("%d/%m/%y")
             vuelos_formateados[tripulante_id]["Hora Regional Flight"] = f"{vuelo.hora_salida.strftime('%H:%M')} {vuelo.hora_llegada.strftime('%H:%M')}"
 
-        # Depuración final
-        print("Vuelos regionales formateados finalizados:")
-        for tripulante_id, vuelos in vuelos_formateados.items():
-            print(f"Tripulante {tripulante_id}: {vuelos}")
+        # # Depuración final
+        # print("Vuelos regionales formateados finalizados:")
+        # for tripulante_id, vuelos in vuelos_formateados.items():
+        #     print(f"Tripulante {tripulante_id}: {vuelos}")
 
         return vuelos_formateados
 
@@ -706,8 +836,6 @@ class VisualizacionDatosScreen(QWidget):
         """
         Recupera información de asistencia y proveedores para los tripulantes.
         """
-        print(f"Tripulantes recibidos para búsqueda de asistencia: {tripulantes}")  # Depuración inicial
-
         # Consulta para recuperar los datos de asistencia y proveedores
         asistencia_data = session.query(
             TripulanteAsistencia.tripulante_id,
@@ -718,8 +846,6 @@ class VisualizacionDatosScreen(QWidget):
             TripulanteAsistencia.necesita_asistencia_wpu.label("asistencia_wpu"),
             TripulanteAsistencia.proveedor_wpu.label("proveedor_wpu"),
         ).filter(TripulanteAsistencia.tripulante_id.in_(tripulantes)).all()
-
-        print(f"Datos de asistencia recuperados: {asistencia_data}")  # Depuración
 
         # Inicializar diccionario para almacenar los datos formateados
         asistencia_formateada = {tripulante_id: {
@@ -743,10 +869,10 @@ class VisualizacionDatosScreen(QWidget):
             asistencia_formateada[tripulante_id]["Proveedor WPU"] = asistencia.proveedor_wpu if asistencia.proveedor_wpu else None
             asistencia_formateada[tripulante_id]["Asistencia 3"] = "Asistencia WPU" if asistencia.asistencia_wpu else None
 
-        # Depuración final
-        print("Datos de asistencia formateados:")
-        for tripulante_id, asistencia in asistencia_formateada.items():
-            print(f"Tripulante {tripulante_id}: {asistencia}")
+        # # Depuración final
+        # print("Datos de asistencia formateados:")
+        # for tripulante_id, asistencia in asistencia_formateada.items():
+        #     print(f"Tripulante {tripulante_id}: {asistencia}")
 
         return asistencia_formateada
 
@@ -755,8 +881,6 @@ class VisualizacionDatosScreen(QWidget):
         Recupera información de hoteles asignados a los tripulantes.
         Devuelve hasta 3 hoteles formateados para cada tripulante.
         """
-        print(f"Tripulantes recibidos para búsqueda de hoteles: {tripulantes}")  # Depuración inicial
-
         # Consulta para recuperar los datos de los hoteles asignados
         hoteles_data = session.query(
             TripulanteHotel.tripulante_id,
@@ -769,8 +893,6 @@ class VisualizacionDatosScreen(QWidget):
         ).join(Hotel, TripulanteHotel.hotel_id == Hotel.hotel_id) \
         .filter(TripulanteHotel.tripulante_id.in_(tripulantes)) \
         .order_by(TripulanteHotel.tripulante_id, TripulanteHotel.fecha_entrada).all()
-
-        print(f"Datos de hoteles recuperados: {hoteles_data}")  # Depuración
 
         # Inicializar diccionario para almacenar hasta 3 hoteles por tripulante
         hoteles_formateados = {tripulante_id: {
@@ -802,10 +924,10 @@ class VisualizacionDatosScreen(QWidget):
                 hoteles_formateados[tripulante_id][f"Nombre Hotel {index + 1}"] = hotel.nombre_hotel
                 tripulante_indices[tripulante_id] += 1
 
-        # Depuración final
-        print("Datos de hoteles formateados:")
-        for tripulante_id, hoteles in hoteles_formateados.items():
-            print(f"Tripulante {tripulante_id}: {hoteles}")
+        # # Depuración final
+        # print("Datos de hoteles formateados:")
+        # for tripulante_id, hoteles in hoteles_formateados.items():
+        #     print(f"Tripulante {tripulante_id}: {hoteles}")
 
         return hoteles_formateados
     
@@ -819,9 +941,7 @@ class VisualizacionDatosScreen(QWidget):
 
         Returns:
             dict: Datos de transporte formateados para cada tripulante.
-        """
-        print(f"Buscando datos de transporte para tripulantes: {tripulantes}")  # Depuración inicial
-        
+        """        
         # Consulta para obtener los datos
         transport_data = session.query(
             TripulanteTransporte.tripulante_id,
@@ -834,8 +954,6 @@ class VisualizacionDatosScreen(QWidget):
         ).join(Transporte, TripulanteTransporte.transporte_id == Transporte.transporte_id) \
         .filter(TripulanteTransporte.tripulante_id.in_(tripulantes)) \
         .order_by(TripulanteTransporte.tripulante_id, TripulanteTransporte.date_pickup).all()
-
-        print(f"Datos de transporte recuperados: {transport_data}")  # Depuración
 
         # Inicializar el diccionario para almacenar datos por tripulante
         formatted_transport_data = {tripulante_id: {
@@ -867,10 +985,10 @@ class VisualizacionDatosScreen(QWidget):
                 )
                 tripulante_indices[tripulante_id] += 1
 
-        # Depuración final
-        print("Datos de transporte formateados:")
-        for tripulante_id, transportes in formatted_transport_data.items():
-            print(f"Tripulante {tripulante_id}: {transportes}")
+        # # Depuración final
+        # print("Datos de transporte formateados:")
+        # for tripulante_id, transportes in formatted_transport_data.items():
+        #     print(f"Tripulante {tripulante_id}: {transportes}")
 
         return formatted_transport_data
 
@@ -885,7 +1003,7 @@ class VisualizacionDatosScreen(QWidget):
         Returns:
             dict: Datos de restaurante formateados para cada tripulante.
         """
-        print(f"Buscando datos de restaurantes para tripulantes: {tripulantes}")  # Depuración inicial
+        #print(f"Buscando datos de restaurantes para tripulantes: {tripulantes}")  # Depuración inicial
         
         # Consulta para obtener los datos
         restaurant_data = session.query(
@@ -899,7 +1017,7 @@ class VisualizacionDatosScreen(QWidget):
         .filter(TripulanteRestaurante.tripulante_id.in_(tripulantes)) \
         .order_by(TripulanteRestaurante.tripulante_id, TripulanteRestaurante.fecha_reserva).all()
 
-        print(f"Datos de restaurantes recuperados: {restaurant_data}")  # Depuración
+        #print(f"Datos de restaurantes recuperados: {restaurant_data}")  # Depuración
 
         # Inicializar el diccionario para almacenar datos por tripulante
         formatted_restaurant_data = {tripulante_id: {
@@ -932,10 +1050,10 @@ class VisualizacionDatosScreen(QWidget):
                 formatted_restaurant_data[tripulante_id][f"Restaurant {index + 1}"] = reserva.nombre_restaurante
                 tripulante_indices[tripulante_id] += 1
 
-        # Depuración final
-        print("Datos de restaurantes formateados:")
-        for tripulante_id, restaurantes in formatted_restaurant_data.items():
-            print(f"Tripulante {tripulante_id}: {restaurantes}")
+        # # Depuración final
+        # print("Datos de restaurantes formateados:")
+        # for tripulante_id, restaurantes in formatted_restaurant_data.items():
+        #     print(f"Tripulante {tripulante_id}: {restaurantes}")
 
         return formatted_restaurant_data
 
