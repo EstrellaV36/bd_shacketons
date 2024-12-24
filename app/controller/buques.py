@@ -20,17 +20,22 @@ class Buques:
 
             buques_on = self.read_all_rows(excel_data_on, start_row=1, column_range=slice(0, 8), column_names=buques_on_columns) 
             buques_on.reset_index(drop=True, inplace=True)
+            #errors.append(self.check_and_clean(buques_on, file_path, "ON"))
 
             excel_data_off = pd.read_excel(file_path, sheet_name='OFF', header=None)
 
             buques_off = self.read_all_rows(excel_data_off, start_row=1, column_range=slice(0, 8), column_names=buques_off_columns)
             buques_off.reset_index(drop=True, inplace=True)
+            #errors.append(self.check_and_clean(buques_off, file_path, "ON"))
 
             return buques_on, buques_off
         except Exception as e:
             raise Exception(f"[Buques] Error al procesar el archivo: {e}")
 
-    def _create_buque(self, buques_df):
+    def _create_buque(self, file_path, buques_df, estado):
+        errors = []
+
+        errors = self.check_and_clean(buques_df, file_path, estado)
         try:
             if 'Puerto a embarcar' in buques_df.columns:
                 buques_df.rename(columns={'Puerto a embarcar': 'Puerto'}, inplace=True)
@@ -46,6 +51,10 @@ class Buques:
 
             # Recorrer las filas del DataFrame y procesar los buques
             for _, row in buques_df.iterrows():
+                if _ in errors:
+                    #print(f"Skipie el {_}")
+                    continue
+                
                 vessel_name = normalize_text(row['Vessel'])
                 empresa_name = normalize_text(row['Owner'])
                 puerto_name = normalize_text(row['Puerto'])
@@ -73,7 +82,7 @@ class Buques:
         except Exception as e:
             print(f"Error al crear buques: {e}")
             self.db_session.rollback()  # En caso de error, realizar rollback
-        return "Proceso completado exitosamente"
+        return errors
 
     def read_all_rows(self, data, start_row, column_range, column_names):
         # Leer todas las filas a partir de una fila específica, incluyendo filas con celdas vacías.
@@ -141,10 +150,10 @@ class Buques:
 
                     if isinstance(value, str) and '-' in value and len(value.split('-')) == 3:
                         print(f"Error [Buques]: Fecha inexistente en la fila {x}, columna '{column_name} ({y})'. Valor: '{error}'")
-                        errors.append(i)
+                        errors.append([i, y])
                     elif not pd.isna(value):
                         print(f"Error [Buques]: Formato de fecha incorrecto en la fila {x}, columna '{column_name} ({y})'. Valor: '{error}'")
-                        errors.append(i)
+                        errors.append([i, y])
 
         def get_excel_column_letter(file_path, sheet_name, column_name):
             # Cargar el archivo y la hoja

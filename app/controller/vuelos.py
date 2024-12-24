@@ -193,22 +193,22 @@ class Vuelos:
 
             # Verificar si 'hora' es una cadena o un objeto datetime.time
             hora = vuelo_info.get('hora', '')
-            print(f"la fecha es 1: {fecha_vuelo} ({type(fecha_vuelo)})")
-            print(f"la hora es 1: {hora} ({type(hora)})")
+            #print(f"la fecha es 1: {fecha_vuelo} ({type(fecha_vuelo)})")
+            #print(f"la hora es 1: {hora} ({type(hora)})")
             if isinstance(hora, str):
                 # Reemplazar caracteres no estándar y limpiar espacios
                 hora = hora.strip()
                 hora = hora.replace("–", "-").replace(" ", "-").strip()
 
                 # Detectar y corregir si los horarios están concatenados sin espacio
-                match_horas_concatenadas = re.match(r'^(\d{1,2}:\d{1,2})(\d{1,2}:\d{1,2})(\+1)?$', hora)
+                match_horas_concatenadas = re.match(r'^(\d{1,2}:\d{2})(\d{1,2}:\d{2})(\+1)?$', hora)
                 if match_horas_concatenadas:
                     hora = f"{match_horas_concatenadas.group(1)} {match_horas_concatenadas.group(2)}"
                     if match_horas_concatenadas.group(3):
                         hora += "+1"
                     #print(f"Hora reparada automáticamente: '{hora}'")
 
-                match_horas = re.match(r'^(\d{1,2}:\d{1,2})[-\s](\d{1,2}:\d{1,2})(\+1)?$', hora)
+                match_horas = re.match(r'^(\d{1,2}:\d{2})[-\s](\d{1,2}:\d{2})(\+1)?$', hora)
                 #if not match_horas:
                     #if isinstance(hora, str) and hora != "TBC":
                         #print(hora)
@@ -228,17 +228,17 @@ class Vuelos:
             #     hora_salida = hora
             #     hora_llegada = None
             elif isinstance(hora, time):
-                print(f"la hora es 2 AÑA: {hora}")
+                #print(f"la hora es 2: {hora}")
                 hora_salida = None
                 hora_llegada = hora
                 hora_llegada = datetime.combine(fecha_vuelo.date(), hora)
             else:
                 print("Error en esta parte")
-                print(f"Error en la fila {i+2}")
+                #print(f"Error en la fila {i+2}")
 
             # Convertir horas a objetos datetime
             # print("Intentando convertir hora de salida y llegada a datetime...")
-            print(f"{hora_llegada} | {hora_salida}")
+            #print(f"{hora_llegada} | {hora_salida}")
 
             # Ajustar fecha de llegada si contiene '+1'
             if dia_siguiente:
@@ -253,7 +253,7 @@ class Vuelos:
             if hora_llegada is None:
                 raise ValueError("Hora de llegada no puede ser nula.")
 
-            print("Retornando")
+            #print("Retornando")
 
             # Retornar el resultado
             return {
@@ -272,8 +272,10 @@ class Vuelos:
             # print(f"Datos actuales de vuelo_info: {vuelo_info}")
             return None
 
-    def _create_vuelos(self, vuelos_df, tripulantes_df, state, tipo):
+    def _create_vuelos(self, file_path, vuelos_df, tripulantes_df, state, tipo):
         vuelos = []  # Lista para almacenar los vuelos creados
+        errors = check_and_clean(file_path, vuelos_df, state, tipo)
+
         try:
             if vuelos_df.empty or tripulantes_df.empty:
                 #print("No hay vuelos o tripulantes para procesar.")
@@ -298,13 +300,13 @@ class Vuelos:
                     vuelo_info = vuelo_row[vuelo_key]  # Obtener la información del vuelo de la fila de vuelos
                     # Verificar que haya información válida sobre el vuelo
                     if pd.notna(vuelo_info) and isinstance(vuelo_info, dict) and vuelo_info.get('vuelo') != 'No disponible':
-                        print(i)
+                        #print(i)
                         vuelo_info = self._extraer_ciudades_y_horarios(vuelo_info, i)
 
-                        print(f"Vuelo info es: {vuelo_info}")
+                        #print(f"Vuelo info es: {vuelo_info}")
 
                         if vuelo_info is None or 'codigo_vuelo' not in vuelo_info:
-                            print(f"Omitiendo vuelo {vuelo_key} en la fila {i} debido a datos faltantes. {vuelo_info}")
+                            #print(f"Omitiendo vuelo {vuelo_key} en la fila {i} debido a datos faltantes. {vuelo_info}")
                             continue
 
                         # Buscar el vuelo por código y fecha
@@ -316,7 +318,7 @@ class Vuelos:
                             hora_salida=vuelo_info['hora_salida']
                         ).first()
 
-                        print(f"HORA LLEGADA: {vuelo_info['hora_llegada']}")
+                        #print(f"HORA LLEGADA: {vuelo_info['hora_llegada']}")
 
                         if not vuelo:
                             # Crear el vuelo si no existe
@@ -332,7 +334,7 @@ class Vuelos:
                             self.db_session.add(vuelo)
                             self.db_session.flush()  # Asegurar que el vuelo esté disponible en la base de datos
                             vuelos.append(vuelo)  # Agregar el vuelo a la lista de vuelos
-                            print(f"Vuelo creado {vuelo}")
+                            #print(f"Vuelo creado {vuelo}")
 
                         # Verificar si ya existe una asociación entre el tripulante y el vuelo
                         tripulante_vuelo_existente = self.db_session.query(TripulanteVuelo).filter_by(
@@ -356,8 +358,9 @@ class Vuelos:
             self.db_session.commit()
         except Exception as e:
             #print(f"Error al crear vuelos o asignar tripulantes: {e}")
-
             self.db_session.rollback()
+
+        return errors
 
     def _extract_international_flights(self, excel_data, start_row, state):
         vuelos = []
@@ -394,6 +397,10 @@ class Vuelos:
                         fecha = excel_data.iloc[i, col_idx_fecha]
                         hora = excel_data.iloc[i, col_idx_hora]
 
+                        vuelo = vuelo.strip() if isinstance(vuelo, str) else vuelo
+                        fecha = fecha.strip() if isinstance(fecha, str) else fecha
+                        hora = hora.strip() if isinstance(hora, str) else hora
+
                         if type(hora) == str:
                             if hora.replace(" ", "") == "":
                                 hora = None
@@ -401,21 +408,14 @@ class Vuelos:
                                 hora = hora.strip().replace("-", " ")
                                 #print(f"LA HORA ES {type(hora)} {hora}")
 
-                        print(f"{vuelo} | {fecha} | {hora}")
+                        #print(f"{i} {vuelo} | {fecha} | {hora}")
 
-                        # Si hay información válida en las columnas, agregarla
-                        if pd.notna(vuelo) and pd.notna(fecha) and pd.notna(hora):
-                            tripulante_vuelos[f'Vuelo {vuelo_num}'] = {
-                                "vuelo": vuelo,
-                                "fecha": pd.to_datetime(fecha, errors='coerce'),
-                                "hora": hora  # Mantener la hora como string, o usar pd.to_datetime si es necesario
-                            }
-                        else:
-                            tripulante_vuelos[f'Vuelo {vuelo_num}'] = {
-                                "vuelo": 'Desconocido',
-                                "fecha": None,
-                                "hora": 'Desconocido'  # Mantener la hora como string, o usar pd.to_datetime si es necesario
-                            }
+                        tripulante_vuelos[f'Vuelo {vuelo_num}'] = {
+                            "vuelo": vuelo,
+                            #"fecha": pd.to_datetime(fecha, errors='coerce'),
+                            "fecha": fecha,
+                            "hora": hora  # Mantener la hora como string, o usar pd.to_datetime si es necesario
+                        }
 
                         # Incrementar el vuelo_num para buscar el siguiente conjunto
                         vuelo_num += 1
@@ -437,14 +437,15 @@ class Vuelos:
 
                         if pd.notna(nro) and pd.notna(date) and pd.notna(hora):
                             tripulante_vuelos[f'Vuelo {vuelo_num}'] = {
-                                "nro": nro,
-                                "date": pd.to_datetime(date, format='%d-%m-%Y', errors='coerce'),
+                                "vuelo": nro,
+                                #"date": pd.to_datetime(date, format='%d-%m-%Y', errors='coerce'),
+                                "fecha": date,
                                 "hora": hora  # Mantener la hora como string, o usar pd.to_datetime si es necesario
                             }
                         else:
                             tripulante_vuelos[f'Vuelo {vuelo_num}'] = {
-                                "nro": 'Desconocido',
-                                "date": None,
+                                "vuelo": 'Desconocido',
+                                "fecha": None,
                                 "hora": 'Desconocido'  # Mantener la hora como string, o usar pd.to_datetime si es necesario
                             }
 
@@ -503,7 +504,8 @@ class Vuelos:
             # Incluso si los valores son nulos, agregar los vuelos con 'NaN' o entradas vacías
             tripulante_vuelos[f'Vuelo {vuelos_num}'] = {
                 "vuelo": nro_flight_value if pd.notna(nro_flight_value) else 'No disponible',
-                "fecha": pd.to_datetime(date_flight_value, errors='coerce') if pd.notna(date_flight_value) else 'No disponible',
+                #"fecha": pd.to_datetime(date_flight_value, errors='coerce') if pd.notna(date_flight_value) else 'No disponible',
+                "fecha": date_flight_value if pd.notna(date_flight_value) else 'No disponible',
                 "hora": hora_flight_value if pd.notna(hora_flight_value) else 'No disponible'
             }
             vuelos_num += 1  # Incrementar el número de vuelo para el siguiente
@@ -517,84 +519,189 @@ class Vuelos:
         
         return pd.DataFrame(vuelos)
     
-    def check_and_clean(self, vuelos_df, file_path, state):
-        file_path = file_path
-        state = state
+def check_and_clean(file_path, vuelos_df, state, tipo):
+    errors_to_check = []
+    errors = []
 
-        errors = []
-
-        def convertir_a_arreglos_por_vuelo(datos_vuelos, vuelo_especifico):
-            # Inicializamos listas vacías para los arreglos
-            print("1")
-            fechas = []
-            horas = []
-
-            # Iteramos sobre los valores del diccionario
-            for columna in datos_vuelos.columns:
-                for fila in datos_vuelos[columna]:
-                    #print(fila)
-                    if isinstance(fila, dict): #and fila['fecha'] != 'nan':
-                        fechas.append(fila['fecha'])
-                        horas.append(fila['hora'])
-
-            print(state)
-            for x in datos_vuelos:
-                #print(x)
-                pass
-            for x in fechas:
-                #print(x)
-                pass
-
-        def clean_value(value):
-            if isinstance(value, str):  # Verificar si es una cadena
-                return value.strip()  # Eliminar espacios en blanco
-            return value  # Dejar el valor tal como está si no es cadena
-
-        def is_valid_date(date_str, date_format='%d/%m/%y'):
+    def clean_value(value):
+        if isinstance(value, str):  # Verificar si es una cadena
+            return value.strip().replace('/', '-')  # Eliminar espacios en blanco
+        return value  # Dejar el valor tal como está si no es cadena
+    
+    def is_valid_date(date_str):
+        formats = ['%d-%m-%y', '%d-%m-%Y']  # Lista de formatos posibles
+        for date_format in formats:
             try:
-                # Intentar convertir la fecha usando Pandas
                 date = pd.to_datetime(date_str, format=date_format, errors='raise')
                 day, month, year = date.day, date.month, date.year
-
-                # Verificar si el día es válido para el mes y el año
                 last_day_of_month = calendar.monthrange(year, month)[1]
-                if day > last_day_of_month:
-                    return False  # Día fuera del rango permitido
-
-                return True  # La fecha es válida
+                if day <= last_day_of_month:
+                    return True
             except Exception:
-                return False  # Error de formato o conversión
-
-        def validate_dates(buques_df, column_name, file_path, state):
-            for i, value in buques_df[column_name].items():
-                error = buques_df.loc[i][column_name]
-
-                # Determinar si la fecha es válida
-                if not is_valid_date(value):
-                    sheet_name = state
-                    x = i + 2  # Ajustar el índice a la fila de Excel (inicia en 1)
-                    y = get_excel_column_letter(file_path, sheet_name, column_name)
-
-                    if isinstance(value, str) and '-' in value and len(value.split('-')) == 3:
-                        print(f"Error [Buques]: Fecha inexistente en la fila {x}, columna '{column_name} ({y})'. Valor: '{error}'")
-                        errors.append(i)
-                    elif not pd.isna(value):
-                        print(f"Error [Buques]: Formato de fecha incorrecto en la fila {x}, columna '{column_name} ({y})'. Valor: '{error}'")
-                        errors.append(i)
-
-        def get_excel_column_letter(file_path, sheet_name, column_name):
+                continue  # Intentar con el siguiente formato
+        #print(f"Fecha no válida: {date_str}")
+        return False
+    
+    def looks_like_date(value):
+        if isinstance(value, str):
+            # Usa una expresión regular para filtrar fechas con el formato esperado
+            return re.match(r'^\d{2}-\d{2}-\d{2,4}$', value) is not None
+        return False
+    
+    def get_excel_column_letter(file_path, sheet_name, column_name):
             # Cargar el archivo y la hoja
             workbook = load_workbook(file_path)
             sheet = workbook[sheet_name]
-
+            
             # Buscar la columna por nombre (suponiendo que los nombres están en la primera fila)
             for col in sheet.iter_cols(1, sheet.max_column, 1, 1):  # Iterar solo en la primera fila
                 if col[0].value == column_name:
                     # Devolver la letra de la columna
                     return get_column_letter(col[0].column)
-
+            
             raise ValueError(f"Columna con nombre '{column_name}' no encontrada en el archivo.")
+    
+    def get_column(df, columna):
+        sheet_name = state
+        indices = {key: idx for idx, key in enumerate(df.keys())}
+        x = indices[columna]
+        y = get_excel_column_letter(file_path, sheet_name, f"Date_pickup_{x+1}")
+        return y
 
-        convertir_a_arreglos_por_vuelo(vuelos_df, 'Vuelo 1')
+    def check_date():        
+        df = pd.DataFrame(vuelos_df)
+        for columna in vuelos_df:
+            #print(f"Columna: {columna} | {state} | {tipo}")
+            vuelo = df[columna].tolist()  # Convertir la columna en una lista
+            for idx, registro in enumerate(vuelo):  # Iterar sobre los diccionarios
+                if str(registro.get('vuelo')).lower() != 'no':
+                    if str(registro.get('vuelo')).lower() == 'tbc':
+                        continue
 
-        return errors
+                    if isinstance(registro.get('fecha'), str):
+                        if looks_like_date(registro.get('fecha')):
+                            value = registro.get('fecha')
+                            value = clean_value(value)
+
+                            if not is_valid_date(value):
+                                print(f"NE 1 {state} | Registro {idx+2} en '{columna}': Vuelo es {value}")
+                                column_letter = get_column(df, columna)
+                                errors_to_check.append([idx, columna])
+                                errors.append([idx, column_letter])
+                    else:
+                        #print(f"{idx} | {registro.get('Date Pickup')}")
+                        value = registro.get('fecha')
+                        value = clean_value(value)
+                        
+                        if registro.get('fecha') == None or pd.isna(registro.get('fecha')):
+                            if str(registro.get('vuelo')).lower() != 'no' and not pd.isna(registro.get('vuelo')):
+                                print(f"ER {state} | Registro {idx+2} en '{columna}': Vuelo es {registro.get('vuelo')}")
+                                column_letter = get_column(df, columna)
+                                errors_to_check.append([idx, columna])
+                                errors.append([idx, column_letter])
+                                continue
+
+                            #print(f"{type(registro.get('vuelo'))} | {registro.get('vuelo')}")
+                            #print(f"ER | Registro {idx+2} en '{columna}': Vuelo es {registro.get('fecha')}")
+                            print(f"ER {state} | Registro {idx+2} en '{columna}': Vuelo está vacío")
+                            column_letter = get_column(df, columna)
+                            errors_to_check.append([idx, columna])
+                            errors.append([idx, column_letter])
+                        else:
+                            if not is_valid_date(value):
+                                print(f"NE 2 {state} | Registro {idx+2} en '{columna}': Vuelo es {registro.get('fecha')}")
+                                column_letter = get_column(df, columna)
+                                errors_to_check.append([idx, columna])
+                                errors.append([idx, column_letter])
+                else:
+                    if str(registro.get('vuelo')).lower() != 'tbc' and str(registro.get('vuelo')).lower() != 'no':
+                        print(f"{state} | Registro {idx+2} en '{columna}': Vuelo es {registro.get('vuelo')}")
+                    # if registro.get('vuelo').lower() == 'no':
+                    #     continue
+                    # else:
+                    #     print(f"Registro {idx+2} en '{columna}': Vuelo está vacío")
+
+    check_date()
+    return errors
+    
+    # def check_and_clean(self, vuelos_df, file_path, state):
+    #     file_path = file_path
+    #     state = state
+
+    #     errors = []
+
+    #     def convertir_a_arreglos_por_vuelo(datos_vuelos, vuelo_especifico):
+    #         # Inicializamos listas vacías para los arreglos
+    #         print("1")
+    #         fechas = []
+    #         horas = []
+
+    #         # Iteramos sobre los valores del diccionario
+    #         for columna in datos_vuelos.columns:
+    #             for fila in datos_vuelos[columna]:
+    #                 #print(fila)
+    #                 if isinstance(fila, dict): #and fila['fecha'] != 'nan':
+    #                     fechas.append(fila['fecha'])
+    #                     horas.append(fila['hora'])
+
+    #         print(state)
+    #         for x in datos_vuelos:
+    #             #print(x)
+    #             pass
+    #         for x in fechas:
+    #             #print(x)
+    #             pass
+
+    #     def clean_value(value):
+    #         if isinstance(value, str):  # Verificar si es una cadena
+    #             return value.strip()  # Eliminar espacios en blanco
+    #         return value  # Dejar el valor tal como está si no es cadena
+
+    #     def is_valid_date(date_str, date_format='%d/%m/%y'):
+    #         try:
+    #             # Intentar convertir la fecha usando Pandas
+    #             date = pd.to_datetime(date_str, format=date_format, errors='raise')
+    #             day, month, year = date.day, date.month, date.year
+
+    #             # Verificar si el día es válido para el mes y el año
+    #             last_day_of_month = calendar.monthrange(year, month)[1]
+    #             if day > last_day_of_month:
+    #                 return False  # Día fuera del rango permitido
+
+    #             return True  # La fecha es válida
+    #         except Exception:
+    #             return False  # Error de formato o conversión
+
+    #     def validate_dates(buques_df, column_name, file_path, state):
+    #         for i, value in buques_df[column_name].items():
+    #             error = buques_df.loc[i][column_name]
+
+    #             # Determinar si la fecha es válida
+    #             if not is_valid_date(value):
+    #                 sheet_name = state
+    #                 x = i + 2  # Ajustar el índice a la fila de Excel (inicia en 1)
+    #                 y = get_excel_column_letter(file_path, sheet_name, column_name)
+
+    #                 if isinstance(value, str) and '-' in value and len(value.split('-')) == 3:
+    #                     print(f"Error [Buques]: Fecha inexistente en la fila {x}, columna '{column_name} ({y})'. Valor: '{error}'")
+    #                     errors.append(i)
+    #                 elif not pd.isna(value):
+    #                     print(f"Error [Buques]: Formato de fecha incorrecto en la fila {x}, columna '{column_name} ({y})'. Valor: '{error}'")
+    #                     errors.append(i)
+
+    #     def get_excel_column_letter(file_path, sheet_name, column_name):
+    #         # Cargar el archivo y la hoja
+    #         workbook = load_workbook(file_path)
+    #         sheet = workbook[sheet_name]
+
+    #         # Buscar la columna por nombre (suponiendo que los nombres están en la primera fila)
+    #         for col in sheet.iter_cols(1, sheet.max_column, 1, 1):  # Iterar solo en la primera fila
+    #             if col[0].value == column_name:
+    #                 # Devolver la letra de la columna
+    #                 return get_column_letter(col[0].column)
+
+    #         raise ValueError(f"Columna con nombre '{column_name}' no encontrada en el archivo.")
+
+    #     convertir_a_arreglos_por_vuelo(vuelos_df, 'Vuelo 1')
+
+    #     return errors
