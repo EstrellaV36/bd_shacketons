@@ -198,9 +198,11 @@ class Controller:
             ### HOTELES ###
             self.hoteles_on, self.hoteles_off = self.hoteles_processor.hoteles_main(file_path)
 
-            self.hoteles_processor._create_hotel(self.hoteles_on, self.tripulantes_on)
+            #print(self.hoteles_off)
+
+            self.hoteles_processor._create_hotel(file_path, self.hoteles_on, self.tripulantes_on, "ON")
             update_progress_callback(65)
-            self.hoteles_processor._create_hotel(self.hoteles_off, self.tripulantes_off)
+            self.hoteles_processor._create_hotel(file_path, self.hoteles_off, self.tripulantes_off, "OFF")
             update_progress_callback(70)  # 70% después de procesar hoteles
 
             ### TRANSPORTES ###

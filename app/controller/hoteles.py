@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import calendar
 import re
 import pandas as pd
 from sqlalchemy.orm import Session
@@ -7,6 +8,8 @@ from datetime import time
 from sqlalchemy import func, and_
 from PyQt6.QtWidgets import QMessageBox
 from app.models import Buque, Tripulante, Vuelo, EtaCiudad, Viaje, TripulanteVuelo, Hotel, TripulanteHotel, Restaurante, TripulanteRestaurante, Transporte, TripulanteTransporte, TripulanteAsistencia
+from openpyxl import load_workbook
+from openpyxl.utils import get_column_letter
 
 class Hoteles:
     def __init__(self, db_session: Session):
@@ -24,11 +27,16 @@ class Hoteles:
             hoteles_off = self._extract_hotels(excel_data_off, start_row=0, state="off")
             hoteles_off.reset_index(drop=True, inplace=True)
 
+            #print(hoteles_off)
+
             return hoteles_on, hoteles_off
         except Exception as e:
             raise Exception(f"[Hoteles] Error al procesar el archivo: {e}")
         
-    def _create_hotel(self, hotel_df, tripulantes_df):
+    def _create_hotel(self, file_path, hotel_df, tripulantes_df, state):
+        #print(f"Estoy creando hoteles de {state}")
+        check_and_clean(file_path, hotel_df, state)
+
         try:
             if hotel_df.empty or tripulantes_df.empty:
                 #print("No hay hoteles o tripulantes para procesar.")
@@ -57,8 +65,16 @@ class Hoteles:
                         #print(f"No se encontró información de hotel para el tripulante en la fila {i}.")
                         continue
 
+                    valid_entries = [entry for entry in hotel_entries if entry.get('categoria') is not None]
+
+                    if not valid_entries:  # Si no hay entradas válidas, continuar
+                        continue
+
                     for hotel_info in hotel_entries:  # Iterar sobre todos los hoteles asignados al tripulante
-                        #print(hotel_entries)
+                        #print(hotel_info)
+                        # if pd.isna(hotel_info['hotel']) or pd.isna(hotel_info['categoria']) or str(hotel_info['hotel']).lower() == 'no':
+                        #     #print(f"Hotel vacío o nulo en la fila {i}. Omitiendo...")
+                        #     continue
                         if hotel_info is None or pd.isna(hotel_info['nombre_hotel']):
                             #print(f"Hotel vacío o nulo en la fila {i}. Omitiendo...")
                             continue
@@ -104,14 +120,14 @@ class Hoteles:
                         if hotel_info['nombre_hotel'] != 'TBC':
                             x = i+2
                             if hotel_info['check_in'] == None:
-                                y = 37 + (5 * hotel_info['nro']) - 3
-                                letra_columna = self.indice_a_letra_columna(y)
-                                print(f"Se ha producido un error con el check in [{x}, {letra_columna}]")
+                                #y = 37 + (5 * hotel_info['nro']) - 3
+                                #letra_columna = self.indice_a_letra_columna(y)
+                                #print(f"Se ha producido un error con el check in [{x}, {letra_columna}]")
                                 continue
                             if hotel_info['check_out'] == None:
-                                y = 37 + (5 * hotel_info['nro']) - 2
-                                letra_columna = self.indice_a_letra_columna(y)
-                                print(f"Se ha producido un error con el check out [{x}, {letra_columna}]")
+                                #y = 37 + (5 * hotel_info['nro']) - 2
+                                #letra_columna = self.indice_a_letra_columna(y)
+                                #print(f"Se ha producido un error con el check out [{x}, {letra_columna}]")
                                 continue
 
                         # Crear nueva relación Tripulante-Hotel si no existe
@@ -130,7 +146,7 @@ class Hoteles:
 
                 except Exception as row_error:
                     print(f"[Hotel] Error procesando fila {i}: {row_error}")
-                    print(f"Datos del tripulante en la fila: {tripulante_data.to_dict()}")
+                    #print(f"Datos del tripulante en la fila: {tripulante_data.to_dict()}")
                     print(f"Datos de hotel en fila {i}: {hotel_info}")
                     #print(type(hotel_info['check_in']))
                     ###traceback.print_exc()
@@ -158,8 +174,12 @@ class Hoteles:
                 hotel_info = row[hotel_key]
 
                 if isinstance(hotel_info, dict):
-                    check_in = pd.to_datetime(hotel_info.get('check_in'), errors='coerce')
-                    check_out = pd.to_datetime(hotel_info.get('check_out'), errors='coerce')
+                    if pd.isna(hotel_info.get('hotel')):
+                        hotel = 'Desconocido'
+                    else:
+                        hotel = hotel_info.get('hotel')
+                    # check_in = pd.to_datetime(hotel_info.get('check_in'), errors='coerce')
+                    # check_out = pd.to_datetime(hotel_info.get('check_out'), errors='coerce')
 
                     # Convertir NaT a None
                     check_in = None if pd.isna(check_in) else check_in
@@ -169,7 +189,7 @@ class Hoteles:
                     hotel_entry = {
                         'nombre_hotel': hotel_info.get('nombre_hotel'),
                         'categoria': hotel_info.get('categoria'),
-                        'ciudad': hotel_info.get('hotel').split()[-1] if 'hotel' in hotel_info else 'Desconocida',
+                        'ciudad': hotel.split()[-1] if 'hotel' in hotel_info else 'Desconocida',
                         'check_in': check_in,
                         'check_out': check_out,
                         'numero_noches': (check_out - check_in).days if check_in and check_out else 0,
@@ -253,17 +273,18 @@ class Hoteles:
                     #print(check_out)
 
                     # Si hay información válida en las columnas, agregarla
-                    if pd.notna(categoria) and pd.notna(hotel):
-                        tripulante_hotels[f'Hotel {hotel_num}'] = {
-                            "categoria": categoria,
-                            "hotel": hotel,
-                            "check_in": pd.to_datetime(check_in, errors='coerce'),
-                            "check_out": pd.to_datetime(check_out, errors='coerce'),
-                            "habitacion": habitacion,
-                            "nombre_hotel": nombre_hotel,
-                            "nro": hotel_num
-                        }
-                        found_hotels = True  # Se encontró al menos un hotel
+                    #if pd.notna(categoria) and pd.notna(hotel):
+                    tripulante_hotels[f'Hotel {hotel_num}'] = {
+                        "categoria": categoria if categoria else None,
+                        "hotel": hotel if hotel else None,
+                        #"check_in": pd.to_datetime(check_in, errors='coerce') if check_in else None,
+                        "check_in": check_in if check_in else None,
+                        "check_out": pd.to_datetime(check_out, errors='coerce') if check_out else None,
+                        "habitacion": habitacion if habitacion else None,
+                        "nombre_hotel": nombre_hotel if nombre_hotel else None,
+                        "nro": hotel_num if hotel_num else None
+                    }
+                    found_hotels = True  # Se encontró al menos un hotel
 
                     # Incrementar el número de hotel para buscar el siguiente conjunto
                     hotel_num += 1
@@ -271,16 +292,16 @@ class Hoteles:
                     break  # Detener la búsqueda si no se encuentra una de las columnas
 
             # Si no se encontraron hoteles, agregar un registro para ese tripulante
-            if not found_hotels:
-                tripulante_hotels['Hotel 1'] = {
-                    "categoria": None,
-                    "hotel": "SIN HOTEL",
-                    "check_in": None,
-                    "check_out": None,
-                    "habitacion": None,
-                    "nombre_hotel": "SIN HOTEL",
-                    "nro": None
-                }
+            # if not found_hotels:
+            #     tripulante_hotels[f'Hotel {hotel_num}'] = {
+            #         "categoria": None,
+            #         "hotel": "SIN HOTEL",
+            #         "check_in": None,
+            #         "check_out": None,
+            #         "habitacion": None,
+            #         "nombre_hotel": "SIN HOTEL",
+            #         "nro": None
+            #     }
 
             # Agregar la información del tripulante a la lista de hoteles
             hotels.append(tripulante_hotels)
@@ -303,3 +324,198 @@ class Hoteles:
     
     def clean_string(self, value):
         return value.strip().replace('\u200b', '').lower() if isinstance(value, str) else value
+    
+def check_and_clean(file_path, hoteles_df, state):
+    errors_to_check = []
+    errors = []
+
+    print(f"El dict de {state} es {hoteles_df}")
+
+    def clean_value(value):
+        if isinstance(value, str):  # Verificar si es una cadena
+            return value.strip().replace('/', '-')  # Eliminar espacios en blanco
+        return value  # Dejar el valor tal como está si no es cadena
+    
+    def is_valid_date(date_str):
+        formats = ['%d-%m-%y', '%d-%m-%Y']  # Lista de formatos posibles
+        for date_format in formats:
+            try:
+                date = pd.to_datetime(date_str, format=date_format, errors='raise')
+                day, month, year = date.day, date.month, date.year
+                last_day_of_month = calendar.monthrange(year, month)[1]
+                if day <= last_day_of_month:
+                    return True
+            except Exception:
+                continue  # Intentar con el siguiente formato
+        #print(f"Fecha no válida: {date_str}")
+        return False
+    
+    def looks_like_date(value):
+        if isinstance(value, str):
+            # Usa una expresión regular para filtrar fechas con el formato esperado
+            return re.match(r'^\d{2}-\d{2}-\d{2,4}$', value) is not None
+        return False
+    
+    def get_excel_column_letter(file_path, sheet_name, column_name):
+            # Cargar el archivo y la hoja
+            workbook = load_workbook(file_path)
+            sheet = workbook[sheet_name]
+            
+            # Buscar la columna por nombre (suponiendo que los nombres están en la primera fila)
+            for col in sheet.iter_cols(1, sheet.max_column, 1, 1):  # Iterar solo en la primera fila
+                if col[0].value == column_name:
+                    # Devolver la letra de la columna
+                    return get_column_letter(col[0].column)
+            
+            raise ValueError(f"Columna con nombre '{column_name}' no encontrada en el archivo.")
+    
+    def get_column(df, columna, column):
+        sheet_name = state
+        indices = {key: idx for idx, key in enumerate(df.keys())}
+        x = indices[columna]
+        y = get_excel_column_letter(file_path, sheet_name, f"{column} {x+1}")
+        return y
+    
+    def check_date(df, registro, idx, columna, column, x):
+        #print(registro.get(f'{column}'))
+        #print(registro)
+        if isinstance(registro.get(f'{column}'), str):
+            if looks_like_date(registro.get(f'{column}')):
+                value = registro.get(f'{column}')
+                value = clean_value(value)
+
+                if not is_valid_date(value):
+                    ##print(f"NE 1 {state} | Registro {idx+2} en '{columna}': Vuelo es {value}")
+                    column_letter = get_column(df, columna, x)
+                    return idx, column_letter
+                else:
+                    #print("Fecha válida")
+                    return 0, True
+        else:
+            #print(f"{idx} | {registro.get('Date Pickup')}")
+            value = registro.get(f'{column}')
+            value = clean_value(value)
+            
+            if registro.get(f'{column}') == None or pd.isna(registro.get(f'{column}')):
+                if str(registro.get('vuelo')).lower() != 'no' and not pd.isna(registro.get('vuelo')):
+                    ##print(f"ER {state} | Registro {idx+2} en '{columna}': Vuelo es {registro.get('vuelo')}")
+                    column_letter = get_column(df, columna, x)
+                    return idx, column_letter
+
+                #print(f"{type(registro.get('vuelo'))} | {registro.get('vuelo')}")
+                #print(f"ER | Registro {idx+2} en '{columna}': Vuelo es {registro.get('fecha')}")
+                ##print(f"ER {state} | Registro {idx+2} en '{columna}': Vuelo está vacío")
+                column_letter = get_column(df, columna, x)
+                return idx, column_letter
+            else:
+                if not is_valid_date(value):
+                    ##print(f"NE 2 {state} | Registro {idx+2} en '{columna}': Vuelo es {registro.get(f'{column}')}")
+                    column_letter = get_column(df, columna, x)
+                    return idx, column_letter
+                else:
+                    ##print("Fecha válida")
+                    return 0, True
+
+    def check_column():
+        df = pd.DataFrame(hoteles_df)
+        #print(df)
+        for columna in hoteles_df:
+            #print(f"Columna: {columna} | {state} | {tipo}")
+            hotel = df[columna].tolist()  # Convertir la columna en una lista
+            for idx, registro in enumerate(hotel):  # Iterar sobre los diccionarios
+                #print(registro)
+                skip = False
+                if not pd.isna(registro.get('categoria')):
+                    #print(f"{idx} {state} | {columna} | Categoria es {str(registro.get('categoria'))}")
+
+                    if str(registro.get('hotel')).lower() == 'no':
+                        #print(f"{idx} skipeado | {columna}  {registro.get('hotel')}")
+                        continue
+                    else:
+                        if pd.isna(registro.get('hotel')):
+                            column_letter = get_column(df, columna, 'Hotel')
+                            errors_to_check.append([idx+2, columna])
+                            errors.append([idx+2, column_letter])
+                            print(f"{idx+2},{column_letter} {state} {columna} | Error hotel vacío")
+                            continue
+                        else:
+
+                            if pd.isna(registro.get('check_in')):
+                                column_letter = get_column(df, columna, 'Check in')
+                                errors_to_check.append([idx+2, columna])
+                                errors.append([idx+2, column_letter])
+                                skip = True
+                                print(f"{idx+2},{column_letter} {state} {columna} | Error check in vacío")
+                            else:
+                                idx_x, column_letter = check_date(df, registro, idx, columna, 'check_in', 'Check in')
+                                if column_letter != True:
+                                    errors_to_check.append([idx_x+2, columna])
+                                    errors.append([idx_x+2, column_letter])
+                                    print(f"{idx_x+2},{column_letter} {state} {columna} | Error en formato de check in")
+
+                            if pd.isna(registro.get('check_out')):
+                                column_letter = get_column(df, columna, 'Check out')
+                                errors_to_check.append([idx+2, columna])
+                                errors.append([idx+2, column_letter])
+                                skip = True
+                                print(f"{idx+2},{column_letter} {state} {columna} | Error check out vacío")
+                            else:
+                                idx_x, column_letter = check_date(df, registro, idx, columna, 'check_out', 'Check out')
+                                if column_letter != True:
+                                    errors_to_check.append([idx_x+2, columna])
+                                    errors.append([idx_x+2, column_letter])
+                                    print(f"{idx_x+2},{column_letter} {state} {columna} | Error en formato de check out")
+
+                            if skip:
+                                continue
+
+                    # if isinstance(registro.get('fecha'), str):
+                    #     if looks_like_date(registro.get('fecha')):
+                    #         value = registro.get('fecha')
+                    #         value = clean_value(value)
+
+                    #         if not is_valid_date(value):
+                    #             print(f"NE 1 {state} | Registro {idx+2} en '{columna}': Vuelo es {value}")
+                    #             column_letter = get_column(df, columna)
+                    #             errors_to_check.append([idx, columna])
+                    #             errors.append([idx, column_letter])
+                    # else:
+                    #     #print(f"{idx} | {registro.get('Date Pickup')}")
+                    #     value = registro.get('fecha')
+                    #     value = clean_value(value)
+                        
+                    #     if registro.get('fecha') == None or pd.isna(registro.get('fecha')):
+                    #         if str(registro.get('vuelo')).lower() != 'no' and not pd.isna(registro.get('vuelo')):
+                    #             print(f"ER {state} | Registro {idx+2} en '{columna}': Vuelo es {registro.get('vuelo')}")
+                    #             column_letter = get_column(df, columna)
+                    #             errors_to_check.append([idx, columna])
+                    #             errors.append([idx, column_letter])
+                    #             continue
+
+                    #         #print(f"{type(registro.get('vuelo'))} | {registro.get('vuelo')}")
+                    #         #print(f"ER | Registro {idx+2} en '{columna}': Vuelo es {registro.get('fecha')}")
+                    #         print(f"ER {state} | Registro {idx+2} en '{columna}': Vuelo está vacío")
+                    #         column_letter = get_column(df, columna)
+                    #         errors_to_check.append([idx, columna])
+                    #         errors.append([idx, column_letter])
+                    #     else:
+                    #         if not is_valid_date(value):
+                    #             print(f"NE 2 {state} | Registro {idx+2} en '{columna}': Vuelo es {registro.get('fecha')}")
+                    #             column_letter = get_column(df, columna)
+                    #             errors_to_check.append([idx, columna])
+                    #             errors.append([idx, column_letter])
+                else:
+                    #print(f"{idx} {state} | Categoria es {registro.get('categoria')}")
+                    #print(f"Error en {registro}") ### MENSAJE DE ERROR PARA CUANDO NO TIENE LA CATEGORIA
+                    print(f"{idx+2} {state} {columna} | Error") ### MENSAJE DE ERROR PARA CUANDO NO TIENE LA CATEGORIA
+                    continue
+
+                    # if str(registro.get('vuelo')).lower() != 'tbc' and str(registro.get('vuelo')).lower() != 'no':
+                    #     print(f"{state} | Registro {idx+2} en '{columna}': Vuelo es {registro.get('vuelo')}")
+                    # if registro.get('vuelo').lower() == 'no':
+                    #     continue
+                    # else:
+                    #     print(f"Registro {idx+2} en '{columna}': Vuelo está vacío")
+
+    check_column()
+    return errors

@@ -586,8 +586,8 @@ def check_and_clean(file_path, vuelos_df, state, tipo):
                             if not is_valid_date(value):
                                 print(f"NE 1 {state} | Registro {idx+2} en '{columna}': Vuelo es {value}")
                                 column_letter = get_column(df, columna)
-                                errors_to_check.append([idx, columna])
-                                errors.append([idx, column_letter])
+                                errors_to_check.append([idx+2, columna])
+                                errors.append([idx+2, column_letter])
                     else:
                         #print(f"{idx} | {registro.get('Date Pickup')}")
                         value = registro.get('fecha')
@@ -597,22 +597,22 @@ def check_and_clean(file_path, vuelos_df, state, tipo):
                             if str(registro.get('vuelo')).lower() != 'no' and not pd.isna(registro.get('vuelo')):
                                 print(f"ER {state} | Registro {idx+2} en '{columna}': Vuelo es {registro.get('vuelo')}")
                                 column_letter = get_column(df, columna)
-                                errors_to_check.append([idx, columna])
-                                errors.append([idx, column_letter])
+                                errors_to_check.append([idx+2, columna])
+                                errors.append([idx+2, column_letter])
                                 continue
 
                             #print(f"{type(registro.get('vuelo'))} | {registro.get('vuelo')}")
                             #print(f"ER | Registro {idx+2} en '{columna}': Vuelo es {registro.get('fecha')}")
                             print(f"ER {state} | Registro {idx+2} en '{columna}': Vuelo está vacío")
                             column_letter = get_column(df, columna)
-                            errors_to_check.append([idx, columna])
-                            errors.append([idx, column_letter])
+                            errors_to_check.append([idx+2, columna])
+                            errors.append([idx+2, column_letter])
                         else:
                             if not is_valid_date(value):
                                 print(f"NE 2 {state} | Registro {idx+2} en '{columna}': Vuelo es {registro.get('fecha')}")
                                 column_letter = get_column(df, columna)
-                                errors_to_check.append([idx, columna])
-                                errors.append([idx, column_letter])
+                                errors_to_check.append([idx+2, columna])
+                                errors.append([idx+2, column_letter])
                 else:
                     if str(registro.get('vuelo')).lower() != 'tbc' and str(registro.get('vuelo')).lower() != 'no':
                         print(f"{state} | Registro {idx+2} en '{columna}': Vuelo es {registro.get('vuelo')}")
@@ -623,85 +623,3 @@ def check_and_clean(file_path, vuelos_df, state, tipo):
 
     check_date()
     return errors
-    
-    # def check_and_clean(self, vuelos_df, file_path, state):
-    #     file_path = file_path
-    #     state = state
-
-    #     errors = []
-
-    #     def convertir_a_arreglos_por_vuelo(datos_vuelos, vuelo_especifico):
-    #         # Inicializamos listas vacías para los arreglos
-    #         print("1")
-    #         fechas = []
-    #         horas = []
-
-    #         # Iteramos sobre los valores del diccionario
-    #         for columna in datos_vuelos.columns:
-    #             for fila in datos_vuelos[columna]:
-    #                 #print(fila)
-    #                 if isinstance(fila, dict): #and fila['fecha'] != 'nan':
-    #                     fechas.append(fila['fecha'])
-    #                     horas.append(fila['hora'])
-
-    #         print(state)
-    #         for x in datos_vuelos:
-    #             #print(x)
-    #             pass
-    #         for x in fechas:
-    #             #print(x)
-    #             pass
-
-    #     def clean_value(value):
-    #         if isinstance(value, str):  # Verificar si es una cadena
-    #             return value.strip()  # Eliminar espacios en blanco
-    #         return value  # Dejar el valor tal como está si no es cadena
-
-    #     def is_valid_date(date_str, date_format='%d/%m/%y'):
-    #         try:
-    #             # Intentar convertir la fecha usando Pandas
-    #             date = pd.to_datetime(date_str, format=date_format, errors='raise')
-    #             day, month, year = date.day, date.month, date.year
-
-    #             # Verificar si el día es válido para el mes y el año
-    #             last_day_of_month = calendar.monthrange(year, month)[1]
-    #             if day > last_day_of_month:
-    #                 return False  # Día fuera del rango permitido
-
-    #             return True  # La fecha es válida
-    #         except Exception:
-    #             return False  # Error de formato o conversión
-
-    #     def validate_dates(buques_df, column_name, file_path, state):
-    #         for i, value in buques_df[column_name].items():
-    #             error = buques_df.loc[i][column_name]
-
-    #             # Determinar si la fecha es válida
-    #             if not is_valid_date(value):
-    #                 sheet_name = state
-    #                 x = i + 2  # Ajustar el índice a la fila de Excel (inicia en 1)
-    #                 y = get_excel_column_letter(file_path, sheet_name, column_name)
-
-    #                 if isinstance(value, str) and '-' in value and len(value.split('-')) == 3:
-    #                     print(f"Error [Buques]: Fecha inexistente en la fila {x}, columna '{column_name} ({y})'. Valor: '{error}'")
-    #                     errors.append(i)
-    #                 elif not pd.isna(value):
-    #                     print(f"Error [Buques]: Formato de fecha incorrecto en la fila {x}, columna '{column_name} ({y})'. Valor: '{error}'")
-    #                     errors.append(i)
-
-    #     def get_excel_column_letter(file_path, sheet_name, column_name):
-    #         # Cargar el archivo y la hoja
-    #         workbook = load_workbook(file_path)
-    #         sheet = workbook[sheet_name]
-
-    #         # Buscar la columna por nombre (suponiendo que los nombres están en la primera fila)
-    #         for col in sheet.iter_cols(1, sheet.max_column, 1, 1):  # Iterar solo en la primera fila
-    #             if col[0].value == column_name:
-    #                 # Devolver la letra de la columna
-    #                 return get_column_letter(col[0].column)
-
-    #         raise ValueError(f"Columna con nombre '{column_name}' no encontrada en el archivo.")
-
-    #     convertir_a_arreglos_por_vuelo(vuelos_df, 'Vuelo 1')
-
-    #     return errors
