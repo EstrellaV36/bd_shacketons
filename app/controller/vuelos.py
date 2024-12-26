@@ -620,6 +620,6 @@ def check_and_clean(file_path, vuelos_df, state, tipo):
                     #     continue
                     # else:
                     #     print(f"Registro {idx+2} en '{columna}': Vuelo está vacío")
-
+            
     check_date()
     return errors
