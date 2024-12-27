@@ -34,8 +34,9 @@ class Buques:
 
     def _create_buque(self, file_path, buques_df, estado):
         errors = []
+        errors_message = []
 
-        errors = self.check_and_clean(buques_df, file_path, estado)
+        errors, errors_message = self.check_and_clean(buques_df, file_path, estado)
         try:
             if 'Puerto a embarcar' in buques_df.columns:
                 buques_df.rename(columns={'Puerto a embarcar': 'Puerto'}, inplace=True)
@@ -82,7 +83,7 @@ class Buques:
         except Exception as e:
             print(f"Error al crear buques: {e}")
             self.db_session.rollback()  # En caso de error, realizar rollback
-        return errors
+        return errors, errors_message
 
     def read_all_rows(self, data, start_row, column_range, column_names):
         # Leer todas las filas a partir de una fila específica, incluyendo filas con celdas vacías.
@@ -117,6 +118,7 @@ class Buques:
         state = state
 
         errors = []
+        errors_message = []
 
         def clean_value(value):
             if isinstance(value, str):  # Verificar si es una cadena
@@ -151,9 +153,11 @@ class Buques:
                     if isinstance(value, str) and '-' in value and len(value.split('-')) == 3:
                         print(f"Error [Buques]: Fecha inexistente en la fila {x}, columna '{column_name} ({y})'. Valor: '{error}'")
                         errors.append([i, y])
+                        errors_message.append(f"Fecha inexistente [{x},{y}]")
                     elif not pd.isna(value):
                         print(f"Error [Buques]: Formato de fecha incorrecto en la fila {x}, columna '{column_name} ({y})'. Valor: '{error}'")
                         errors.append([i, y])
+                        errors_message.append(f"Formato de fecha incorrecto [{x},{y}]")
 
         def get_excel_column_letter(file_path, sheet_name, column_name):
             # Cargar el archivo y la hoja
@@ -180,5 +184,5 @@ class Buques:
         buques_df['ETA Vessel'] = pd.to_datetime(buques_df['ETA Vessel'], format='%d/%m/%y', errors='coerce')
         buques_df['ETD Vessel'] = pd.to_datetime(buques_df['ETD Vessel'], format='%d/%m/%y', errors='coerce')
 
-        return errors
+        return errors, errors_message
     

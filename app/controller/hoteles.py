@@ -162,8 +162,7 @@ class Hoteles:
         
     def _create_hotel(self, file_path, hotel_df, tripulantes_df, state):
         #print(f"Estoy creando hoteles de {state}")
-        errors = check_and_clean(file_path, hotel_df, state)
-        print(errors)
+        errors, errors_message = check_and_clean(file_path, hotel_df, state)
 
         try:
             if hotel_df.empty or tripulantes_df.empty:
@@ -299,6 +298,8 @@ class Hoteles:
             self.db_session.rollback()  # Revertir cualquier cambio parcial en caso de error general
             print(f"Error general al asignar hoteles: {e}")
             ###traceback.print_exc()
+        
+        return errors, errors_message
 
     def _extraer_hoteles_fechas(self, hotel_df):
         hoteles_info = []
@@ -485,6 +486,7 @@ class Hoteles:
 def check_and_clean(file_path, hoteles_df, state):
     errors_to_check = []
     errors = []
+    errors_message = []
 
     #print(f"El dict de {state} es {hoteles_df}")
 
@@ -596,7 +598,8 @@ def check_and_clean(file_path, hoteles_df, state):
                             column_letter = get_column(df, columna, 'Hotel')
                             errors_to_check.append([idx+2, columna])
                             errors.append([idx+2, column_letter])
-                            print(f"{idx+2},{column_letter} {state} {columna} | Error hotel vacío")
+                            errors_message.append(f"Dato faltante [{idx+2},{column_letter}]")
+                            print(f"{idx+2},{column_letter} {state} {columna} | Error hotel vacío")         
                             continue
                         else:
                             if isinstance(registro.get('hotel'), str):  # Asegurarse de que sea una cadena antes de dividir
@@ -607,6 +610,7 @@ def check_and_clean(file_path, hoteles_df, state):
                                         column_letter = get_column(df, columna, 'Hotel')
                                         errors_to_check.append([idx, columna])
                                         errors.append([idx, column_letter])
+                                        errors_message.append(f"Formato incorrecto [{idx+2},{column_letter}]")
                                         print(f"{idx+2},{column_letter} | Formato incorrecto en el nombre del hotel: '{hotel}'")
                                     else:
                                         if hotel_parts[1].upper() in CITY_AIRPORT_CODES:
@@ -614,11 +618,13 @@ def check_and_clean(file_path, hoteles_df, state):
                                                 column_letter = get_column(df, columna, 'Hotel')
                                                 errors_to_check.append([idx, columna])
                                                 errors.append([idx, column_letter])   
+                                                errors_message.append(f"Debe comenzar con 'hotel' o 'autogestión' [{idx+2},{column_letter}]")
                                                 print(f"{idx+2},{column_letter} | La primera palabra debe ser 'hotel' o 'autogestión': '{hotel}'")     
                                         else:
                                             column_letter = get_column(df, columna, 'Hotel')
                                             errors_to_check.append([idx, columna])
                                             errors.append([idx, column_letter])
+                                            errors_message.append(f"Ciudad no válida [{idx+2},{column_letter}]")
                                             print(f"{idx+2},{column_letter} | La segunda palabra debe ser una ciudad válida '{hotel}'")
                                 else:
                                     if hotel.lower() in ('no', 'tbc'):
@@ -630,18 +636,21 @@ def check_and_clean(file_path, hoteles_df, state):
                                 errors_to_check.append([idx+2, columna])
                                 errors.append([idx+2, column_letter])
                                 skip = True
+                                errors_message.append(f"Check in faltante [{idx+2},{column_letter}]")
                                 print(f"{idx+2},{column_letter} {state} {columna} | Error check in vacío")
                             else:
                                 column_letter = check_date(df, registro, idx, columna, 'check_in', 'Check in')
                                 if column_letter != True:
                                     errors_to_check.append([idx+2, columna])
                                     errors.append([idx+2, column_letter])
+                                    errors_message.append(f"Formato de check in no válido [{idx+2},{column_letter}]")
                                     print(f"{idx+2},{column_letter} {state} {columna} | Error en formato de check in")
 
                             if pd.isna(registro.get('check_out')):
                                 column_letter = get_column(df, columna, 'Check out')
                                 errors_to_check.append([idx+2, columna])
                                 errors.append([idx+2, column_letter])
+                                errors_message.append(f"Check out faltante [{idx+2},{column_letter}]")
                                 skip = True
                                 print(f"{idx+2},{column_letter} {state} {columna} | Error check out vacío")
                             else:
@@ -649,6 +658,7 @@ def check_and_clean(file_path, hoteles_df, state):
                                 if column_letter != True:
                                     errors_to_check.append([idx+2, columna])
                                     errors.append([idx+2, column_letter])
+                                    errors_message.append(f"Formato de check out no válido [{idx+2},{column_letter}]")
                                     print(f"{idx+2},{column_letter} {state} {columna} | Error en formato de check out")
 
                             if not pd.isna(registro.get('habitacion')):
@@ -659,6 +669,7 @@ def check_and_clean(file_path, hoteles_df, state):
                                         column_letter = get_column(df, columna, 'Rooms')
                                         errors_to_check.append([idx, columna])
                                         errors.append([idx, column_letter])
+                                        errors_message.append(f"Formato incorrecto [{idx+2},{column_letter}]")
                                         print(f"{idx+2},{column_letter} | Formato incorrecto en el nombre del room: '{room}'")
                                     else:
                                         # Verificar que la primera palabra sea 'room' o 'autogestión'
@@ -666,17 +677,20 @@ def check_and_clean(file_path, hoteles_df, state):
                                             column_letter = get_column(df, columna, 'Rooms')
                                             errors_to_check.append([idx, columna])
                                             errors.append([idx, column_letter])
+                                            errors_message.append(f"Debe comenzar con 'single' o 'doble' [{idx+2},{column_letter}]")
                                             print(f"{idx+2},{column_letter} | La primera palabra debe ser 'single' o 'doble': '{room}'")
                             else:
                                 column_letter = get_column(df, columna, 'Rooms')
                                 errors_to_check.append([idx, columna])
                                 errors.append([idx, column_letter])
+                                errors_message.append(f"Room faltante [{idx+2},{column_letter}]")
                                 print(f"{idx+2},{column_letter} {columna} {state} | El valor de 'room' está vacío")
 
                             if pd.isna(registro.get('nombre_hotel')):
                                 column_letter = get_column(df, columna, 'Nombre Hotel')
                                 errors_to_check.append([idx, columna])
                                 errors.append([idx, column_letter])
+                                errors_message.append(f"Nombre de hotel faltante [{idx+2},{column_letter}]")
                                 print(f"{idx+2},{column_letter} {columna} {state} | El valor de 'nombre_hotel' está vacío")
 
                             if skip:
@@ -691,4 +705,4 @@ def check_and_clean(file_path, hoteles_df, state):
                     continue
 
     check_column()
-    return errors
+    return errors, errors_message

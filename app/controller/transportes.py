@@ -104,7 +104,7 @@ class Transportes:
 
     def _create_transporte(self, file_path, transportes_df, tripulantes_df, state):
         transportes = []  # Lista para almacenar los transportes creados
-        errors_to_check = check_and_clean(file_path, transportes_df, state)
+        errors, errors_message, errors_to_check = check_and_clean(file_path, transportes_df, state)
         #print(errors_to_check)
 
         try:
@@ -232,7 +232,7 @@ class Transportes:
             ###traceback.print_exc()
             self.db_session.rollback()
 
-        return errors_to_check  # Retornar la lista de transportes creados
+        return errors, errors_message  # Retornar la lista de transportes creados
 
     def _extraer_transportes(self, transporte_info):        
         transportes_info = []
@@ -369,6 +369,7 @@ class Transportes:
 def check_and_clean(file_path, transportes_df, state):
     errors_to_check = []
     errors = []
+    errors_message = []
 
     def clean_value(value):
         if isinstance(value, str):  # Verificar si es una cadena
@@ -434,6 +435,7 @@ def check_and_clean(file_path, transportes_df, state):
                                 column_letter = get_column(df, columna)
                                 errors_to_check.append([idx, columna])
                                 errors.append([idx, column_letter])
+                                errors_message.append(f"Fecha inexistente [{idx+2},{column_letter}]")
                     else:
                         #print(f"{idx} | {registro.get('Date Pickup')}")
                         value = registro.get('Date Pickup')
@@ -444,12 +446,14 @@ def check_and_clean(file_path, transportes_df, state):
                             column_letter = get_column(df, columna)
                             errors_to_check.append([idx, columna])
                             errors.append([idx, column_letter])
+                            errors_message.append(f"Fecha faltante [{idx+2},{column_letter}]")
                         else:
                             if not is_valid_date(value):
                                 print(f"NE | Registro {idx+2} en '{columna}': Fecha es {registro.get('Date Pickup')}")
                                 column_letter = get_column(df, columna)
                                 errors_to_check.append([idx, columna])
                                 errors.append([idx, column_letter])
+                                errors_message.append(f"Fecha inexistente [{idx+2},{column_letter}]")
                 else:
                     if registro.get('City In').lower() == 'no':
                         continue
@@ -458,7 +462,7 @@ def check_and_clean(file_path, transportes_df, state):
 
     check_date()
 
-    return errors
+    return errors, errors_message, errors_to_check
 
 
 # def process_time(value, field_name, state, tripulante, transporte_key, row, i, indice_a_letra_columna):

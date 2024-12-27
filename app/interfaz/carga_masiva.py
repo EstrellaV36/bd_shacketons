@@ -122,7 +122,7 @@ class CargaMasivaScreen(QWidget):
     def update_progress_bar(self, progress_value):
         self.progress_bar.setValue(progress_value)
 
-    def update_tables(self, buque_on, buque_off, tripulantes_on, tripulantes_off, errors_on, errors_off):
+    def update_tables(self, buque_on, buque_off, tripulantes_on, tripulantes_off, errors_on, errors_off, errors_on_message, errors_off_message):
         # Convertir las columnas ETA y ETD a solo fecha, sin la hora
         buque_on['ETA Vessel'] = pd.to_datetime(buque_on['ETA Vessel']).dt.date
         buque_on['ETD Vessel'] = pd.to_datetime(buque_on['ETD Vessel']).dt.date
@@ -133,16 +133,18 @@ class CargaMasivaScreen(QWidget):
 
         # Actualiza la tabla de "ON"
         combined_on_df = pd.concat([buque_on, tripulantes_on], axis=1)
-        self.show_sheet(combined_on_df, self.on_table_view, errors_on)  # Mostrar en la pestaña "ON"
+        self.show_sheet(combined_on_df, self.on_table_view, errors_on, errors_on_message)  # Mostrar en la pestaña "ON"
         
         # Actualiza la tabla de "OFF"
         combined_off_df = pd.concat([buque_off, tripulantes_off], axis=1)
-        self.show_sheet(combined_off_df, self.off_table_view, errors_off)  # Mostrar en la pestaña "OFF"
+        self.show_sheet(combined_off_df, self.off_table_view, errors_off, errors_off_message)  # Mostrar en la pestaña "OFF"
 
-    def show_sheet(self, df, table_view, errors_df):
+    def show_sheet(self, df, table_view, errors_df, errors_message_df):
         highlighted_rows = errors_df
         model = PandasModel(df, highlighted_rows)
         table_view.setModel(model)
+
+        print(type(errors_message_df))
 
         # Configura el estilo y formato del QTableView
         table_view.resizeColumnsToContents()  # Ajusta el ancho de las columnas
@@ -170,12 +172,23 @@ class CargaMasivaScreen(QWidget):
         table_view.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)  # Selección por filas
         table_view.setSelectionMode(QTableView.SelectionMode.SingleSelection)  # Solo permite seleccionar una fila
 
+        # Mostrar errores si existen
+        if errors_message_df:
+            print("Entre al if de error")
+            error_messages = "\n".join(errors_message_df)  # Combina los errores en texto separado por líneas
+            error_box = QMessageBox(self)
+            error_box.setIcon(QMessageBox.Icon.Warning)
+            error_box.setWindowTitle("Errores en los datos")
+            error_box.setText("Se encontraron los siguientes errores:")
+            error_box.setDetailedText(error_messages)  # Mostrar los detalles con los errores específicos
+            error_box.exec()
+
     def on_load_finished(self):
         self.progress_dialog.accept()
 
 class LoadExcelThread(QThread):
     update_progress = pyqtSignal(int)
-    update_tables = pyqtSignal(object, object, object, object, object, object)
+    update_tables = pyqtSignal(object, object, object, object, object, object, object, object)
 
     def __init__(self, controller, file_path):
         super().__init__()
@@ -184,17 +197,17 @@ class LoadExcelThread(QThread):
 
     def run(self):
         try:
-            buque_on, buque_off, tripulantes_on, tripulantes_off, errors_on, errors_off = None, None, None, None, None, None
+            buque_on, buque_off, tripulantes_on, tripulantes_off, errors_on, errors_off, errors_on_message, errors_off_message = None, None, None, None, None, None, None, None
 
             # Pasar la función de actualización de progreso al Controller
             def update_progress_callback(progress):
                 self.update_progress.emit(progress)
 
             # Llamar a `process_excel_file` con la función de progreso
-            buque_on, buque_off, tripulantes_on, tripulantes_off, errors_on, errors_off = self.controller.process_excel_file(self.file_path, update_progress_callback)
+            buque_on, buque_off, tripulantes_on, tripulantes_off, errors_on, errors_off, errors_on_message, errors_off_message = self.controller.process_excel_file(self.file_path, update_progress_callback)
 
             # Emitir las señales para actualizar las tablas
-            self.update_tables.emit(buque_on, buque_off, tripulantes_on, tripulantes_off, errors_on, errors_off)
+            self.update_tables.emit(buque_on, buque_off, tripulantes_on, tripulantes_off, errors_on, errors_off, errors_on_message, errors_off_message)
 
         except Exception as e:
             print(f"Error al procesar el archivo: {e}")

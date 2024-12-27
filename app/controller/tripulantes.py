@@ -33,8 +33,9 @@ class Tripulantes:
         tripulantes = []  # Lista para almacenar los tripulantes creados
         vuelos_tripulante = []  # Lista para almacenar los vuelos asociados a cada tripulante
         errors = []
+        errors_message = []
 
-        errors = self.check_and_clean(tripulantes_df, file_path, estado)
+        errors, errors_message = self.check_and_clean(tripulantes_df, file_path, estado)
 
         try:
             # Asegurarse de que ambos DataFrames tienen la misma longitud
@@ -122,7 +123,7 @@ class Tripulantes:
                     self.db_session.rollback()  # Revertir cambios en caso de error en la fila
                     continue  # Continuar con la siguiente fila
 
-            return errors
+            return errors, errors_message
 
         except Exception as e:
             print(f"Error general al crear tripulantes o encontrar vuelos: {e}")
@@ -191,6 +192,7 @@ class Tripulantes:
         state = state
 
         errors = []
+        errors_message = []
 
         def clean_value(value):
             if isinstance(value, str):  # Verificar si es una cadena
@@ -223,9 +225,11 @@ class Tripulantes:
                     if isinstance(value, str) and '-' in value and len(value.split('-')) == 3:
                         print(f"Error [Tripulante]: Fecha inexistente en la fila {x}, columna '{column_name} ({y})'. Valor: '{error}'")
                         errors.append([i, y])
+                        errors_message.append(f"Fecha inexistente [{x},{y}]")
                     elif not pd.isna(value):
                         print(f"Error [Tripulante]: Formato de fecha incorrecto en la fila {x}, columna '{y}'. Valor: '{error}'")
                         errors.append([i, y])
+                        errors_message.append(f"Formato de fecha incorrecto [{x},{y}]")
 
         def get_excel_column_letter(file_path, sheet_name, column_name):
             # Cargar el archivo y la hoja
@@ -249,4 +253,4 @@ class Tripulantes:
         # Convertir finalmente a datetime, asignando NaT para los valores inválidos
         tripulantes_df["DOB"] = pd.to_datetime(tripulantes_df["DOB"], format='%d/%m/%y', errors='coerce')
 
-        return errors
+        return errors, errors_message

@@ -274,7 +274,7 @@ class Vuelos:
 
     def _create_vuelos(self, file_path, vuelos_df, tripulantes_df, state, tipo):
         vuelos = []  # Lista para almacenar los vuelos creados
-        errors = check_and_clean(file_path, vuelos_df, state, tipo)
+        errors, errors_message = check_and_clean(file_path, vuelos_df, state, tipo)
 
         try:
             if vuelos_df.empty or tripulantes_df.empty:
@@ -360,7 +360,7 @@ class Vuelos:
             #print(f"Error al crear vuelos o asignar tripulantes: {e}")
             self.db_session.rollback()
 
-        return errors
+        return errors, errors_message
 
     def _extract_international_flights(self, excel_data, start_row, state):
         vuelos = []
@@ -521,7 +521,9 @@ class Vuelos:
     
 def check_and_clean(file_path, vuelos_df, state, tipo):
     errors_to_check = []
+
     errors = []
+    errors_message = []
 
     def clean_value(value):
         if isinstance(value, str):  # Verificar si es una cadena
@@ -588,6 +590,7 @@ def check_and_clean(file_path, vuelos_df, state, tipo):
                                 column_letter = get_column(df, columna)
                                 errors_to_check.append([idx+2, columna])
                                 errors.append([idx+2, column_letter])
+                                errors_message.append(f"Fecha inexistente [{idx+2},{column_letter}]")
                     else:
                         #print(f"{idx} | {registro.get('Date Pickup')}")
                         value = registro.get('fecha')
@@ -599,6 +602,7 @@ def check_and_clean(file_path, vuelos_df, state, tipo):
                                 column_letter = get_column(df, columna)
                                 errors_to_check.append([idx+2, columna])
                                 errors.append([idx+2, column_letter])
+                                errors_message.append(f"Formato incorrecto [{idx+2},{column_letter}]")
                                 continue
 
                             #print(f"{type(registro.get('vuelo'))} | {registro.get('vuelo')}")
@@ -607,12 +611,14 @@ def check_and_clean(file_path, vuelos_df, state, tipo):
                             column_letter = get_column(df, columna)
                             errors_to_check.append([idx+2, columna])
                             errors.append([idx+2, column_letter])
+                            errors_message.append(f"Dato faltante [{idx+2},{column_letter}]")
                         else:
                             if not is_valid_date(value):
                                 print(f"NE 2 {state} | Registro {idx+2} en '{columna}': Vuelo es {registro.get('fecha')}")
                                 column_letter = get_column(df, columna)
                                 errors_to_check.append([idx+2, columna])
                                 errors.append([idx+2, column_letter])
+                                errors_message.append(f"Fecha inexistente [{idx+2},{column_letter}]")
                 else:
                     if str(registro.get('vuelo')).lower() != 'tbc' and str(registro.get('vuelo')).lower() != 'no':
                         print(f"{state} | Registro {idx+2} en '{columna}': Vuelo es {registro.get('vuelo')}")
@@ -622,4 +628,4 @@ def check_and_clean(file_path, vuelos_df, state, tipo):
                     #     print(f"Registro {idx+2} en '{columna}': Vuelo está vacío")
             
     check_date()
-    return errors
+    return errors, errors_message
