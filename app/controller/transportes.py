@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import calendar
 import re
 import pandas as pd
 from sqlalchemy.orm import Session
@@ -7,6 +8,8 @@ from datetime import time, date
 from sqlalchemy import func, and_
 from PyQt6.QtWidgets import QMessageBox
 from app.models import Buque, Tripulante, Vuelo, EtaCiudad, Viaje, TripulanteVuelo, Hotel, TripulanteHotel, Restaurante, TripulanteRestaurante, Transporte, TripulanteTransporte, TripulanteAsistencia
+from openpyxl import load_workbook
+from openpyxl.utils import get_column_letter
 
 CITY_AIRPORT_CODES = {
     'PUQ': "PUNTA ARENAS",
@@ -99,8 +102,11 @@ class Transportes:
         except Exception as e:
             raise Exception(f"[Transportes] Error al procesar el archivo: {e}")
 
-    def _create_transporte(self, transportes_df, tripulantes_df, state):
+    def _create_transporte(self, file_path, transportes_df, tripulantes_df, state):
         transportes = []  # Lista para almacenar los transportes creados
+        errors, errors_message, errors_to_check = check_and_clean(file_path, transportes_df, state)
+        #print(errors_to_check)
+
         try:
             # Verificar que ambos DataFrames no estén vacíos
             if transportes_df.empty or tripulantes_df.empty:
@@ -131,6 +137,10 @@ class Transportes:
                     for transporte_key in row.index:
                         transporte_info = row[transporte_key]  # Obtener el diccionario del transporte
 
+                        if [i, transporte_key] in errors_to_check:
+                            #print(f"Omitiendo creación para fila {i}, transporte {transporte_key} debido a errores.")
+                            continue
+
                         # Verificar que haya información para el transporte
                         if pd.notna(transporte_info) and isinstance(transporte_info, dict):                        
                             transporte_info = self._extraer_transportes(transporte_info)
@@ -138,8 +148,8 @@ class Transportes:
                             for _transporte in transporte_info:
                                 try:
                                     # Verificar que el valor de 'City In' no sea 'Desconocido'
-                                    if _transporte['City In'] == 'Desconocido':
-                                        print(f"Omitiendo transporte con 'City In' desconocido en la fila {i}: {_transporte}")
+                                    if _transporte['City In'] == 'Desconocido' or _transporte['City In'].lower() == 'no':
+                                        #print(f"Omitiendo transporte con 'City In' desconocido en la fila {i}: {_transporte}")
                                         continue
 
                                     # Verificar datos faltantes
@@ -183,46 +193,18 @@ class Transportes:
                                     #print(f"HOLA {type(hours_pickup)}")
                                     
                                     if not tripulante_transporte_existente and transporte.transporte_id != None:
-                                        # Asociar el tripulante al transporte
-                                        #print(f"Asociando tripulante {tripulante.tripulante_id} con transporte {transporte.transporte_id}.")
-                                        date_pickup = process_time(
-                                            _transporte.get('Date Pickup', None), 
-                                            'Date Pickup', 
-                                            state, 
-                                            tripulante, 
-                                            transporte_key, 
-                                            row, 
-                                            i, 
-                                            indice_a_letra_columna
-                                        )
-
-                                        hours_pickup = process_time(
-                                            _transporte.get('Hours Pickup', None), 
-                                            'Hours Pickup', 
-                                            state, 
-                                            tripulante, 
-                                            transporte_key, 
-                                            row, 
-                                            i, 
-                                            indice_a_letra_columna
-                                        )
-
-                                        #print(f"Transporte {_transporte}")
-                                        if date_pickup is None or hours_pickup is None:
-                                            print(f"{tripulante.tripulante_id} Advertencia: Datos inválidos para transporte. Date Pickup: {date_pickup}, Hours Pickup: {hours_pickup}")
-
                                         tripulante_transporte = TripulanteTransporte(
                                             tripulante_id=tripulante.tripulante_id,
                                             transporte_id=transporte.transporte_id,
                                             #date_pickup=_transporte['Date Pickup'] if 'Date Pickup' in _transporte else None,
-                                            date_pickup=date_pickup,
-                                            hours_pickup=hours_pickup
+                                            date_pickup=_transporte['Date Pickup'],
+                                            hours_pickup=_transporte['Hours Pickup']
                                         )
 
                                         self.db_session.add(tripulante_transporte)
                                         self.db_session.flush()
                                         self.db_session.commit()
-                                        print(f"Transporte guardado correctamente: {tripulante_transporte}")
+                                        #print(f"Transporte guardado correctamente: {tripulante_transporte}")
 
                                     elif tripulante_transporte_existente:
                                         #print(f"Ya existe relación para Tripulante ID {tripulante.tripulante_id} y Transporte ID {transporte.transporte_id}.")
@@ -235,8 +217,8 @@ class Transportes:
                                     continue
 
                 except Exception as fila_error:
-                    print(f"[Transporte] Error procesando fila {i}: {fila_error}")
-                    print(f"Datos del tripulante en la fila: {tripulante_data.to_dict()}")
+                    #print(f"[Transporte] Error procesando fila {i}: {fila_error}")
+                    #print(f"Datos del tripulante en la fila: {tripulante_data.to_dict()}")
                     ###traceback.print_exc()
                     self.db_session.rollback()
                     continue
@@ -250,7 +232,7 @@ class Transportes:
             ###traceback.print_exc()
             self.db_session.rollback()
 
-        return transportes  # Retornar la lista de transportes creados
+        return errors, errors_message  # Retornar la lista de transportes creados
 
     def _extraer_transportes(self, transporte_info):        
         transportes_info = []
@@ -383,58 +365,142 @@ class Transportes:
             result_df.columns = column_names
         
         return result_df
+
+def check_and_clean(file_path, transportes_df, state):
+    errors_to_check = []
+    errors = []
+    errors_message = []
+
+    def clean_value(value):
+        if isinstance(value, str):  # Verificar si es una cadena
+            return value.strip().replace('/', '-')  # Eliminar espacios en blanco
+        return value  # Dejar el valor tal como está si no es cadena
     
-def indice_a_letra_columna(index):
-    """Convierte un índice numérico a la letra de columna en Excel."""
-    letras = ''
-    while index > 0:
-        index, remainder = divmod(index - 1, 26)
-        letras = chr(65 + remainder) + letras  # A=65 en ASCII
-    return letras
+    def is_valid_date(date_str):
+        formats = ['%d-%m-%y', '%d-%m-%Y']  # Lista de formatos posibles
+        for date_format in formats:
+            try:
+                date = pd.to_datetime(date_str, format=date_format, errors='raise')
+                day, month, year = date.day, date.month, date.year
+                last_day_of_month = calendar.monthrange(year, month)[1]
+                if day <= last_day_of_month:
+                    return True
+            except Exception:
+                continue  # Intentar con el siguiente formato
+        #print(f"Fecha no válida: {date_str}")
+        return False
+    
+    def looks_like_date(value):
+        if isinstance(value, str):
+            # Usa una expresión regular para filtrar fechas con el formato esperado
+            return re.match(r'^\d{2}-\d{2}-\d{2,4}$', value) is not None
+        return False
+    
+    def get_excel_column_letter(file_path, sheet_name, column_name):
+            # Cargar el archivo y la hoja
+            workbook = load_workbook(file_path)
+            sheet = workbook[sheet_name]
+            
+            # Buscar la columna por nombre (suponiendo que los nombres están en la primera fila)
+            for col in sheet.iter_cols(1, sheet.max_column, 1, 1):  # Iterar solo en la primera fila
+                if col[0].value == column_name:
+                    # Devolver la letra de la columna
+                    return get_column_letter(col[0].column)
+            
+            raise ValueError(f"Columna con nombre '{column_name}' no encontrada en el archivo.")
+    
+    def get_column(df, columna):
+        sheet_name = state
+        indices = {key: idx for idx, key in enumerate(df.keys())}
+        x = indices[columna]
+        y = get_excel_column_letter(file_path, sheet_name, f"Date_pickup_{x+1}")
+        return y
 
-def process_time(value, field_name, state, tripulante, transporte_key, row, i, indice_a_letra_columna):
-    """
-    Procesa un valor de tiempo o fecha, validándolo y convirtiéndolo al formato correcto.
+    def check_date():        
+        df = pd.DataFrame(transportes_df)
+        for columna in transportes_df:
+            #print(f"Columna: {columna} | {state}")
+            transporte = df[columna].tolist()  # Convertir la columna en una lista
+            for idx, registro in enumerate(transporte):  # Iterar sobre los diccionarios
+                # Verificar si 'City In' es igual a 'Desconocido'
+                if registro.get('City In').lower() != 'no':
+                    
+                    if isinstance(registro.get('Date Pickup'), str):
+                        if looks_like_date(registro.get('Date Pickup')):
+                            value = registro.get('Date Pickup')
+                            value = clean_value(value)
 
-    Args:
-        value (str, datetime.date, datetime.time, or datetime): Valor a procesar.
-        field_name (str): Nombre del campo (para mensajes de error).
-        state (str): Estado del transporte ('ON' o 'OFF').
-        tripulante (Tripulante): Tripulante actual.
-        transporte_key (str): Clave del transporte.
-        row (pandas.Series): Fila del DataFrame.
-        i (int): Índice de la fila.
-        indice_a_letra_columna (function): Función para convertir índices a letras.
+                            if not is_valid_date(value):
+                                print(f"NE | Registro {idx} en '{columna}': Fecha es {value}")
+                                column_letter = get_column(df, columna)
+                                errors_to_check.append([idx, columna])
+                                errors.append([idx, column_letter])
+                                errors_message.append(f"Fecha inexistente [{idx+2},{column_letter}]")
+                    else:
+                        #print(f"{idx} | {registro.get('Date Pickup')}")
+                        value = registro.get('Date Pickup')
+                        value = clean_value(value)
+                        
+                        if registro.get('Date Pickup') == None:
+                            print(f"ER | Registro {idx+2} en '{columna}': Fecha está vacía")
+                            column_letter = get_column(df, columna)
+                            errors_to_check.append([idx, columna])
+                            errors.append([idx, column_letter])
+                            errors_message.append(f"Fecha faltante [{idx+2},{column_letter}]")
+                        else:
+                            if not is_valid_date(value):
+                                print(f"NE | Registro {idx+2} en '{columna}': Fecha es {registro.get('Date Pickup')}")
+                                column_letter = get_column(df, columna)
+                                errors_to_check.append([idx, columna])
+                                errors.append([idx, column_letter])
+                                errors_message.append(f"Fecha inexistente [{idx+2},{column_letter}]")
+                else:
+                    if registro.get('City In').lower() == 'no':
+                        continue
+                    else:
+                        print(f"Registro {idx+2} en '{columna}': City In está vacío")
 
-    Returns:
-        datetime.date, datetime.time, or None: Valor convertido o None si es inválido.
-    """
-    #print(type(value))
-    if isinstance(value, str):
-        try:
-            # Intenta convertir a `time` si es una cadena en formato HH:MM
-            return datetime.strptime(value, "%H:%M").time()
-        except ValueError:
-            if value.upper() == "TBC":
-                return None
-            error = value
-            j = row.index.get_loc(transporte_key)
-            x = i + 2
-            z = 64 if state == "ON" else 52
-            y = z + (6 * (j + 1))
-            letra_columna = indice_a_letra_columna(y)
-            print(f"Se ha producido un error en el tripulante {tripulante.nombre} para el {transporte_key} ({field_name}: {error}) [{x},{letra_columna}]")
-            return None
-    elif isinstance(value, datetime):
-        # Extrae solo la hora si es un `datetime`
-        return value.date()
-    elif isinstance(value, time):
-        # Si ya es de tipo `time`, simplemente devuélvelo
-        return value
-    elif isinstance(value, date):
-        # Si es de tipo `date`, devuélvelo como está
-        return value
-    else:
-        # Si el valor no es manejable, retorna `None`
-        #print(f"Tipo de dato inesperado para {field_name}: {type(value)}")
-        return None
+    check_date()
+
+    return errors, errors_message, errors_to_check
+
+
+# def process_time(value, field_name, state, tripulante, transporte_key, row, i, indice_a_letra_columna):
+#     errors = []
+
+#     if isinstance(value, str):
+#         try:
+#             # Intenta convertir a `time` si es una cadena en formato HH:MM
+#             print(value)
+#             return datetime.strptime(value, "%H:%M").time()
+#         except ValueError:
+#             print(f"{i} | {value}")
+#             if value.upper() == "TBC":
+#                 return None
+#             error = value
+#             j = row.index.get_loc(transporte_key)
+#             x = i + 2
+#             z = 64 if state == "ON" else 52
+#             a = 5 if field_name == 'Date Pickup' else 6 if field_name == 'Hours Pickup' else None
+#             y = z + (6 * j) + a
+#             letra_columna = indice_a_letra_columna(y)
+#             print(f"Se ha producido un error en el tripulante {tripulante.nombre} para el {transporte_key} ({field_name}: {error}) [{state} | {x},{letra_columna}]")
+#             errors.append(i)
+#             return errors
+#     elif isinstance(value, datetime):
+#         # Extrae solo la hora si es un `datetime`
+#         return value.date()
+#     elif isinstance(value, time):
+#         # Si ya es de tipo `time`, simplemente devuélvelo
+#         return value
+#     elif isinstance(value, date):
+#         # Si es de tipo `date`, devuélvelo como está
+#         return value
+#     else:
+#         if value == None:
+#             errors.append(i)
+#             return errors
+#         # Si el valor no es manejable, retorna `None`
+#         #print(f"Tipo de dato inesperado para {field_name}: {type(value)}")
+#         else:
+#             return None

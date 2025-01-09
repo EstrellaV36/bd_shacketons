@@ -62,7 +62,7 @@ class Viajes:
 
             # Guardar el viaje y los hoteles
             self.db_session.commit()
-            print(f"Viaje creado para Tripulante ID {tripulante_id} en Buque ID {buque_id} con Estado {estado}")
+            #print(f"Viaje creado para Tripulante ID {tripulante_id} en Buque ID {buque_id} con Estado {estado}")
             return viaje  # Retornar el viaje recién creado
 
         except Exception as e:

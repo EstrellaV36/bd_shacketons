@@ -5,7 +5,7 @@
 groups = ["default"]
 strategy = ["cross_platform", "inherit_metadata"]
 lock_version = "4.4.1"
-content_hash = "sha256:69b2e0041d06c2176d3d02723eb7294eadaa32a537b81b5968f11921da713931"
+content_hash = "sha256:8258ad6c4c1ca09f799f044fd378f5f1c01274894889c7e8d0af0853dc7452bf"
 
 [[package]]
 name = "advanced-alchemy"
@@ -149,6 +149,15 @@ files = [
     {file = "fast_query_parsers-1.0.3-cp38-abi3-win32.whl", hash = "sha256:14b3fab7e9a6ac1c1efaf66c3fd2a3fd1e25ede03ed14118035e530433830a11"},
     {file = "fast_query_parsers-1.0.3-cp38-abi3-win_amd64.whl", hash = "sha256:21ae5f3a209aee7d3b84bdcdb33dd79f39fc8cb608b3ae8cfcb78123758c1a16"},
     {file = "fast_query_parsers-1.0.3.tar.gz", hash = "sha256:5200a9e02997ad51d4d76a60ea1b256a68a184b04359540eb6310a15013df68f"},
+]
+
+[[package]]
+name = "fpdf"
+version = "1.7.2"
+summary = "Simple PDF generation for Python"
+groups = ["default"]
+files = [
+    {file = "fpdf-1.7.2.tar.gz", hash = "sha256:125840783289e7d12552b1e86ab692c37322e7a65b96a99e0ea86cca041b6779"},
 ]
 
 [[package]]

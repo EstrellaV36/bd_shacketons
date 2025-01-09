@@ -19,23 +19,23 @@ class Tripulantes:
             tripulantes_on = self.read_all_rows(excel_data_on, start_row=1, column_range=slice(10, 17), column_names=tripulante_columns)  
             tripulantes_on.reset_index(drop=True, inplace=True)
 
-            #self.check_and_clean(tripulantes_on, file_path, "ON")
-
             excel_data_off = pd.read_excel(file_path, sheet_name='OFF', header=None)
 
             tripulantes_off = self.read_all_rows(excel_data_off, start_row=1, column_range=slice(10, 17), column_names=tripulante_columns) 
             tripulantes_off.reset_index(drop=True, inplace=True)
-
-            #self.check_and_clean(tripulantes_off, file_path, "OFF")
 
             return tripulantes_on, tripulantes_off
         except Exception as e:
             #raise Exception(f"[Tripulantes] Error al procesar el archivo: {e}")
             pass
 
-    def _create_tripulantes(self, tripulantes_df, buque_df, estado):
+    def _create_tripulantes(self, file_path, tripulantes_df, buque_df, estado):
         tripulantes = []  # Lista para almacenar los tripulantes creados
         vuelos_tripulante = []  # Lista para almacenar los vuelos asociados a cada tripulante
+        errors = []
+        errors_message = []
+
+        errors, errors_message = self.check_and_clean(tripulantes_df, file_path, estado)
 
         try:
             # Asegurarse de que ambos DataFrames tienen la misma longitud
@@ -44,6 +44,9 @@ class Tripulantes:
 
             # Iterar simultáneamente sobre tripulantes_df y buque_df
             for (i, tripulante_row), (_, buque_row) in zip(tripulantes_df.iterrows(), buque_df.iterrows()):
+                if i in errors:
+                    print(f"Skipie el {i}")
+                    continue
                 try:
                     # Normalizar los nombres y apellidos para evitar problemas de mayúsculas/minúsculas
                     nombre_normalizado = tripulante_row['First name'].strip().title()
@@ -120,7 +123,7 @@ class Tripulantes:
                     self.db_session.rollback()  # Revertir cambios en caso de error en la fila
                     continue  # Continuar con la siguiente fila
 
-            return tripulantes, vuelos_tripulante
+            return errors, errors_message
 
         except Exception as e:
             print(f"Error general al crear tripulantes o encontrar vuelos: {e}")
@@ -189,43 +192,44 @@ class Tripulantes:
         state = state
 
         errors = []
+        errors_message = []
 
         def clean_value(value):
             if isinstance(value, str):  # Verificar si es una cadena
-                return value.strip()  # Eliminar espacios en blanco
+                return value.strip().replace('/', '-')  # Eliminar espacios en blanco
             return value  # Dejar el valor tal como está si no es cadena
 
-        def is_valid_date(date_str, date_format='%d/%m/%y'):
-            try:
-                # Intentar convertir la fecha usando Pandas
-                date = pd.to_datetime(date_str, format=date_format, errors='raise')
-                day, month, year = date.day, date.month, date.year
-
-                # Verificar si el día es válido para el mes y el año
-                last_day_of_month = calendar.monthrange(year, month)[1]
-                if day > last_day_of_month:
-                    return False  # Día fuera del rango permitido
-
-                return True  # La fecha es válida
-            except Exception:
-                return False  # Error de formato o conversión
+        def is_valid_date(date_str):
+            formats = ['%d-%m-%y', '%d-%m-%Y']  # Lista de formatos posibles
+            for date_format in formats:
+                try:
+                    date = pd.to_datetime(date_str, format=date_format, errors='raise')
+                    day, month, year = date.day, date.month, date.year
+                    last_day_of_month = calendar.monthrange(year, month)[1]
+                    if day <= last_day_of_month:
+                        return True
+                except Exception:
+                    continue  # Intentar con el siguiente formato
+            #print(f"[Tripulante] Fecha no válida: {date_str}")
+            return False
 
         def validate_dates(tripulantes_df, column_name, file_path, state):
             for i, value in tripulantes_df[column_name].items():
-                error = tripulantes_df.loc[i][column_name]
-
                 # Determinar si la fecha es válida
                 if not is_valid_date(value):
+                    error = tripulantes_df.loc[i][column_name]
                     sheet_name = state
                     x = i + 2  # Ajustar el índice a la fila de Excel (inicia en 1)
                     y = get_excel_column_letter(file_path, sheet_name, column_name)
 
                     if isinstance(value, str) and '-' in value and len(value.split('-')) == 3:
                         print(f"Error [Tripulante]: Fecha inexistente en la fila {x}, columna '{column_name} ({y})'. Valor: '{error}'")
-                        errors.append(i)
+                        errors.append([i, y])
+                        errors_message.append(f"Fecha inexistente [{x},{y}]")
                     elif not pd.isna(value):
                         print(f"Error [Tripulante]: Formato de fecha incorrecto en la fila {x}, columna '{y}'. Valor: '{error}'")
-                        errors.append(i)
+                        errors.append([i, y])
+                        errors_message.append(f"Formato de fecha incorrecto [{x},{y}]")
 
         def get_excel_column_letter(file_path, sheet_name, column_name):
             # Cargar el archivo y la hoja
@@ -249,4 +253,4 @@ class Tripulantes:
         # Convertir finalmente a datetime, asignando NaT para los valores inválidos
         tripulantes_df["DOB"] = pd.to_datetime(tripulantes_df["DOB"], format='%d/%m/%y', errors='coerce')
 
-        return errors
+        return errors, errors_message

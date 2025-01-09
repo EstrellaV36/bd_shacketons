@@ -3,6 +3,7 @@ from app.interfaz.programar.transportes import TransportesScreen
 from app.interfaz.programar.roomlist import RoomListScreen
 from app.interfaz.programar.hoteles import HotelScreen
 from app.interfaz.programar.alimentos import AlimentosScreen
+from app.interfaz.liquidar.asistencias import AsistenciasLiquidarScreen
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QPushButton, QHBoxLayout, QLabel
 from PyQt6.QtCore import Qt
 from app.interfaz.utils import setup_dynamic_button
@@ -25,7 +26,7 @@ class GeneracionReportesScreen(QWidget):
         layout.addWidget(self.button_volver, alignment=Qt.AlignmentFlag.AlignLeft)
 
         # Añadir título al inicio
-        title_label = QLabel("Generación de reportes")
+        title_label = QLabel("GENERACIÓN DE REPORTES")
         title_label.setStyleSheet("""
             font-size: 30px;
             font-weight: bold;
@@ -43,7 +44,7 @@ class GeneracionReportesScreen(QWidget):
         botones = [
             {"texto": "Informar", "callback": self.dummy_action},
             {"texto": "Programar", "callback": self.mostrar_opciones_programar},
-            {"texto": "Liquidar", "callback": self.dummy_action},
+            {"texto": "Liquidar", "callback": self.mostrar_opciones_liquidar},
             {"texto": "Cuadrar Proveedor", "callback": self.dummy_action},
         ]
 
@@ -62,6 +63,11 @@ class GeneracionReportesScreen(QWidget):
         opciones_programar_screen = OpcionesProgramarScreen(self.main_window)
         self.main_window.opciones_programar_index = self.main_window.stacked_widget.addWidget(opciones_programar_screen)
         self.main_window.stacked_widget.setCurrentWidget(opciones_programar_screen)
+
+    def mostrar_opciones_liquidar(self):
+        opciones_liquidar_screen = OpcionesLiquidarScreen(self.main_window)
+        self.main_window.opciones_liquidar_index = self.main_window.stacked_widget.addWidget(opciones_liquidar_screen)
+        self.main_window.stacked_widget.setCurrentWidget(opciones_liquidar_screen)
 
     def volver_al_menu_principal(self):
         self.main_window.stacked_widget.setCurrentIndex(0)  # Regresar al menú principal
@@ -86,7 +92,7 @@ class OpcionesProgramarScreen(QWidget):
         layout_botones.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         # Añadir título al inicio
-        title_label = QLabel("Opciones programar")
+        title_label = QLabel("OPCIONES PROGRAMAR")
         title_label.setStyleSheet("""
             font-size: 30px;
             font-weight: bold;
@@ -114,7 +120,6 @@ class OpcionesProgramarScreen(QWidget):
         layout.addLayout(layout_botones)
 
     def mostrar_asistencias(self):
-        print("Asistencias!!")
         asistencias_screen = AsistenciasScreen(self.main_window)
         asistencias_screen.opciones_programar_index = self.main_window.opciones_programar_index
         self.main_window.stacked_widget.addWidget(asistencias_screen)
@@ -139,6 +144,59 @@ class OpcionesProgramarScreen(QWidget):
         alimentos_screen = AlimentosScreen(self.main_window)
         self.main_window.stacked_widget.addWidget(alimentos_screen)
         self.main_window.stacked_widget.setCurrentWidget(alimentos_screen)
+
+    def volver_a_reportes(self):
+        #print(f"Regresando a GeneracionReportesScreen con índice {self.main_window.generacion_reportes_index}")
+        self.main_window.stacked_widget.setCurrentIndex(self.main_window.generacion_reportes_index)
+
+class OpcionesLiquidarScreen(QWidget):
+    def __init__(self, main_window):
+        super().__init__()
+        self.main_window = main_window
+        self.setup_ui()
+        self.menu_liquidar_index = main_window.stacked_widget.addWidget(self)
+
+    def setup_ui(self):
+        layout = QVBoxLayout(self)
+
+        # Botón "Volver" para regresar a la pantalla anterior (Generación de Reportes)
+        button_volver = QPushButton("Volver")
+        setup_dynamic_button(button_volver, self.width())  # Aplica tamaño dinámico
+        button_volver.clicked.connect(self.volver_a_reportes)
+        layout.addWidget(button_volver, alignment=Qt.AlignmentFlag.AlignLeft)
+
+        layout_botones = QHBoxLayout()
+        layout_botones.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        # Añadir título al inicio
+        title_label = QLabel("OPCIONES LIQUIDAR")
+        title_label.setStyleSheet("""
+            font-size: 30px;
+            font-weight: bold;
+            color: #00272d;
+            margin-bottom: 1px; /* Espacio debajo del título */
+        """)
+        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(title_label)
+        # Lista de botones con texto y callbacks
+        botones = [
+            {"texto": "Asistencias", "callback": self.mostrar_asistencias}
+        ]
+
+        for boton_info in botones:
+            button = QPushButton(boton_info["texto"])
+            setup_dynamic_button(button, self.width())
+            button.clicked.connect(boton_info["callback"])
+            layout_botones.addWidget(button)
+
+        # Añadir el layout de botones al layout principal
+        layout.addLayout(layout_botones)
+
+    def mostrar_asistencias(self):
+        asistencias_screen = AsistenciasLiquidarScreen(self.main_window)
+        asistencias_screen.opciones_liquidar_index = self.main_window.opciones_liquidar_index
+        self.main_window.stacked_widget.addWidget(asistencias_screen)
+        self.main_window.stacked_widget.setCurrentWidget(asistencias_screen)
 
     def volver_a_reportes(self):
         #print(f"Regresando a GeneracionReportesScreen con índice {self.main_window.generacion_reportes_index}")

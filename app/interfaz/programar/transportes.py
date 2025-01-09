@@ -23,6 +23,19 @@ class TransportesScreen(QWidget):
         session = get_db_session()
         layout = QVBoxLayout(self)
 
+        # Botón "Volver" para regresar a la pantalla anterior (Generación de Reportes)
+        button_volver = QPushButton("Volver")
+        button_volver.setStyleSheet("""
+            font-size: 16px;  /* Tamaño de la letra */
+            padding: 0px;    /* Elimina el espacio interno */
+            line-height: 18px; /* Asegura que el texto no se corte verticalmente */
+            text-align: center; /* Centra el texto */
+        """)
+        button_volver.setFixedWidth(80)
+        button_volver.setFixedHeight(40)
+        button_volver.clicked.connect(self.volver_a_opciones_programar)
+        layout.addWidget(button_volver, alignment=Qt.AlignmentFlag.AlignLeft)
+
         self.label = QLabel("REQUERIMIENTO TRANSPORTES")
         self.label.setStyleSheet("""
             font-size: 40px;  /* Tamaño de fuente */
@@ -73,15 +86,17 @@ class TransportesScreen(QWidget):
         layout.addWidget(self.table_widget)
 
         # Botón para generar el Excel
-        button_generar_excel = QPushButton("Generar excel")
-        button_generar_excel.clicked.connect(self.generar_excel_con_ciudad)  # Conectar al método de generación de Excel
-        layout.addWidget(button_generar_excel)
-
-        # Botón "Volver" para regresar a la pantalla anterior (Generación de Reportes)
-        button_volver = QPushButton("Volver")
-        button_volver.setFixedWidth(100)
-        button_volver.clicked.connect(self.volver_a_opciones_programar)
-        layout.addWidget(button_volver, alignment=Qt.AlignmentFlag.AlignLeft)
+        button_generar_excel = QPushButton("Generar Excel")
+        button_generar_excel.setStyleSheet("""
+            font-size: 18px;  /* Tamaño de la letra */
+            padding: 0px;    /* Elimina el espacio interno */
+            line-height: 18px; /* Asegura que el texto no se corte verticalmente */
+            text-align: center; /* Centra el texto */
+        """)
+        button_generar_excel.setFixedHeight(45)
+        button_generar_excel.setFixedWidth(245)
+        button_generar_excel.clicked.connect(self.generar_excel_con_ciudad)
+        layout.addWidget(button_generar_excel, alignment=Qt.AlignmentFlag.AlignRight)
 
         # Conectar el cambio en el QComboBox a un método
         self.combo_ciudades.currentTextChanged.connect(self.actualizar_datos)
