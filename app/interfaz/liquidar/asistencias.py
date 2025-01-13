@@ -10,40 +10,15 @@ from openpyxl.utils import get_column_letter
 from datetime import datetime, time, timedelta
 from sqlalchemy import func, exists, case, and_
 from collections import defaultdict
+from datetime import datetime
+from openpyxl.styles import Alignment, Font
 
 from PyQt6.QtCore import QObject, QThread, pyqtSignal
-
-from fpdf import FPDF
-
-class PDFReport(FPDF):
-    def header(self):
-        # Título del reporte
-        self.set_font('Arial', 'B', 12)
-        self.cell(0, 10, f"{self.vessel} {self.eta} {self.port_code}", ln=1, align='C')
-        self.cell(0, 10, f"Meet and assistance crew in {self.city} airport ({self.crew_type}) signers", ln=1, align='C')
-        self.ln(10)
-
-    def add_table(self, dataframe):
-        # Calcular ancho dinámico de las columnas
-        page_width = self.w - 20  # Ancho de la página menos márgenes
-        column_width = page_width / len(dataframe.columns)
-
-        # Agregar encabezado de la tabla
-        self.set_font('Arial', 'B', 10)
-        for col_name in dataframe.columns:
-            self.cell(column_width, 10, col_name, border=1, align='C')
-        self.ln()
-
-        # Agregar datos de la tabla
-        self.set_font('Arial', '', 10)
-        for _, row in dataframe.iterrows():
-            for item in row:
-                self.cell(column_width, 10, str(item), border=1, align='C')
-            self.ln()
 
 class DataWorker(QObject):
     finished = pyqtSignal()  # Señal que indica que el trabajo ha terminado
     update_table = pyqtSignal(pd.DataFrame)  # Señal para enviar el DataFrame con los resultados
+    additional_data = pyqtSignal(dict)  # Nueva señal para enviar el puerto y aeropuertos
 
     def __init__(self, ciudad, proveedor, owner, vessel, fecha_eta, tipo):
         super().__init__()
@@ -87,12 +62,15 @@ class DataWorker(QObject):
             Tripulante.tripulante_id.label("ID"),
             Buque.nombre.label("Vessel"),
             EtaCiudad.eta.label("ETA"),
-            EtaCiudad.puerto.label("Puerto"),  # Incluir el puerto aquí
+            EtaCiudad.puerto.label("Puerto"), 
             Tripulante.nombre.label("First_Name"),
             Tripulante.apellido.label("Last_Name"),
             Vuelo.codigo.label("Domestic_flight"),
+            Vuelo.aeropuerto_salida.label("Aeropuerto_Salida"),
+            Vuelo.aeropuerto_llegada.label("Aeropuerto_Llegada"),
             Vuelo.fecha.label("Date"),
             Vuelo.hora_llegada.label("Arrival"),
+            Viaje.estado.label("Estado"),
         ).select_from(EtaCiudad)\
             .join(Viaje, Tripulante.tripulante_id == Viaje.tripulante_id)\
             .join(Buque, EtaCiudad.buque_id == Buque.buque_id)\
@@ -104,11 +82,9 @@ class DataWorker(QObject):
             )\
             .distinct()
 
-
-        resultados_sin_filtros = query.all()
+        #resultados_sin_filtros = query.all()
         #print(f"Resultados sin filtros: {resultados_sin_filtros}")
 
-        #FALTA FILTRAR POR ON Y POR OFF
         # Filtros adicionales
         if self.owner and self.owner != "Owner":
             query = query.filter(func.trim(func.lower(Buque.empresa)) == self.owner.strip().lower())
@@ -120,19 +96,35 @@ class DataWorker(QObject):
             query = query.filter(func.trim(Viaje.estado) == self.tipo)
     
         results = query.all()
-        #print(f"Resultados principales: {results}")
+        # Modificar la columna "Domestic flight" para incluir el tramo con códigos de aeropuerto
+        results_modificados = []
+        for row in results:
+            aeropuerto_salida_codigo = CITY_TO_AIRPORT_CODES.get(row.Aeropuerto_Salida, row.Aeropuerto_Salida)
+            aeropuerto_llegada_codigo = CITY_TO_AIRPORT_CODES.get(row.Aeropuerto_Llegada, row.Aeropuerto_Llegada)
+            domestic_flight = f"{row.Domestic_flight} {aeropuerto_salida_codigo}-{aeropuerto_llegada_codigo}"
+            # Convertimos cada fila en un diccionario y actualizamos "Domestic flight"
+            row_dict = row._asdict() if hasattr(row, '_asdict') else row.__dict__.copy()
+            row_dict["Domestic_flight"] = domestic_flight
+            results_modificados.append(row_dict)
 
+        # Extraer el puerto y los aeropuertos (usando el primer resultado, suponiendo que son constantes)
+        puerto = results[0].Puerto if results else "N/A"
+        # Emitir los datos adicionales a través de una señal
+        self.additional_data.emit({
+            "Puerto": puerto,
+        })
+
+        # Crear el DataFrame con los datos modificados
         main_data = pd.DataFrame([{
-            "ID": row.ID,
-            "Vessel": row.Vessel,
-            "ETA": row.ETA.date() if row.ETA else None,  # Extraer solo la fecha
-            "First Name": row.First_Name,
-            "Last Name": row.Last_Name,
-            "Domestic flight": row.Domestic_flight,
-            "Date": row.Date.date() if row.Date else None,  # Extraer solo la fecha
-            "Arrival": row.Arrival.strftime("%H:%M") if row.Arrival else None,  # Extraer solo la hora
-        } for row in results])
-
+            "ID": row["ID"],
+            "Vessel": row["Vessel"],
+            "ETA": row["ETA"].date() if row["ETA"] else None,  # Extraer solo la fecha
+            "First Name": row["First_Name"],
+            "Last Name": row["Last_Name"],
+            "Domestic flight": row["Domestic_flight"],
+            "Date": row["Date"].date() if row["Date"] else None,  # Extraer solo la fecha
+            "Arrival": row["Arrival"].strftime("%H:%M") if row["Arrival"] else None,  # Extraer solo la hora
+        } for row in results_modificados])
 
         if asistencia_enabled and not main_data.empty:
             tripulante_ids = main_data["ID"].tolist()
@@ -171,20 +163,20 @@ class ComboboxWorker(QObject):
             "ciudades": [ciudad.ciudad for ciudad in session.query(Hotel.ciudad).distinct().all()],
             "tipos_tripulante": ["ON", "OFF"],
             "owners": [owner.empresa for owner in session.query(Buque.empresa).distinct().all()],
-            "proveedores": set(),
+            #"proveedores": set(),
             "all_vessels": [],  # Lista de todos los buques
             "vessels": {},  # Diccionario para almacenar buques por owner
         }
 
         # Proveedores
-        proveedores = session.query(TripulanteAsistencia.proveedor_puq, 
-                                    TripulanteAsistencia.proveedor_scl, 
-                                    TripulanteAsistencia.proveedor_wpu).distinct().all()
-        for proveedor in proveedores:
-            for proveedor_ciudad in proveedor:
-                if proveedor_ciudad:
-                    data["proveedores"].add(proveedor_ciudad)
-        data["proveedores"] = list(data["proveedores"])
+        # proveedores = session.query(TripulanteAsistencia.proveedor_puq, 
+        #                             TripulanteAsistencia.proveedor_scl, 
+        #                             TripulanteAsistencia.proveedor_wpu).distinct().all()
+        # for proveedor in proveedores:
+        #     for proveedor_ciudad in proveedor:
+        #         if proveedor_ciudad:
+        #             data["proveedores"].add(proveedor_ciudad)
+        # data["proveedores"] = list(data["proveedores"])
 
         # Todos los buques
         all_vessels = session.query(Buque.nombre).distinct().all()
@@ -205,6 +197,10 @@ class AsistenciasLiquidarScreen(QWidget):
     def __init__(self, main_window):
         super().__init__()
         self.main_window = main_window
+
+        self.puerto = None
+        self.aeropuerto_salida = None
+        self.aeropuerto_llegada = None
 
         # Añadir esta pantalla al stacked_widget del main_window
         self.main_window.visualizacion_datos_index = self.main_window.stacked_widget.addWidget(self)
@@ -239,9 +235,9 @@ class AsistenciasLiquidarScreen(QWidget):
         self.tipo_tripulante.currentTextChanged.connect(self.actualizar_datos)
         layout.addWidget(self.tipo_tripulante)
 
-        self.combo_proveedor = QComboBox()
-        self.combo_proveedor.currentTextChanged.connect(self.actualizar_datos)
-        layout.addWidget(self.combo_proveedor)
+        # self.combo_proveedor = QComboBox()
+        # self.combo_proveedor.currentTextChanged.connect(self.actualizar_datos)
+        # layout.addWidget(self.combo_proveedor)
 
         self.combo_owner = QComboBox()
         self.combo_owner.currentTextChanged.connect(self.actualizar_datos)
@@ -307,11 +303,11 @@ class AsistenciasLiquidarScreen(QWidget):
         self.tipo_tripulante.addItems(data["tipos_tripulante"])
         self.tipo_tripulante.blockSignals(False)
 
-        self.combo_proveedor.blockSignals(True)
-        self.combo_proveedor.clear()
-        self.combo_proveedor.addItem("Proveedor")
-        self.combo_proveedor.addItems(data["proveedores"])
-        self.combo_proveedor.blockSignals(False)
+        # self.combo_proveedor.blockSignals(True)
+        # self.combo_proveedor.clear()
+        # self.combo_proveedor.addItem("Proveedor")
+        # self.combo_proveedor.addItems(data["proveedores"])
+        # self.combo_proveedor.blockSignals(False)
 
         self.combo_owner.blockSignals(True)
         self.combo_owner.clear()
@@ -343,7 +339,7 @@ class AsistenciasLiquidarScreen(QWidget):
         owner_seleccionado = self.combo_owner.currentText()
         vessel_selecciondo = self.combo_vessel.currentText()
         if ciudad_seleccionada.lower() != "ciudad":
-            self.label.setText(f"ASISTENCIAS LIQUIDAR |EN {ciudad_seleccionada.upper()}")  # Actualiza el label
+            self.label.setText(f"ASISTENCIAS LIQUIDAR EN {ciudad_seleccionada.upper()}")  # Actualiza el label
         else:
             self.label.setText(f"ASISTENCIAS LIQUIDAR")  # Actualiza el label
 
@@ -359,19 +355,26 @@ class AsistenciasLiquidarScreen(QWidget):
         fecha_eta = self.date_start.date().toPyDate()
         print(f"Configurando DataWorker: ciudad={ciudad_seleccionada}, proveedor={proveedor_seleccionado}, owner={owner}, vessel={vessel}, fecha_eta={fecha_eta}")
 
+        # Crear el hilo y el trabajador
         self.data_thread = QThread()
         self.data_worker = DataWorker(ciudad_seleccionada, proveedor_seleccionado, owner, vessel, fecha_eta, tipo)
         self.data_worker.moveToThread(self.data_thread)
 
+        # Conectar señales
         self.data_thread.started.connect(self.data_worker.run)
         self.data_worker.update_table.connect(self.update_table_data)
+        self.data_worker.additional_data.connect(self.save_additional_data)  # Conectar la señal para datos adicionales
         self.data_worker.finished.connect(self.data_thread.quit)
         self.data_worker.finished.connect(self.data_worker.deleteLater)
         self.data_thread.finished.connect(self.data_thread.deleteLater)
-        self.data_thread.finished.connect(lambda: setattr(self, "is_running", False))  # Restablece la bandera
+        self.data_thread.finished.connect(lambda: setattr(self, "is_running", False))  # Restablecer la bandera
 
         print("Iniciando el hilo para DataWorker...")
         self.data_thread.start()
+
+    def save_additional_data(self, data):
+        """Guarda los datos adicionales (puerto) recibidos del DataWorker."""
+        self.puerto = data["Puerto"]
 
     def update_table_data(self, df):
         print("Updating table data...")
@@ -382,6 +385,13 @@ class AsistenciasLiquidarScreen(QWidget):
         if df.empty:
             print("No data to display.")
             return
+
+        # Eliminar la columna 'ID' del DataFrame si existe
+        if 'ID' in df.columns:
+            df = df.drop(columns=['ID'])
+
+        # Agregar una nueva columna '#' para numerar las filas
+        df.insert(0, '#', range(1, len(df) + 1))
 
         # Configurar encabezados
         self.table_widget.setRowCount(len(df))
@@ -394,9 +404,12 @@ class AsistenciasLiquidarScreen(QWidget):
                 self.table_widget.setItem(row_idx, col_idx, QTableWidgetItem(str(value)))
 
     def generar_reporte_liquidar(self):
+        if not self.puerto:
+            print("No se han recibido los datos adicionales necesarios.")
+            return
+
         ciudad_seleccionada = self.combo_ciudades.currentText()
         tipo_crew = self.tipo_tripulante.currentText()
-        owner = self.combo_owner.currentText()
         vessel = self.combo_vessel.currentText()
         fecha_eta = self.date_start.date().toString("dd-MM-yyyy")
 
@@ -407,27 +420,86 @@ class AsistenciasLiquidarScreen(QWidget):
             print("No hay datos disponibles para generar el reporte.")
             return
 
-        # Obtener el puerto desde la columna "Puerto" del DataFrame
-        port_code = df["Puerto"].iloc[0] if "Puerto" in df.columns else "N/A"
-
-        # Generar el PDF
-        self.generar_reporte(
-            df, vessel, fecha_eta, port_code, ciudad_seleccionada, tipo_crew, output_file="liquidar_report.pdf"
+        # Mostrar un cuadro de diálogo para seleccionar la ubicación de guardado
+        file_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Guardar Reporte",
+            f"liquidar_asistencia_{vessel}_{datetime.now().strftime('%Y-%m-%d')}.xlsx",
+            "Archivos de Excel (*.xlsx)"
         )
 
-    def generar_reporte(self, df, vessel, eta, port_code, city, crew_type, output_file="report.pdf"):
-        pdf = PDFReport()
-        pdf.vessel = vessel
-        pdf.eta = eta
-        pdf.port_code = port_code
-        pdf.city = city
-        pdf.crew_type = crew_type
+        if not file_path:
+            print("Guardado cancelado por el usuario.")
+            return
 
-        pdf.add_page()
-        pdf.add_table(df)
+        # Generar el archivo Excel
+        self.generar_reporte_excel(df, file_path, vessel, fecha_eta, self.puerto, ciudad_seleccionada, tipo_crew)
+        print(f"Reporte generado: {file_path}")
 
-        pdf.output(output_file)
-        print(f"Reporte generado: {output_file}")
+    def generar_reporte_excel(self, df, output_file, vessel, fecha_eta, puerto, ciudad, tipo_crew):
+        """Genera un reporte en formato Excel a partir de un DataFrame."""
+        try:
+            # Crear un libro de Excel
+            with pd.ExcelWriter(output_file, engine="openpyxl") as writer:
+                df.to_excel(writer, index=False, sheet_name="Reporte", startrow=3)
+
+                # Acceder al libro y la hoja
+                workbook = writer.book
+                sheet = writer.sheets["Reporte"]
+
+                # Agregar título centrado en la primera fila
+                titulo = f"{vessel} {fecha_eta} {puerto}"
+                subtitulo = f"MEET AND ASSISTANCE IN {ciudad.upper()} AIRPORT {tipo_crew} SIGNERS"
+
+                sheet.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(df.columns))
+                sheet.merge_cells(start_row=2, start_column=1, end_row=2, end_column=len(df.columns))
+
+                sheet.cell(row=1, column=1).value = titulo
+                sheet.cell(row=2, column=1).value = subtitulo
+
+                # Estilo de los títulos
+                titulo_font = Font(bold=True, size=14)
+                subtitulo_font = Font(bold=True, size=12)
+
+                sheet.cell(row=1, column=1).font = titulo_font
+                sheet.cell(row=2, column=1).font = subtitulo_font
+
+                sheet.cell(row=1, column=1).alignment = Alignment(horizontal="center")
+                sheet.cell(row=2, column=1).alignment = Alignment(horizontal="center")
+
+                # Estilo para encabezados de la tabla
+                header_font = Font(bold=True)
+                border_style = Border(
+                    left=Side(style="thin"),
+                    right=Side(style="thin"),
+                    top=Side(style="thin"),
+                    bottom=Side(style="thin")
+                )
+
+                for col_idx, col in enumerate(df.columns, start=1):
+                    cell = sheet.cell(row=4, column=col_idx)
+                    cell.value = col
+                    cell.font = header_font
+                    cell.alignment = Alignment(horizontal="center", vertical="center")
+                    cell.border = border_style
+
+                # Agregar bordes a todas las celdas de la tabla
+                for row_idx in range(5, 5 + len(df)):  # Las filas de datos comienzan en la fila 5
+                    for col_idx in range(1, len(df.columns) + 1):
+                        cell = sheet.cell(row=row_idx, column=col_idx)
+                        cell.border = border_style
+
+                # Ajustar ancho de columnas automáticamente
+                for col_idx, col in enumerate(df.columns, start=1):
+                    max_length = max(
+                        [len(str(value)) for value in df[col]] + [len(str(col))]
+                    )
+                    adjusted_width = max_length + 2
+                    sheet.column_dimensions[get_column_letter(col_idx)].width = adjusted_width
+
+            print(f"Archivo Excel guardado correctamente en {output_file}")
+        except Exception as e:
+            print(f"Error al generar el archivo Excel: {e}")
 
     def get_current_dataframe(self):
         """Obtiene los datos actuales del QTableWidget y los convierte en un DataFrame."""
