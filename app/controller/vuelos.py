@@ -5,7 +5,7 @@ import pandas as pd
 from sqlalchemy.orm import Session
 from app.models import Tripulante, Vuelo, TripulanteVuelo
 from openpyxl import load_workbook
-from openpyxl.utils import get_column_letter
+from openpyxl.utils import get_column_letter, column_index_from_string
 
 CITY_AIRPORT_CODES = {
     'PUQ': "PUNTA ARENAS",
@@ -522,6 +522,8 @@ class Vuelos:
 def check_and_clean(file_path, vuelos_df, state, tipo):
     errors_to_check = []
 
+    print(tipo)
+
     errors = []
     errors_message = []
 
@@ -567,8 +569,23 @@ def check_and_clean(file_path, vuelos_df, state, tipo):
         sheet_name = state
         indices = {key: idx for idx, key in enumerate(df.keys())}
         x = indices[columna]
-        y = get_excel_column_letter(file_path, sheet_name, f"Date_pickup_{x+1}")
+        if tipo == "INTERNACIONAL":
+            y = get_excel_column_letter(file_path, sheet_name, f"Fecha Vuelo Int {x+1}")
+        elif tipo == "DOMESTICO":
+            y = get_excel_column_letter(file_path, sheet_name, f"Date Domestic Flight")
+        elif tipo == "REGIONAL":
+            y = get_excel_column_letter(file_path, sheet_name, f"Date Regional Flight")
         return y
+    
+    def get_cell_value(file_path, sheet_name, row, column):
+        # Cargar el archivo de Excel
+        workbook = load_workbook(file_path, data_only=True)  # `data_only=True` para obtener el valor calculado en celdas con fórmulas
+        sheet = workbook[sheet_name]
+
+        # Obtener el valor de la celda
+        cell_value = sheet.cell(row=row, column=column).value
+
+        return cell_value
 
     def check_date():        
         df = pd.DataFrame(vuelos_df)
@@ -587,10 +604,13 @@ def check_and_clean(file_path, vuelos_df, state, tipo):
 
                             if not is_valid_date(value):
                                 print(f"NE 1 {state} | Registro {idx+2} en '{columna}': Vuelo es {value}")
+                                sheet_name = state
                                 column_letter = get_column(df, columna)
+                                column_number = column_index_from_string(column_letter)
+                                cell_value = get_cell_value(file_path, sheet_name, 1, column_number)
                                 errors_to_check.append([idx+2, columna])
                                 errors.append([idx+2, column_letter])
-                                errors_message.append(f"Fecha inexistente [{idx+2},{column_letter}]")
+                                errors_message.append(f"Fecha inexistente en {cell_value} [{idx+2},{column_letter}]")
                     else:
                         #print(f"{idx} | {registro.get('Date Pickup')}")
                         value = registro.get('fecha')
@@ -599,26 +619,35 @@ def check_and_clean(file_path, vuelos_df, state, tipo):
                         if registro.get('fecha') == None or pd.isna(registro.get('fecha')):
                             if str(registro.get('vuelo')).lower() != 'no' and not pd.isna(registro.get('vuelo')):
                                 print(f"ER {state} | Registro {idx+2} en '{columna}': Vuelo es {registro.get('vuelo')}")
+                                sheet_name = state
                                 column_letter = get_column(df, columna)
+                                column_number = column_index_from_string(column_letter)
+                                cell_value = get_cell_value(file_path, sheet_name, 1, column_number)
                                 errors_to_check.append([idx+2, columna])
                                 errors.append([idx+2, column_letter])
-                                errors_message.append(f"Formato incorrecto [{idx+2},{column_letter}]")
+                                errors_message.append(f"Formato incorrecto en {cell_value} [{idx+2},{column_letter}]")
                                 continue
 
                             #print(f"{type(registro.get('vuelo'))} | {registro.get('vuelo')}")
                             #print(f"ER | Registro {idx+2} en '{columna}': Vuelo es {registro.get('fecha')}")
                             print(f"ER {state} | Registro {idx+2} en '{columna}': Vuelo está vacío")
+                            sheet_name = state
                             column_letter = get_column(df, columna)
+                            column_number = column_index_from_string(column_letter)
+                            cell_value = get_cell_value(file_path, sheet_name, 1, column_number)
                             errors_to_check.append([idx+2, columna])
                             errors.append([idx+2, column_letter])
-                            errors_message.append(f"Dato faltante [{idx+2},{column_letter}]")
+                            errors_message.append(f"Dato faltante en {cell_value} [{idx+2},{column_letter}]")
                         else:
                             if not is_valid_date(value):
                                 print(f"NE 2 {state} | Registro {idx+2} en '{columna}': Vuelo es {registro.get('fecha')}")
+                                sheet_name = state
                                 column_letter = get_column(df, columna)
+                                column_number = column_index_from_string(column_letter)
+                                cell_value = get_cell_value(file_path, sheet_name, 1, column_number)
                                 errors_to_check.append([idx+2, columna])
                                 errors.append([idx+2, column_letter])
-                                errors_message.append(f"Fecha inexistente [{idx+2},{column_letter}]")
+                                errors_message.append(f"Fecha inexistente en {cell_value} [{idx+2},{column_letter}]")
                 else:
                     if str(registro.get('vuelo')).lower() != 'tbc' and str(registro.get('vuelo')).lower() != 'no':
                         print(f"{state} | Registro {idx+2} en '{columna}': Vuelo es {registro.get('vuelo')}")

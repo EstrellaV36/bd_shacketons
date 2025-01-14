@@ -7,6 +7,7 @@ import pandas as pd
 from openpyxl import load_workbook
 import json
 import os
+from datetime import datetime
 
 class CargaMasivaScreen(QWidget):
     def __init__(self, controller, main_window):
@@ -133,13 +134,13 @@ class CargaMasivaScreen(QWidget):
 
         # Actualiza la tabla de "ON"
         combined_on_df = pd.concat([buque_on, tripulantes_on], axis=1)
-        self.show_sheet(combined_on_df, self.on_table_view, errors_on, errors_on_message)  # Mostrar en la pestaña "ON"
+        self.show_sheet(combined_on_df, self.on_table_view, errors_on, errors_on_message, "ON")  # Mostrar en la pestaña "ON"
         
         # Actualiza la tabla de "OFF"
         combined_off_df = pd.concat([buque_off, tripulantes_off], axis=1)
-        self.show_sheet(combined_off_df, self.off_table_view, errors_off, errors_off_message)  # Mostrar en la pestaña "OFF"
+        self.show_sheet(combined_off_df, self.off_table_view, errors_off, errors_off_message, "OFF")  # Mostrar en la pestaña "OFF"
 
-    def show_sheet(self, df, table_view, errors_df, errors_message_df):
+    def show_sheet(self, df, table_view, errors_df, errors_message_df, state):
         highlighted_rows = errors_df
         model = PandasModel(df, highlighted_rows)
         table_view.setModel(model)
@@ -174,12 +175,24 @@ class CargaMasivaScreen(QWidget):
 
         # Mostrar errores si existen
         if errors_message_df:
-            print("Entre al if de error")
             error_messages = "\n".join(errors_message_df)  # Combina los errores en texto separado por líneas
+
+            if not hasattr(self, "error_file_name"):
+                timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
+                self.error_file_name = f"errores_{timestamp}.txt"
+
+            error_messages = "\n".join(errors_message_df)  # Combina los errores en texto separado por líneas
+
+            # Escribir los errores en el archivo
+            with open(self.error_file_name, "a") as error_file:  # Abrir en modo "append"
+                error_file.write(f"Errores detectados {state}:\n")
+                error_file.write(error_messages)
+                error_file.write("\n\n")
+
             error_box = QMessageBox(self)
             error_box.setIcon(QMessageBox.Icon.Warning)
-            error_box.setWindowTitle("Errores en los datos")
-            error_box.setText("Se encontraron los siguientes errores:")
+            error_box.setWindowTitle(f"Errores en los datos [{state}]")
+            error_box.setText(f"Se encontraron los siguientes errores en {state}:")
             error_box.setDetailedText(error_messages)  # Mostrar los detalles con los errores específicos
             error_box.exec()
 

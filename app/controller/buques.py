@@ -4,8 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, and_
 from app.models import Buque
 from openpyxl import load_workbook
-from openpyxl.utils import get_column_letter
-
+from openpyxl.utils import get_column_letter, column_index_from_string
 
 class Buques:
     def __init__(self, db_session: Session):
@@ -149,15 +148,17 @@ class Buques:
                     sheet_name = state
                     x = i + 2  # Ajustar el índice a la fila de Excel (inicia en 1)
                     y = get_excel_column_letter(file_path, sheet_name, column_name)
+                    column_number = column_index_from_string(y)
+                    cell_value = get_cell_value(file_path, sheet_name, 1, column_number)
 
                     if isinstance(value, str) and '-' in value and len(value.split('-')) == 3:
                         print(f"Error [Buques]: Fecha inexistente en la fila {x}, columna '{column_name} ({y})'. Valor: '{error}'")
                         errors.append([i, y])
-                        errors_message.append(f"Fecha inexistente [{x},{y}]")
+                        errors_message.append(f"Fecha inexistente en {cell_value} [{x},{y}]")
                     elif not pd.isna(value):
                         print(f"Error [Buques]: Formato de fecha incorrecto en la fila {x}, columna '{column_name} ({y})'. Valor: '{error}'")
                         errors.append([i, y])
-                        errors_message.append(f"Formato de fecha incorrecto [{x},{y}]")
+                        errors_message.append(f"Formato de fecha incorrecto en {cell_value} [{x},{y}]")
 
         def get_excel_column_letter(file_path, sheet_name, column_name):
             # Cargar el archivo y la hoja
@@ -171,6 +172,16 @@ class Buques:
                     return get_column_letter(col[0].column)
 
             raise ValueError(f"Columna con nombre '{column_name}' no encontrada en el archivo.")
+        
+        def get_cell_value(file_path, sheet_name, row, column):
+            # Cargar el archivo de Excel
+            workbook = load_workbook(file_path, data_only=True)  # `data_only=True` para obtener el valor calculado en celdas con fórmulas
+            sheet = workbook[sheet_name]
+
+            # Obtener el valor de la celda
+            cell_value = sheet.cell(row=row, column=column).value
+
+            return cell_value
 
         # Limpiar valores de las columnas relevantes
         buques_df["ETA Vessel"] = buques_df["ETA Vessel"].apply(clean_value)

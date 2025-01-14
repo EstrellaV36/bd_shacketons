@@ -9,7 +9,7 @@ from sqlalchemy import func, and_
 from PyQt6.QtWidgets import QMessageBox
 from app.models import Buque, Tripulante, Vuelo, EtaCiudad, Viaje, TripulanteVuelo, Hotel, TripulanteHotel, Restaurante, TripulanteRestaurante, Transporte, TripulanteTransporte, TripulanteAsistencia
 from openpyxl import load_workbook
-from openpyxl.utils import get_column_letter
+from openpyxl.utils import get_column_letter, column_index_from_string
 
 CITY_AIRPORT_CODES = {
     'PUQ': "PUNTA ARENAS",
@@ -415,6 +415,16 @@ def check_and_clean(file_path, transportes_df, state):
         x = indices[columna]
         y = get_excel_column_letter(file_path, sheet_name, f"Date_pickup_{x+1}")
         return y
+    
+    def get_cell_value(file_path, sheet_name, row, column):
+        # Cargar el archivo de Excel
+        workbook = load_workbook(file_path, data_only=True)  # `data_only=True` para obtener el valor calculado en celdas con fórmulas
+        sheet = workbook[sheet_name]
+
+        # Obtener el valor de la celda
+        cell_value = sheet.cell(row=row, column=column).value
+
+        return cell_value
 
     def check_date():        
         df = pd.DataFrame(transportes_df)
@@ -432,10 +442,13 @@ def check_and_clean(file_path, transportes_df, state):
 
                             if not is_valid_date(value):
                                 print(f"NE | Registro {idx} en '{columna}': Fecha es {value}")
+                                sheet_name = state
                                 column_letter = get_column(df, columna)
+                                column_number = column_index_from_string(column_letter)
+                                cell_value = get_cell_value(file_path, sheet_name, 1, column_number)
                                 errors_to_check.append([idx, columna])
                                 errors.append([idx, column_letter])
-                                errors_message.append(f"Fecha inexistente [{idx+2},{column_letter}]")
+                                errors_message.append(f"Fecha inexistente en {cell_value} [{idx+2},{column_letter}]")
                     else:
                         #print(f"{idx} | {registro.get('Date Pickup')}")
                         value = registro.get('Date Pickup')
@@ -443,17 +456,23 @@ def check_and_clean(file_path, transportes_df, state):
                         
                         if registro.get('Date Pickup') == None:
                             print(f"ER | Registro {idx+2} en '{columna}': Fecha está vacía")
+                            sheet_name = state
                             column_letter = get_column(df, columna)
+                            column_number = column_index_from_string(column_letter)
+                            cell_value = get_cell_value(file_path, sheet_name, 1, column_number)
                             errors_to_check.append([idx, columna])
                             errors.append([idx, column_letter])
-                            errors_message.append(f"Fecha faltante [{idx+2},{column_letter}]")
+                            errors_message.append(f"Fecha faltante en {cell_value} [{idx+2},{column_letter}]")
                         else:
                             if not is_valid_date(value):
                                 print(f"NE | Registro {idx+2} en '{columna}': Fecha es {registro.get('Date Pickup')}")
+                                sheet_name = state
                                 column_letter = get_column(df, columna)
+                                column_number = column_index_from_string(column_letter)
+                                cell_value = get_cell_value(file_path, sheet_name, 1, column_number)
                                 errors_to_check.append([idx, columna])
                                 errors.append([idx, column_letter])
-                                errors_message.append(f"Fecha inexistente [{idx+2},{column_letter}]")
+                                errors_message.append(f"Fecha inexistente en {columna} [{idx+2},{column_letter}]")
                 else:
                     if registro.get('City In').lower() == 'no':
                         continue

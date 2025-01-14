@@ -195,6 +195,8 @@ class Controller:
             self.asistencias_processor._create_asistencias(self.tripulantes_on, self.asistencias_on)
             update_progress_callback(60)  # 60% después de procesar asistencias
 
+            print("ENTRE 2")
+
             ### HOTELES ###
             self.hoteles_on, self.hoteles_off = self.hoteles_processor.hoteles_main(file_path)
 
@@ -202,6 +204,8 @@ class Controller:
             update_progress_callback(65)
             self.errors_hoteles_off, self.errors_hoteles_off_message = self.hoteles_processor._create_hotel(file_path, self.hoteles_off, self.tripulantes_off, "OFF")
             update_progress_callback(70)  # 70% después de procesar hoteles
+
+            print("ENTRE 1")
 
             ### TRANSPORTES ###
             self.transportes_on, self.transportes_off = self.transportes_processor.transportes_main(file_path)
