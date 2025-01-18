@@ -9,6 +9,7 @@ from app.controller.transportes import Transportes
 from app.controller.restaurantes import Restaurantes
 from app.controller.extras import Extras
 from app.controller.viajes import Viajes
+import pandas as pd
 
 CITY_AIRPORT_CODES = {
     'PUQ': "PUNTA ARENAS",
@@ -280,6 +281,271 @@ class Controller:
             #print(f"Errores en ON = {self.errors_on}")
             #print(f"Errores en OFF = {self.errors_off}")
 
-            return self.buques_on, self.buques_off, self.tripulantes_on, self.tripulantes_off, self.errors_on, self.errors_off, self.errors_on_message, self.errors_off_message
+
+            # Combinar todos los datos en un solo DataFrame para ON y OFF
+            full_data_on = pd.concat(
+                [
+                    self.buques_on,
+                    self.tripulantes_on,
+                    self.aerolineas_on,
+                    self.vuelos_internacionales_on.add_suffix("_Internacional"),
+                    self.vuelos_domesticos_on.add_suffix("_Domestico"),
+                    self.vuelos_regionales_on.add_suffix("_Regional"),
+                    self.asistencias_on,
+                    self.hoteles_on,
+                    self.transportes_on,
+                    self.restaurantes_on,
+                    self.extras_on,
+                ],
+                axis=1,
+            )
+
+            full_data_off = pd.concat(
+                [
+                    self.buques_off,
+                    self.tripulantes_off,
+                    self.aerolineas_off,
+                    self.vuelos_internacionales_off.add_suffix("_Internacional"),
+                    self.vuelos_domesticos_off.add_suffix("_Domestico"),
+                    self.vuelos_regionales_off.add_suffix("_Regional"),
+                    self.asistencias_off,
+                    self.hoteles_off,
+                    self.transportes_off,
+                    self.restaurantes_off,
+                    self.extras_off,
+                ],
+                axis=1,
+            )
+            
+            full_data_on, full_data_off = self.process_all_to_show(full_data_on, full_data_off)
+
+            return full_data_on, full_data_off, self.errors_on, self.errors_off, self.errors_on_message, self.errors_off_message
         except Exception as e:
             raise Exception(f"[Controller] Error al procesar el archivo: {e}")
+        
+    def process_all_to_show(self, df_on, df_off):
+        # Limpiar los nombres de las columnas en df_on
+        df_on.columns = df_on.columns.str.strip()
+
+        ###PROCESAMIENTO DE VUELOS ON#####
+        # Procesar vuelos internacionales
+        vuelo_international_columns = [col for col in df_on.columns if col.startswith('Vuelo') and '_Domestico' not in col and '_Regional' not in col]
+        self._process_vuelos(df_on, vuelo_international_columns, "Vuelo Int", "Nro International Flight", "Date International Flight", "Hora International Flight")
+
+        # Procesar vuelos domésticos
+        vuelo_domestic_columns = [col for col in df_on.columns if '_Domestico' in col]
+        self._process_single_flight(df_on, vuelo_domestic_columns, "Nro Domestic Flight", "Date Domestic Flight", "Hora Domestic Flight")
+
+        # Procesar vuelos regionales
+        vuelo_regional_columns = [col for col in df_on.columns if '_Regional' in col]
+        self._process_single_flight(df_on, vuelo_regional_columns, "Nro Regional Flight", "Date Regional Flight", "Hora Regional Flight")
+
+        #Procesamiento hoteles ON
+        df_on = self.process_hotels(df_on)
+
+        # Limpiar los nombres de las columnas en df_off
+        df_off.columns = df_off.columns.str.strip()
+        # print("Columnas originales del DataFrame (OFF):")
+        # print(df_off.columns.tolist())
+        
+        ### PROCESAMIENTO DE VUELOS OFF #####
+        # Procesar vuelos regionales (salida de Chile)
+        vuelo_regional_columns_off = [col for col in df_off.columns if '_Regional' in col]
+        self._process_single_flight(df_off, vuelo_regional_columns_off, "Nro Regional Flight", "Date Regional Flight", "Hora Regional Flight")
+   
+        # Procesar vuelos domésticos (salida de Chile)
+        vuelo_domestic_columns_off = [col for col in df_off.columns if '_Domestico' in col]
+        self._process_single_flight(df_off, vuelo_domestic_columns_off, "Nro Domestic Flight", "Date Domestic Flight", "Hora Domestic Flight")
+
+        # Procesar vuelos internacionales (salida de Chile)
+        vuelo_international_columns_off = [col for col in df_off.columns if col.startswith('Vuelo') and '_Domestico' not in col and '_Regional' not in col]
+        self._process_single_flight(df_off, vuelo_international_columns_off, "Nro International Flight", "Date International Flight", "Hora International Flight")
+
+        # Reordenar las columnas para asegurar que el orden sea consistente
+        self._reorder_columns_off(df_off)
+        
+        return df_on, df_off
+
+    def _process_vuelos(self, df, vuelo_columns, vuelo_prefix, nro_flight_col, date_flight_col, hora_flight_col):
+        for vuelo_col in vuelo_columns:
+            try:
+                # Descomponer la columna en un DataFrame con subcolumnas
+                vuelo_df = df[vuelo_col].apply(
+                    lambda x: pd.Series(x) if isinstance(x, dict) else pd.Series({"vuelo": None, "fecha": None, "hora": None})
+                )
+                # Formatear las fechas para que estén sin hora
+                vuelo_df['fecha'] = pd.to_datetime(vuelo_df['fecha'], errors='coerce').dt.date
+
+                # Crear nombres de columnas
+                vuelo_number = vuelo_columns.index(vuelo_col) + 1  # Usar índice para nombrar los vuelos correctamente
+                vuelo_df.columns = [
+                    f"{vuelo_prefix} {vuelo_number}",
+                    f"Fecha {vuelo_prefix} {vuelo_number}",
+                    f"Hora {vuelo_prefix} {vuelo_number}",
+                ]
+
+                # Insertar las nuevas columnas en la posición correcta
+                col_index = df.columns.get_loc(vuelo_col)
+                for i, new_col in enumerate(vuelo_df.columns):
+                    df.insert(col_index + i + 1, new_col, vuelo_df[new_col])
+
+                # Eliminar la columna original
+                df.drop(columns=[vuelo_col], inplace=True)
+            except Exception as e:
+                print(f"Error al procesar '{vuelo_col}': {e}")
+
+        # Procesar el último vuelo no vacío
+        nro_flight = []
+        date_flight = []
+        hora_flight = []
+
+        for _, row in df.iterrows():
+            last_flight = None
+            last_flight_date = None
+            last_flight_time = None
+
+            # Iterar sobre los vuelos disponibles
+            for i in range(1, len(vuelo_columns) + 1):
+                vuelo_col = f"{vuelo_prefix} {i}"
+                fecha_col = f"Fecha {vuelo_prefix} {i}"
+                hora_col = f"Hora {vuelo_prefix} {i}"
+
+                # Verificar si la columna actual no está vacía
+                if pd.notna(row.get(vuelo_col)):
+                    last_flight = row[vuelo_col]
+                    last_flight_date = row[fecha_col]
+                    last_flight_time = row[hora_col]
+
+            # Almacenar el último vuelo no vacío
+            nro_flight.append(last_flight)
+            date_flight.append(last_flight_date)
+            hora_flight.append(last_flight_time)
+
+        # Insertar las nuevas columnas inmediatamente después de los vuelos procesados
+        try:
+            last_vuelo_col = f"Hora {vuelo_prefix} {len(vuelo_columns)}"
+            insert_position = df.columns.get_loc(last_vuelo_col) + 1
+            df.insert(insert_position, nro_flight_col, nro_flight)
+            df.insert(insert_position + 1, date_flight_col, date_flight)
+            df.insert(insert_position + 2, hora_flight_col, hora_flight)
+        except Exception as e:
+            print(f"Error al insertar las columnas de último vuelo ({vuelo_prefix}): {e}")
+
+
+    def _process_single_flight(self, df, vuelo_columns, nro_flight_col, date_flight_col, hora_flight_col):
+        # Asumimos que solo hay un vuelo por procesar y sus columnas están en `vuelo_columns`
+        if not vuelo_columns:
+            print(f"No se encontraron columnas para {nro_flight_col}.")
+            return
+
+        # Extraer la única columna de vuelo (asumimos que hay solo una)
+        vuelo_col = vuelo_columns[0]
+
+        try:
+            # Dividir la columna en subcolumnas
+            vuelo_df = df[vuelo_col].apply(
+                lambda x: pd.Series(x) if isinstance(x, dict) else pd.Series({"vuelo": None, "fecha": None, "hora": None})
+            )
+            # Formatear las fechas para que estén sin hora
+            vuelo_df['fecha'] = pd.to_datetime(vuelo_df['fecha'], errors='coerce').dt.date
+            vuelo_df.columns = [nro_flight_col, date_flight_col, hora_flight_col]
+
+            # Insertar las nuevas columnas en el lugar correcto
+            col_index = df.columns.get_loc(vuelo_col)
+            for i, new_col in enumerate(vuelo_df.columns):
+                df.insert(col_index + i + 1, new_col, vuelo_df[new_col])
+
+            # Eliminar la columna original
+            df.drop(columns=[vuelo_col], inplace=True)
+
+            # Reemplazar valores "No disponible" con valores vacíos
+            df[[nro_flight_col, date_flight_col, hora_flight_col]] = df[[nro_flight_col, date_flight_col, hora_flight_col]].replace("No disponible", None)
+        except Exception as e:
+            print(f"Error al procesar '{vuelo_col}': {e}")
+
+    def _reorder_columns_off(self, df):
+        # Definir el orden esperado de todas las columnas
+        column_order = [
+            "Activo", "Owner", "Vessel", "Date First Flight", "ETA Vessel", "ETD Vessel", "Puerto a desembarcar",
+            "Condition", "Carta Desembarco", "Mail PDI", "First name", "Last name", "Gender", "Nacionalidad", 
+            "Position", "Pasaporte", "DOB", "Aerolinea 1", "Aerolinea 2", "Aerolinea 3", "Aerolinea 4",
+            "Nro Regional Flight", "Date Regional Flight", "Hora Regional Flight",
+            "Nro Domestic Flight", "Date Domestic Flight", "Hora Domestic Flight",
+            "Nro International Flight", "Date International Flight", "Hora International Flight",
+            "Proveedor SCL", "Asistencia 1", "Proveedor PUQ", "Asistencia 2", "Proveedor WPU", "Asistencia 3",
+        ]
+
+        # Reordenar las columnas del DataFrame según el orden definido
+        existing_columns = [col for col in column_order if col in df.columns]  # Filtrar solo las columnas que existen en el DataFrame
+        remaining_columns = [col for col in df.columns if col not in column_order]  # Columnas que no están en el orden definido
+
+        # Reordenar las columnas y mantener las adicionales al final
+        df = df[existing_columns + remaining_columns]
+        return df
+
+    def process_hotels(self, df):
+        # Detectar columnas de hoteles 
+        # #FUNCION EN PROCESO AUN NO FUNCIONA BIEN
+        hotel_columns = [col for col in df.columns if col.startswith('Hotel')]
+
+        category = None  # Variable para almacenar la categoría (se mostrará una sola vez)
+
+        for hotel_col in hotel_columns:
+            try:
+                if hotel_col not in df.columns:
+                    print(f"Error: La columna '{hotel_col}' no existe en el DataFrame.")
+                    continue
+
+                # Descomponer la columna en subcolumnas
+                hotel_df = df[hotel_col].apply(
+                    lambda x: pd.Series({
+                        "categoria": x.get("categoria") if isinstance(x, dict) else None,
+                        "hotel": x.get("hotel") if isinstance(x, dict) else None,
+                        "check_in": pd.to_datetime(x.get("check_in"), errors='coerce').date() if isinstance(x, dict) else None,
+                        "check_out": pd.to_datetime(x.get("check_out"), errors='coerce').date() if isinstance(x, dict) else None,
+                        "habitacion": x.get("habitacion") if isinstance(x, dict) else None,
+                        "nombre_hotel": x.get("nombre_hotel") if isinstance(x, dict) else None,
+                    }) if isinstance(x, dict) else pd.Series({
+                        "categoria": None, "hotel": None, "check_in": None,
+                        "check_out": None, "habitacion": None, "nombre_hotel": None
+                    })
+                )
+
+                # Extraer y almacenar la categoría una vez
+                if category is None and "categoria" in hotel_df:
+                    category = hotel_df['categoria']
+                    if "Category" in df.columns:
+                        df.drop(columns=["Category"], inplace=True)  # Eliminar columna previa si existe
+                    df.insert(0, "Category", category)  # Insertar la categoría al inicio del DataFrame
+
+                # Renombrar las subcolumnas (sin incluir "categoria")
+                hotel_number = hotel_columns.index(hotel_col) + 1
+                hotel_df = hotel_df.drop(columns=["categoria"], errors='ignore')  # Eliminar columna innecesaria
+                hotel_df.columns = [
+                    f"Hotel {hotel_number}",
+                    f"Check in {hotel_number}",
+                    f"Check out {hotel_number}",
+                    f"Rooms {hotel_number}",
+                    f"Nombre Hotel {hotel_number}",
+                ]
+
+                # Asegurarnos de eliminar columnas existentes con el mismo nombre
+                for col in hotel_df.columns:
+                    if col in df.columns:
+                        df.drop(columns=[col], inplace=True)
+
+                # Insertar las nuevas columnas en el lugar correcto
+                col_index = df.columns.get_loc(hotel_col)
+                for i, new_col in enumerate(hotel_df.columns):
+                    df.insert(col_index + i + 1, new_col, hotel_df[new_col])
+
+                # Eliminar la columna original
+                df.drop(columns=[hotel_col], inplace=True)
+            except Exception as e:
+                print(f"Error al procesar '{hotel_col}': {e}")
+                continue
+
+        return df
+
+
+
