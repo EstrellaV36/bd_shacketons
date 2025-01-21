@@ -11,7 +11,27 @@ from app.models import Buque, Tripulante, Vuelo, EtaCiudad, Viaje, TripulanteVue
 class Extras:
     def __init__(self, db_session: Session):
         self.db_session = db_session
-        
+
+    def extras_main(self, file_path):
+        try:
+            print("[Extras] Leyendo hoja 'ON'")
+            excel_data_on = pd.read_excel(file_path, sheet_name='ON', header=None)
+
+            extras_on = self._extract_extras(excel_data_on, start_row=0, state="on")
+            extras_on.reset_index(drop=True, inplace=True)
+
+            print("[Extras] Leyendo hoja 'OFF'")
+            excel_data_off = pd.read_excel(file_path, sheet_name='OFF', header=None)
+
+            extras_off = self._extract_extras(excel_data_off, start_row=0, state="off")
+            extras_off.reset_index(drop=True, inplace=True)
+
+            return extras_on, extras_off
+        except Exception as e:
+            print("[Extras] Error durante el procesamiento:", e)
+            traceback.print_exc()
+            raise Exception(f"[Extras] Error al procesar el archivo: {e}")
+
     def _create_extra(self, file_path, tripulantes_df, state):
         extra_columns = ['Maleta perdida', 'Transporte', 'Atencion Medica', 'Fecha', 'Ciudad']
         excel_data = pd.read_excel(file_path, sheet_name=state, header=None)
@@ -72,7 +92,7 @@ class Extras:
 
             # Confirmar los cambios en la base de datos
             self.db_session.commit()
-            print("Asignación de extras completada.")
+            print(f"Asignación de extras {state} completada.")
 
         except Exception as e:
             self.db_session.rollback()
@@ -111,3 +131,68 @@ class Extras:
             result_df.columns = column_names
 
         return result_df
+    
+    def _extract_extras(self, excel_data, start_row, state):
+        extras = []
+
+        # Convertir los nombres de las columnas a cadenas y quitar espacios
+        try:
+            extras_columns = excel_data.loc[start_row].dropna().str.lower().tolist()
+            #print(f"[Extras Extract] Columnas detectadas ({state}): {extras_columns}")
+        except Exception as e:
+            #print(f"[Extras Extract] Error al leer nombres de columnas en ({state}): {e}")
+            return pd.DataFrame()
+
+        # Iterar sobre cada fila, comenzando desde la fila indicada
+        for i in range(start_row + 1, excel_data.shape[0]):
+            #print(f"[Extras Extract] Procesando fila {i} en estado {state}")
+            try:
+                maleta_perdida = "maleta perdida"
+                transporte = "transporte"
+                atencion_medica = "atencion medica"
+                fecha = "fecha"
+                ciudad = "ciudad"
+
+                # Verificar si las columnas existen en el DataFrame
+                if (maleta_perdida in extras_columns and
+                    transporte in extras_columns and
+                    atencion_medica in extras_columns and
+                    fecha in extras_columns and
+                    ciudad in extras_columns):
+
+                    col_idx_maleta_perdida = extras_columns.index(maleta_perdida)
+                    col_idx_transporte = extras_columns.index(transporte)
+                    col_idx_atencion_medica = extras_columns.index(atencion_medica)
+                    col_idx_fecha = extras_columns.index(fecha)
+                    col_idx_ciudad = extras_columns.index(ciudad)
+
+                    # Obtener los valores, asignando nulo si no hay información
+                    maleta_perdida_idx = excel_data.iloc[i, col_idx_maleta_perdida] if pd.notna(excel_data.iloc[i, col_idx_maleta_perdida]) else None
+                    transporte_idx = excel_data.iloc[i, col_idx_transporte] if pd.notna(excel_data.iloc[i, col_idx_transporte]) else None
+                    atencion_medica_idx = excel_data.iloc[i, col_idx_atencion_medica] if pd.notna(excel_data.iloc[i, col_idx_atencion_medica]) else None
+                    fecha_idx = excel_data.iloc[i, col_idx_fecha] if pd.notna(excel_data.iloc[i, col_idx_fecha]) else None
+                    ciudad_idx = excel_data.iloc[i, col_idx_ciudad] if pd.notna(excel_data.iloc[i, col_idx_ciudad]) else None
+
+                    # Agregar la información a la lista de extras
+                    extras.append({
+                        "Maleta Perdida": maleta_perdida_idx,
+                        "Transporte": transporte_idx,
+                        "Atencion medica": atencion_medica_idx,
+                        "Fecha": fecha_idx,
+                        "Ciudad": ciudad_idx
+                    })
+                    #print(f"[Extras Extract] Fila {i} procesada: {extras[-1]}")
+                else:
+                    #print(f"[Extras Extract] Columnas necesarias no encontradas en fila {i}. Saliendo del bucle.")
+                    continue
+            except Exception as e:
+                print(f"[Extras Extract] Error al procesar fila {i}: {e}")
+                continue
+
+        # Verificar si se encontraron extras
+        if len(extras) == 0:
+            print(f"[Extras Extract] No se encontraron extras en las filas procesadas ({state}).")
+        else:
+            print(f"[Extras Extract] {len(extras)} extras procesados ({state}).")
+
+        return pd.DataFrame(extras)

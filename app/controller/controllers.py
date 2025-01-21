@@ -222,6 +222,8 @@ class Controller:
             update_progress_callback(90)  # 90% después de procesar restaurantes
 
             ### EXTRAS ###
+            self.extras_on, self.extras_off = self.extras_processor.extras_main(file_path)
+            
             self.extras_processor._create_extra(file_path, self.tripulantes_on, "ON")
             self.extras_processor._create_extra(file_path, self.tripulantes_off, "OFF")            
             update_progress_callback(95)  # 95% después de procesar extras
@@ -294,7 +296,6 @@ class Controller:
                     self.hoteles_on,
                     self.transportes_on,
                     self.restaurantes_on,
-                    #self.extras_on,
                 ],
                 axis=1,
             )
@@ -311,7 +312,6 @@ class Controller:
                     self.hoteles_off,
                     self.transportes_off,
                     self.restaurantes_off,
-                    #self.extras_off,
                 ],
                 axis=1,
             )
@@ -344,6 +344,9 @@ class Controller:
         df_on = self.process_transport(df_on)
         df_on = self.process_restaurants(df_on)
 
+        # Agregar extras ON
+        df_on = self._add_extras_to_df(df_on, self.extras_on)
+
         # Limpiar los nombres de las columnas en df_off
         df_off.columns = df_off.columns.str.strip()
         # print("Columnas originales del DataFrame (OFF):")
@@ -368,6 +371,9 @@ class Controller:
         df_off = self.process_hotels(df_off)
         df_off = self.process_transport(df_off)
         df_off = self.process_restaurants(df_off)
+
+        # Agregar extras OFF
+        df_off = self._add_extras_to_df(df_on, self.extras_off)
 
         return df_on, df_off
 
@@ -684,8 +690,29 @@ class Controller:
 
         print("Procesamiento de restaurantes completado.")
         return df
+    
+    def _add_extras_to_df(self, df, extras):
+        """
+        Agregar los extras al DataFrame principal (df) desde el DataFrame de extras.
+        """
+        if extras.empty:
+            #print(f"[Extras] No se encontraron extras para el DataFrame.")
+            return df
 
+        try:
+            # Iterar sobre las columnas del DataFrame de extras y agregarlas directamente
+            for col in extras.columns:
+                if col not in df.columns:
+                    df[col] = extras[col]
+                    #print(f"[Extras] Columna '{col}' agregada al DataFrame.")
+                else:
+                    print(f"[Extras] La columna '{col}' ya existe en el DataFrame.")
 
+            print(f"[Extras] Todos los extras agregados al DataFrame.")
+        except Exception as e:
+            print(f"[Extras] Error al agregar extras al DataFrame: {e}")
+
+        return df
 
 
 
