@@ -14,7 +14,7 @@ from app.database import get_db_session
 from app.models import Buque, EtaCiudad, Tripulante, Viaje, Vuelo, TripulanteVuelo, Restaurante, TripulanteRestaurante, Transporte, TripulanteTransporte, Hotel, TripulanteHotel, Buque, TripulanteAsistencia
 from PyQt6.QtCore import QRunnable, pyqtSignal, QObject
 from PyQt6.QtCore import QAbstractTableModel, QThreadPool
-from openpyxl.styles import Font, PatternFill, Border, Side
+from openpyxl.styles import Font, PatternFill, Border, Side, Alignment
 from openpyxl.utils import get_column_letter
 
 import os
@@ -277,6 +277,7 @@ class VisualizacionDatosScreen(QWidget):
 
         # Ajustar tamaños de las columnas
         column_dimensions = header_styles.get(sheet_type, {}).get('column_dimensions', {})
+        
         for col_num, header in enumerate(data.columns, start=1):
             column_letter = get_column_letter(col_num)
             header_cleaned = header.strip()  # Limpiar el encabezado de cualquier espacio extra
@@ -301,20 +302,23 @@ class VisualizacionDatosScreen(QWidget):
 
         # Aplicar estilo a cada encabezado
         for col_num, header in enumerate(data.columns, start=1):
+            cell = sheet.cell(row=1, column=col_num, value=header)
+            cell.alignment = Alignment(horizontal="center", vertical="center")
+
             header_cleaned = header.strip()  # Limpiar encabezado
             print(f"Comparando: '{header_cleaned}'")
 
             # Verificar si el encabezado limpio está en los estilos
             if header_cleaned in styles:
                 style = styles[header_cleaned]
-                print(f"Aplicando estilo a '{header_cleaned}': {style}")
-                print(f"Color de fondo: {style.get('fill', {}).get('color', 'sin color')}, "
-                    f"Fuente: {style.get('font', {}).get('name', 'sin fuente')}, "
-                    f"Border: {style.get('border', 'sin borde')}")
+                #print(f"Aplicando estilo a '{header_cleaned}': {style}")
+                #print(f"Color de fondo: {style.get('fill', {}).get('color', 'sin color')}, "
+                    #f"Fuente: {style.get('font', {}).get('name', 'sin fuente')}, "
+                    #f"Border: {style.get('border', 'sin borde')}")
 
                 # Configurar fuente
                 if "font" in style:
-                    print(f"Aplicando fuente: {style['font']}")
+                    #print(f"Aplicando fuente: {style['font']}")
                     cell = sheet.cell(row=1, column=col_num, value=header)
                     cell.font = Font(
                         name=style["font"]["name"],
@@ -328,7 +332,7 @@ class VisualizacionDatosScreen(QWidget):
                 if "fill" in style and "color" in style["fill"]:
                     fill_color = style["fill"]["color"]
                     if fill_color:
-                        print(f"Aplicando color de fondo: {fill_color}")
+                        #print(f"Aplicando color de fondo: {fill_color}")
                         if len(fill_color) == 8:  # Formato de color de 8 dígitos (FF + Hex)
                             fill_color = fill_color[2:]  # Eliminar los dos primeros caracteres (alpha)
                         cell.fill = PatternFill(start_color=fill_color, end_color=fill_color, fill_type="solid")
@@ -337,7 +341,7 @@ class VisualizacionDatosScreen(QWidget):
                 if "border" in style:
                     border_style = style["border"]
                     thin = Side(border_style="thin")
-                    print(f"Aplicando bordes: {border_style}")
+                    #print(f"Aplicando bordes: {border_style}")
                     cell.border = Border(
                         top=thin if border_style.get("top") else None,
                         bottom=thin if border_style.get("bottom") else None,
@@ -482,6 +486,7 @@ class VisualizacionDatosScreen(QWidget):
             # Obtener los tripulantes ON para transporte
             transport_data = self.get_transport_data(session, tripulantes_on_ids)
             restaurant_data = self.get_restaurant_data(session, tripulantes_on_ids)
+            extra_data = self.get_extra_data(session, tripulantes_on_ids)
 
             formatted_on_data = []  
             for row in on_data:
@@ -492,6 +497,7 @@ class VisualizacionDatosScreen(QWidget):
                 hoteles = hoteles_data.get(row.tripulante_id, {})
                 transportes = transport_data.get(row.tripulante_id, {})
                 restaurantes = restaurant_data.get(row.tripulante_id, {})
+                extras = extra_data.get(row.tripulante_id, {})
                 
                 row_dict = row._asdict()
 
@@ -509,6 +515,8 @@ class VisualizacionDatosScreen(QWidget):
                     row_dict[key] = value
                 for key, value in restaurantes.items():  
                     row_dict[key] = value
+                for key, value in extras.items():  
+                    row_dict[key] = value
 
                 formatted_on_data.append(row_dict)
 
@@ -525,9 +533,11 @@ class VisualizacionDatosScreen(QWidget):
             asistencia_data_off = self.get_asistencia_tripulantes(session, tripulantes_off_ids)
             # Obtener los tripulantes ON para hoteles
             hoteles_data_off = self.get_hoteles_tripulantes(session, tripulantes_off_ids)
+            print(hoteles_data_off)
             # Obtener los tripulantes ON para transporte
             transport_data_off = self.get_transport_data(session, tripulantes_off_ids)
             restaurant_data_off = self.get_restaurant_data(session, tripulantes_off_ids)
+            extra_data_off = self.get_extra_data(session, tripulantes_off_ids)
 
             formatted_off_data = []  
             for row in off_data:
@@ -538,6 +548,7 @@ class VisualizacionDatosScreen(QWidget):
                 hoteles_off = hoteles_data_off.get(row.tripulante_id, {})
                 transportes_off = transport_data_off.get(row.tripulante_id, {})
                 restaurantes_off = restaurant_data_off.get(row.tripulante_id, {})
+                extras_off = extra_data_off.get(row.tripulante_id, {})
                 
                 row_dict = row._asdict()
 
@@ -554,6 +565,8 @@ class VisualizacionDatosScreen(QWidget):
                 for key, value in transportes_off.items():
                     row_dict[key] = value
                 for key, value in restaurantes_off.items():  
+                    row_dict[key] = value
+                for key, value in extras_off.items():  
                     row_dict[key] = value
                 formatted_off_data.append(row_dict)
 
@@ -584,11 +597,12 @@ class VisualizacionDatosScreen(QWidget):
                 # Columnas de restaurante
                 "Prefer. Aliment", "Servicio Comida 1", "Fecha Desde 1", "Fecha Hasta 1", "Restaurant 1",
                 "Servicio Comida 2", "Fecha Desde 2", "Fecha Hasta 2", "Restaurant 2",
-                "Servicio Comida 3", "Fecha Desde 3", "Fecha Hasta 3", "Restaurant 3"
+                "Servicio Comida 3", "Fecha Desde 3", "Fecha Hasta 3", "Restaurant 3",
+                "Maleta perdida", "Transporte", "Atencion Medica", "Fecha", "Ciudad"
             ], "Puerto a embarcar", "ON")
 
             self.show_data_in_tab(off_data, self.off_table_view, [
-                "Activo", "Owner", "Vessel", "Date first flight", "ETA Vessel", "ETD Vessel",
+                "Activo", "Owner", "Vessel", "Date First Flight", "ETA Vessel", "ETD Vessel",
                 "Puerto", "Condition", "Carta Desembarco", "Mail PDI", "First name", "Last name", "Gender", "Nacionalidad", "Position",
                 "Pasaporte", "DOB",
                 "Aerolinea 1", "Aerolinea 2", "Aerolinea 3", "Aerolinea 4", "Nro Regional Flight", "Date Regional Flight", "Hora Regional Flight",
@@ -606,7 +620,8 @@ class VisualizacionDatosScreen(QWidget):
                 # Columnas de restaurante
                 "Prefer. Aliment", "Servicio Comida 1", "Fecha Desde 1", "Fecha Hasta 1", "Restaurant 1",
                 "Servicio Comida 2", "Fecha Desde 2", "Fecha Hasta 2", "Restaurant 2",
-                "Servicio Comida 3", "Fecha Desde 3", "Fecha Hasta 3", "Restaurant 3"
+                "Servicio Comida 3", "Fecha Desde 3", "Fecha Hasta 3", "Restaurant 3",
+                "Maleta perdida", "Transporte", "Atencion Medica", "Fecha", "Ciudad"
             ], "Puerto a desembarcar", "OFF")
 
 
@@ -703,7 +718,7 @@ class VisualizacionDatosScreen(QWidget):
 
         for tripulante_id in vuelos_formateados:
             vuelos_formateados[tripulante_id].update({
-                f"Vuelo Int {i + 1}": None for i in range(4)
+                f"Vuelo Int {i + 1}": "NO" for i in range(4)
             })
             vuelos_formateados[tripulante_id].update({
                 f"Fecha Vuelo Int {i + 1}": None for i in range(4)
@@ -897,7 +912,7 @@ class VisualizacionDatosScreen(QWidget):
         # Inicializar diccionario para almacenar hasta 3 hoteles por tripulante
         hoteles_formateados = {tripulante_id: {
             "Category": None,
-            **{f"Hotel {i + 1}": None for i in range(3)},
+            **{f"Hotel {i + 1}": "NO" for i in range(3)},
             **{f"Check in {i + 1}": None for i in range(3)},
             **{f"Check out {i + 1}": None for i in range(3)},
             **{f"Rooms {i + 1}": None for i in range(3)},
@@ -910,6 +925,7 @@ class VisualizacionDatosScreen(QWidget):
         for hotel in hoteles_data:
             tripulante_id = hotel.tripulante_id
             index = tripulante_indices[tripulante_id]
+            print(f"El index es = {index}")
 
             if index < 3:  # Limitar a 3 hoteles por tripulante
                 hoteles_formateados[tripulante_id]["Category"] = int(hotel.categoria) if hotel.categoria is not None else None
@@ -924,7 +940,7 @@ class VisualizacionDatosScreen(QWidget):
                 hoteles_formateados[tripulante_id][f"Nombre Hotel {index + 1}"] = hotel.nombre_hotel
                 tripulante_indices[tripulante_id] += 1
 
-        # # Depuración final
+        # Depuración final
         # print("Datos de hoteles formateados:")
         # for tripulante_id, hoteles in hoteles_formateados.items():
         #     print(f"Tripulante {tripulante_id}: {hoteles}")
@@ -957,7 +973,7 @@ class VisualizacionDatosScreen(QWidget):
 
         # Inicializar el diccionario para almacenar datos por tripulante
         formatted_transport_data = {tripulante_id: {
-            **{f"City_in_{i+1}": None for i in range(4)},
+            **{f"City_in_{i+1}": "NO" for i in range(4)},
             **{f"Place_in_{i+1}": None for i in range(4)},
             **{f"City_end_{i+1}": None for i in range(4)},
             **{f"Place_end_{i+1}": None for i in range(4)},
@@ -1056,6 +1072,52 @@ class VisualizacionDatosScreen(QWidget):
         #     print(f"Tripulante {tripulante_id}: {restaurantes}")
 
         return formatted_restaurant_data
+
+    def get_extra_data(self, session, tripulantes):
+        extra_data = session.query(
+            Viaje.tripulante_id,
+            Viaje.equipaje_perdido,
+            Viaje.asistencia_medica
+        ).join(Tripulante, Viaje.tripulante_id == Tripulante.tripulante_id) \
+        .filter(Viaje.tripulante_id.in_(tripulantes)) \
+        .order_by(Viaje.tripulante_id).all()
+
+        #print(f"Datos de restaurantes recuperados: {restaurant_data}")  # Depuración
+
+        # Inicializar el diccionario para almacenar datos por tripulante
+        formatted_extra_data = {tripulante_id: {
+            "Maleta perdida": None,
+            "Transporte": None,
+            "Atencion Medica": None,
+            "Fecha": None,
+            "Ciudad": None,
+        } for tripulante_id in tripulantes}
+
+        for extra in extra_data:
+            tripulante_id = extra.tripulante_id
+
+            if formatted_extra_data[tripulante_id]["Maleta perdida"] is None:
+                formatted_extra_data[tripulante_id]["Maleta perdida"] = "Si" if extra.equipaje_perdido else "No"
+
+            formatted_extra_data[tripulante_id]["Transporte"] = None
+
+            formatted_extra_data[tripulante_id]["Atencion Medica"] = "Si" if extra.asistencia_medica else "No"
+            formatted_extra_data[tripulante_id]["Fecha"] = None
+            formatted_extra_data[tripulante_id]["Ciudad"] = None
+
+            # LAS DE ABAJO AUN NO SE GUARDAN NI SE DONDE OBTENERLAS // CAMBIAR ? MÁS ADELANTE
+
+            # formatted_extra_data[tripulante_id]["Transporte"] = extra.?
+            # formatted_extra_data[tripulante_id]["Fecha"] = extra.?
+            # formatted_extra_data[tripulante_id]["Ciudad"] = extra.?
+
+
+        # # Depuración final
+        # print("Datos de restaurantes formateados:")
+        # for tripulante_id, restaurantes in formatted_restaurant_data.items():
+        #     print(f"Tripulante {tripulante_id}: {restaurantes}")
+
+        return formatted_extra_data
 
     class PandasModel(QAbstractTableModel):
         def __init__(self, data: pd.DataFrame):

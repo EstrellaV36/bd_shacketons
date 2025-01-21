@@ -168,13 +168,9 @@ class Hoteles:
             if hotel_df.empty or tripulantes_df.empty:
                 #print("No hay hoteles o tripulantes para procesar.")
                 return
-            
-            #print("AÑA 0")
 
             # Extraer información de hoteles
             hoteles_info = self._extraer_hoteles_fechas(hotel_df)
-
-            #print("AÑA 1")
 
             # Asignar hoteles a tripulantes
             for i, tripulante_data in tripulantes_df.iterrows():
@@ -201,8 +197,6 @@ class Hoteles:
                     if not valid_entries:  # Si no hay entradas válidas, continuar
                         continue
 
-                    #print("AÑA 2")
-
                     for hotel_info in hotel_entries:  # Iterar sobre todos los hoteles asignados al tripulante
                         #print(hotel_info)
                         # if pd.isna(hotel_info['hotel']) or pd.isna(hotel_info['categoria']) or str(hotel_info['hotel']).lower() == 'no':
@@ -227,8 +221,6 @@ class Hoteles:
                             func.lower(Hotel.nombre) == hotel_nombre_normalizado,
                             func.lower(Hotel.ciudad) == hotel_ciudad_normalizado
                         ).first()
-
-                        #print("AÑA 3")
 
                         if not existing_hotel:
                             # Crear nuevo hotel si no existe

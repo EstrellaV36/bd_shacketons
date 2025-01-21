@@ -11,84 +11,103 @@ from app.models import Buque, Tripulante, Vuelo, EtaCiudad, Viaje, TripulanteVue
 class Extras:
     def __init__(self, db_session: Session):
         self.db_session = db_session
-
-    def extras_main(self, file_path):
-        try:
-            excel_data_on = pd.read_excel(file_path, sheet_name='ON', header=None)
-
-            extras_on = self._extract_extras(excel_data_on, start_row=0, state="on")
-            extras_on.reset_index(drop=True, inplace=True)
-
-            excel_data_off = pd.read_excel(file_path, sheet_name='OFF', header=None)
-
-            extras_off = self._extract_extras(excel_data_off, start_row=0, state="off")
-            extras_off.reset_index(drop=True, inplace=True)
-
-            return extras_on, extras_off
-        except Exception as e:
-            raise Exception(f"[Extras] Error al procesar el archivo: {e}")
-
-    def _extract_extras(self, excel_data, start_row, state):
-        extras = []
         
-        # Convertir los nombres de las columnas a cadenas y quitar espacios
-        extras_columns = excel_data.loc[start_row].dropna().str.lower().tolist()
+    def _create_extra(self, file_path, tripulantes_df, state):
+        extra_columns = ['Maleta perdida', 'Transporte', 'Atencion Medica', 'Fecha', 'Ciudad']
+        excel_data = pd.read_excel(file_path, sheet_name=state, header=None)
+        if state == "ON":
+            extras = self.read_all_rows(excel_data, start_row=1, column_range=slice(101, 106), column_names=extra_columns)
+        elif state == "OFF":
+            extras = self.read_all_rows(excel_data, start_row=1, column_range=slice(89, 94), column_names=extra_columns)
 
-        # Verificar las columnas con las que estamos trabajando
-        #print("Columnas disponibles:", extras_columns)  # Imprimir las columnas para verificar qué se está cargando
+        extras = extras.where(pd.notnull(extras), None)
 
-        # Iterar sobre cada fila, comenzando desde la fila indicada
-        for i in range(start_row + 1, excel_data.shape[0]):
-            tripulante_extras = {}
-            extras_num = 1
-            
-            # Iterar sobre las columnas de vuelos hasta que ya no existan
-            while True:
-                maleta_perdida = "maleta perdida"
-                transporte = "transporte"
-                atencion_medica = "atencion medica"
-                fecha = "fecha"
-                ciudad = "ciudad"
-                #print(assist)}
-                    
-                # Verificar si las columnas existen en el DataFrame
-                if maleta_perdida in extras_columns and transporte in extras_columns and atencion_medica in extras_columns and fecha in extras_columns and ciudad in extras_columns:
-                    col_idx_maleta_perdida = extras_columns.index(maleta_perdida)
-                    col_idx_transporte = extras_columns.index(transporte)
-                    col_idx_atencion_medica = extras_columns.index(atencion_medica)
-                    col_idx_fecha = extras_columns.index(fecha)
-                    col_idx_ciudad = extras_columns.index(ciudad)
+        try:
+            if extras.empty or tripulantes_df.empty:
+                #print("No hay hoteles o tripulantes para procesar.")
+                return
 
-                    maleta_perdida_idx = excel_data.iloc[i, col_idx_maleta_perdida]
-                    transporte_idx = excel_data.iloc[i, col_idx_transporte]
-                    atencion_medica_idx = excel_data.iloc[i, col_idx_atencion_medica]
-                    fecha_idx = excel_data.iloc[i, col_idx_fecha]
-                    ciudad_idx = excel_data.iloc[i, col_idx_ciudad]
+            for i, tripulante_data in tripulantes_df.iterrows():
+                try:
+                    # Validar si el pasaporte está vacío
+                    if pd.isna(tripulante_data['Pasaporte']):
+                        #print(f"Pasaporte vacío para el tripulante en la fila {i}. Omitiendo...")
+                        continue
 
-                    # Si hay información válida en las columnas, agregarla
-                    if pd.notna(maleta_perdida_idx) or pd.notna(transporte_idx) or pd.notna(atencion_medica_idx) or pd.notna(fecha_idx) or pd.notna(ciudad_idx):
-                        tripulante_extras[f'Extras {extras_num}'] = {
-                            "Maleta perdida": maleta_perdida_idx,
-                            "Transporte": transporte_idx,
-                            "Atención médica": atencion_medica_idx,
-                            "Fecha": fecha_idx,
-                            "Ciudad": ciudad_idx
-                        }
+                    # Buscar el tripulante en la base de datos
+                    tripulante = self.db_session.query(Tripulante).filter_by(pasaporte=tripulante_data['Pasaporte']).first()
+                    if not tripulante:
+                        #print(f"No se encontró tripulante con pasaporte {tripulante_data['Pasaporte']} en la fila {i}.")
+                        continue
 
-                    # Incrementar el vuelo_num para buscar el siguiente conjunto
-                    extras_num += 1
-                    break
-                else:
-                    break  # Detener la búsqueda si no se encuentra una de las columnas
+                    existing_tripulante_extra = self.db_session.query(Viaje).filter(
+                        Viaje.tripulante_id == tripulante.tripulante_id,
+                    ).first()
 
-            # Solo agregar el vuelo si se encontraron vuelos válidos para el tripulante
-            if tripulante_extras:
-                extras.append(tripulante_extras)
+                    if existing_tripulante_extra:
+                        if str(extras.loc[i]['Maleta perdida'].strip().lower()) == "si":
+                            existing_tripulante_extra.equipaje_perdido = True
+                            self.db_session.commit()
+                        elif str(extras.loc[i]['Maleta perdida'].strip().lower()) == "no":
+                            existing_tripulante_extra.equipaje_perdido = False
+                            self.db_session.commit()
 
-        # Verificar si se encontraron vuelos
-        # if len(extras) == 0:
-        #     print("No se encontraron extras en las filas procesadas.")
-        #else:
-            #print(f"{len(extras)} extras procesados. ({state})")
-            
-        return pd.DataFrame(extras)
+                        print(extras.loc[i]['Atencion Medica'].strip().lower())
+                        if str(extras.loc[i]['Atencion Medica'].strip().lower()) == "si":
+                            existing_tripulante_extra.asistencia_medica = True
+                            self.db_session.commit()
+                        elif str(extras.loc[i]['Atencion Medica'].strip().lower()) == "no":
+                            existing_tripulante_extra.asistencia_medica = False
+                            self.db_session.commit()
+                        
+                    else:
+                        #print("No existe su viaje")
+                        continue
+
+                    self.db_session.commit()
+                except Exception as e:
+                    #print(e)
+                    self.db_session.rollback()  # Revertir cambios parciales en la fila actual
+                    continue  # Continuar con la siguiente fila
+
+            # Confirmar los cambios en la base de datos
+            self.db_session.commit()
+            print("Asignación de extras completada.")
+
+        except Exception as e:
+            self.db_session.rollback()
+            print(e)
+
+    def read_all_rows(self, data, start_row, column_range, column_names):
+        # Convertir column_range en una lista si es necesario
+        if isinstance(column_range, slice):
+            column_range = list(range(column_range.start or 0, column_range.stop or data.shape[1], column_range.step or 1))
+
+        # Leer todas las filas a partir de una fila específica, incluyendo filas con celdas vacías.
+        data_block = []
+        current_row = start_row
+
+        while current_row < len(data):
+            # Leer una fila completa del DataFrame
+            row_data = data.iloc[current_row, column_range]
+
+            # Si la fila está completamente vacía, agregar None
+            if row_data.isnull().all():
+                row_data = [None] * len(column_range)
+            else:
+                row_data = row_data.tolist()  # Convertir a lista si no está vacía
+
+            # Agregar los datos de la fila al bloque
+            data_block.append(row_data)
+            current_row += 1
+
+        # Convertir el bloque de datos en un DataFrame
+        result_df = pd.DataFrame(data_block)
+
+        # Asignar nombres de columnas si se proporcionan
+        if column_names:
+            if len(column_names) != result_df.shape[1]:
+                raise ValueError(f"Length mismatch: Se esperaban {len(column_names)} columnas, pero se detectaron {result_df.shape[1]}")
+            result_df.columns = column_names
+
+        return result_df

@@ -4,8 +4,9 @@ from app.interfaz.programar.roomlist import RoomListScreen
 from app.interfaz.programar.hoteles import HotelScreen
 from app.interfaz.programar.alimentos import AlimentosScreen
 from app.interfaz.liquidar.asistencias import AsistenciasLiquidarScreen
-from app.interfaz.liquidar.transportes import TransportesLiquidarScreen
 from app.interfaz.liquidar.hoteles import HotelesLiquidarScreen
+from app.interfaz.liquidar.transportes import TransportesLiquidarScreen
+from app.interfaz.liquidar.restaurantes import RestaurantesLiquidarScreen
 
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QPushButton, QHBoxLayout, QLabel
 from PyQt6.QtCore import Qt
@@ -186,6 +187,7 @@ class OpcionesLiquidarScreen(QWidget):
             {"texto": "Asistencias", "callback": self.mostrar_asistencias},
             {"texto": "Transportes", "callback": self.mostrar_transportes},
             {"texto": "Hoteles", "callback": self.mostrar_hoteles},
+            {"texto": "Restaurantes", "callback": self.mostrar_restaurantes},
         ]
 
         for boton_info in botones:
@@ -211,6 +213,12 @@ class OpcionesLiquidarScreen(QWidget):
 
     def mostrar_hoteles(self):
         hoteles_screen = HotelesLiquidarScreen(self.main_window)
+        hoteles_screen.opciones_liquidar_index = self.main_window.opciones_liquidar_index
+        self.main_window.stacked_widget.addWidget(hoteles_screen)
+        self.main_window.stacked_widget.setCurrentWidget(hoteles_screen)
+
+    def mostrar_restaurantes(self):
+        hoteles_screen = RestaurantesLiquidarScreen(self.main_window)
         hoteles_screen.opciones_liquidar_index = self.main_window.opciones_liquidar_index
         self.main_window.stacked_widget.addWidget(hoteles_screen)
         self.main_window.stacked_widget.setCurrentWidget(hoteles_screen)
