@@ -342,6 +342,7 @@ class Controller:
         #Procesamiento hoteles ON
         df_on = self.process_hotels(df_on)
         df_on = self.process_transport(df_on)
+        df_on = self.process_restaurants(df_on)
 
         # Limpiar los nombres de las columnas en df_off
         df_off.columns = df_off.columns.str.strip()
@@ -366,6 +367,7 @@ class Controller:
         
         df_off = self.process_hotels(df_off)
         df_off = self.process_transport(df_off)
+        df_off = self.process_restaurants(df_off)
 
         return df_on, df_off
 
@@ -555,8 +557,8 @@ class Controller:
         return df
     
     def process_transport(self, df):
-        print("Columnas actuales en el DataFrame antes de procesar transporte:")
-        print(df.columns.tolist())
+        #print("Columnas actuales en el DataFrame antes de procesar transporte:")
+        #print(df.columns.tolist())
 
         # Detectar columnas de transporte
         transport_columns = [col for col in df.columns if col.startswith('Transporte')]
@@ -615,6 +617,75 @@ class Controller:
                 continue
 
         return df
+
+    def process_restaurants(self, df):
+        # Detectar columnas de restaurantes
+        restaurant_columns = [col for col in df.columns if col.startswith('Restaurante')]
+        print("Columnas detectadas para restaurantes:", restaurant_columns)
+
+        if not restaurant_columns:
+            print("No se encontraron columnas de restaurantes para procesar.")
+            return df
+
+        # Determinar la posición donde insertar las columnas de restaurantes
+        insertion_index = len(df.columns)  # Insertar al final
+        print("Índice de inserción inicial:", insertion_index)
+
+        preferencia_col = None  # Para almacenar "Preferencia" una única vez
+
+        for restaurant_col in sorted(restaurant_columns):  # Asegurar el orden Restaurante 1, Restaurante 2, etc.
+            try:
+                # Guardar la columna en memoria
+                restaurant_data = df[restaurant_col].copy()
+                print(f"Primeros valores de la columna {restaurant_col}:", restaurant_data.head())
+
+                # Validar y descomponer la columna en subcolumnas
+                restaurant_df = restaurant_data.apply(
+                    lambda x: pd.Series({
+                        "Preferencia": x.get("Preferencia") if isinstance(x, dict) else None,
+                        "Servicio Comida": x.get("Servicio Comida") if isinstance(x, dict) else None,
+                        "Fecha Desde": pd.to_datetime(x.get("Fecha desde"), errors='coerce').date() if isinstance(x, dict) and x.get("Fecha desde") else None,
+                        "Fecha Hasta": pd.to_datetime(x.get("Fecha hasta"), errors='coerce').date() if isinstance(x, dict) and x.get("Fecha hasta") else None,
+                        "Restaurante": x.get("Restaurante") if isinstance(x, dict) else None,
+                    })
+                    if isinstance(x, dict) else pd.Series({"Preferencia": None, "Servicio Comida": None, "Fecha Desde": None, "Fecha Hasta": None, "Restaurante": None})
+                )
+                # Extraer y almacenar "Preferencia" una única vez
+                if preferencia_col is None and not restaurant_df["Preferencia"].isna().all():
+                    preferencia_col = restaurant_df["Preferencia"]
+                    df["Prefer. Aliment"] = preferencia_col
+                    print(f"Columna 'Prefer. Aliment' insertada.")
+
+                # Renombrar las subcolumnas restantes
+                restaurant_number = restaurant_columns.index(restaurant_col) + 1
+                restaurant_df = restaurant_df.drop(columns=["Preferencia"])
+                restaurant_df.columns = [
+                    f"Servicio Comida {restaurant_number}",
+                    f"Fecha Desde {restaurant_number}",
+                    f"Fecha Hasta {restaurant_number}",
+                    f"Restaurant {restaurant_number}",
+                ]
+                print(f"Nombres de subcolumnas renombrados para {restaurant_col}:", restaurant_df.columns.tolist())
+
+                # Insertar las nuevas columnas al final
+                for new_col in restaurant_df.columns:
+                    df[new_col] = restaurant_df[new_col]
+
+                # Eliminar la columna original
+                df.drop(columns=[restaurant_col], inplace=True)
+                print(f"Columna {restaurant_col} eliminada del DataFrame.")
+
+                print(f"Columnas insertadas para {restaurant_col}.")
+
+            except Exception as e:
+                print(f"Error al procesar la columna '{restaurant_col}': {e}")
+                print(f"Contenido de la columna:\n{restaurant_data.head() if restaurant_col in df.columns else 'Columna no encontrada.'}")
+                continue
+
+        print("Procesamiento de restaurantes completado.")
+        return df
+
+
 
 
 
