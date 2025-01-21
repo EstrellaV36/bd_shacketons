@@ -222,9 +222,8 @@ class Controller:
             update_progress_callback(90)  # 90% después de procesar restaurantes
 
             ### EXTRAS ###
-            self.extras_on, self.extras_off = self.extras_processor.extras_main(file_path)
-            
-            ### FALTA GUARDARLOS EN LA DB
+            self.extras_processor._create_extra(file_path, self.tripulantes_on, "ON")
+            self.extras_processor._create_extra(file_path, self.tripulantes_off, "OFF")            
             update_progress_callback(95)  # 95% después de procesar extras
 
             ### VIAJES ###
@@ -295,7 +294,7 @@ class Controller:
                     self.hoteles_on,
                     self.transportes_on,
                     self.restaurantes_on,
-                    self.extras_on,
+                    #self.extras_on,
                 ],
                 axis=1,
             )
@@ -312,7 +311,7 @@ class Controller:
                     self.hoteles_off,
                     self.transportes_off,
                     self.restaurantes_off,
-                    self.extras_off,
+                    #self.extras_off,
                 ],
                 axis=1,
             )
@@ -342,6 +341,7 @@ class Controller:
 
         #Procesamiento hoteles ON
         df_on = self.process_hotels(df_on)
+        df_on = self.process_transport(df_on)
 
         # Limpiar los nombres de las columnas en df_off
         df_off.columns = df_off.columns.str.strip()
@@ -364,6 +364,9 @@ class Controller:
         # Reordenar las columnas para asegurar que el orden sea consistente
         self._reorder_columns_off(df_off)
         
+        df_off = self.process_hotels(df_off)
+        df_off = self.process_transport(df_off)
+
         return df_on, df_off
 
     def _process_vuelos(self, df, vuelo_columns, vuelo_prefix, nro_flight_col, date_flight_col, hora_flight_col):
@@ -481,46 +484,55 @@ class Controller:
 
         # Reordenar las columnas y mantener las adicionales al final
         df = df[existing_columns + remaining_columns]
-        return df
 
     def process_hotels(self, df):
-        # Detectar columnas de hoteles 
-        # #FUNCION EN PROCESO AUN NO FUNCIONA BIEN
+        # Detectar columnas de hoteles
         hotel_columns = [col for col in df.columns if col.startswith('Hotel')]
+
+        if not hotel_columns:
+            print("No se encontraron columnas de hoteles para procesar.")
+            return df
 
         category = None  # Variable para almacenar la categoría (se mostrará una sola vez)
 
-        for hotel_col in hotel_columns:
-            try:
-                if hotel_col not in df.columns:
-                    print(f"Error: La columna '{hotel_col}' no existe en el DataFrame.")
-                    continue
+        # Determinar la posición donde insertar las columnas de hoteles
+        insertion_index = df.columns.get_loc("Asistencia 3") + 1 if "Asistencia 3" in df.columns else len(df.columns)
 
-                # Descomponer la columna en subcolumnas
-                hotel_df = df[hotel_col].apply(
+        for hotel_col in sorted(hotel_columns):  # Asegurar el orden de Hotel 1, Hotel 2, Hotel 3
+            try:
+                # Almacenar temporalmente la columna del diccionario
+                if hotel_col not in df.columns:
+                    print(f"La columna '{hotel_col}' no existe en el DataFrame.")
+                    continue
+                
+                # Guardar la columna en memoria
+                hotel_data = df[hotel_col].copy()
+
+                # Eliminar la columna original para evitar conflictos
+                df.drop(columns=[hotel_col], inplace=True)
+
+                # Validar y descomponer la columna en subcolumnas
+                hotel_df = hotel_data.apply(
                     lambda x: pd.Series({
-                        "categoria": x.get("categoria") if isinstance(x, dict) else None,
                         "hotel": x.get("hotel") if isinstance(x, dict) else None,
                         "check_in": pd.to_datetime(x.get("check_in"), errors='coerce').date() if isinstance(x, dict) else None,
                         "check_out": pd.to_datetime(x.get("check_out"), errors='coerce').date() if isinstance(x, dict) else None,
                         "habitacion": x.get("habitacion") if isinstance(x, dict) else None,
                         "nombre_hotel": x.get("nombre_hotel") if isinstance(x, dict) else None,
-                    }) if isinstance(x, dict) else pd.Series({
-                        "categoria": None, "hotel": None, "check_in": None,
-                        "check_out": None, "habitacion": None, "nombre_hotel": None
                     })
+                    if isinstance(x, dict) else pd.Series({"hotel": None, "check_in": None, "check_out": None, "habitacion": None, "nombre_hotel": None})
                 )
 
                 # Extraer y almacenar la categoría una vez
-                if category is None and "categoria" in hotel_df:
-                    category = hotel_df['categoria']
+                if category is None and not hotel_data.isna().all():
+                    category = hotel_data.apply(lambda x: x.get("categoria") if isinstance(x, dict) else None)
                     if "Category" in df.columns:
                         df.drop(columns=["Category"], inplace=True)  # Eliminar columna previa si existe
-                    df.insert(0, "Category", category)  # Insertar la categoría al inicio del DataFrame
+                    df.insert(insertion_index, "Category", category)  # Insertar la categoría
+                    insertion_index += 1  # Mover el índice de inserción
 
-                # Renombrar las subcolumnas (sin incluir "categoria")
+                # Renombrar las subcolumnas
                 hotel_number = hotel_columns.index(hotel_col) + 1
-                hotel_df = hotel_df.drop(columns=["categoria"], errors='ignore')  # Eliminar columna innecesaria
                 hotel_df.columns = [
                     f"Hotel {hotel_number}",
                     f"Check in {hotel_number}",
@@ -529,23 +541,88 @@ class Controller:
                     f"Nombre Hotel {hotel_number}",
                 ]
 
-                # Asegurarnos de eliminar columnas existentes con el mismo nombre
-                for col in hotel_df.columns:
-                    if col in df.columns:
-                        df.drop(columns=[col], inplace=True)
-
                 # Insertar las nuevas columnas en el lugar correcto
-                col_index = df.columns.get_loc(hotel_col)
                 for i, new_col in enumerate(hotel_df.columns):
-                    df.insert(col_index + i + 1, new_col, hotel_df[new_col])
+                    df.insert(insertion_index + i, new_col, hotel_df[new_col])
 
-                # Eliminar la columna original
-                df.drop(columns=[hotel_col], inplace=True)
+                insertion_index += len(hotel_df.columns)  # Actualizar el índice de inserción
+
             except Exception as e:
-                print(f"Error al procesar '{hotel_col}': {e}")
+                print(f"Error al procesar la columna '{hotel_col}': {e}")
+                print(f"Contenido de la columna:\n{hotel_data.head() if hotel_col in df.columns else 'Columna no encontrada.'}")
                 continue
 
         return df
+    
+    def process_transport(self, df):
+        print("Columnas actuales en el DataFrame antes de procesar transporte:")
+        print(df.columns.tolist())
+
+        # Detectar columnas de transporte
+        transport_columns = [col for col in df.columns if col.startswith('Transporte')]
+
+        # Asegurarse de que se generen columnas para Transporte 1, 2, 3 y 4, incluso si faltan
+        required_columns = [f"Transporte {i}" for i in range(1, 5)]
+        for col in required_columns:
+            if col not in transport_columns:
+                df[col] = None  # Crear columnas vacías si no existen
+                transport_columns.append(col)
+
+        # Determinar la posición donde insertar las columnas de transporte
+        insertion_index = df.columns.get_loc("Nombre Hotel 3") + 1 if "Nombre Hotel 3" in df.columns else len(df.columns)
+
+        for transport_col in sorted(transport_columns):  # Asegurar el orden de Transporte 1, Transporte 2, etc.
+            try:
+                # Guardar la columna en memoria
+                transport_data = df[transport_col].copy()
+
+                # Eliminar la columna original para evitar conflictos
+                df.drop(columns=[transport_col], inplace=True)
+
+                # Validar y descomponer la columna en subcolumnas
+                transport_df = transport_data.apply(
+                    lambda x: pd.Series({
+                        "City_in": x.get("City In") if isinstance(x, dict) and x.get("City In") != "Desconocido" else None,
+                        "Place_in": x.get("Place In") if isinstance(x, dict) and x.get("Place In") != "Desconocido" else None,
+                        "City_end": x.get("City End") if isinstance(x, dict) and x.get("City End") != "Desconocido" else None,
+                        "Place_end": x.get("Place End") if isinstance(x, dict) and x.get("Place End") != "Desconocido" else None,
+                        "Date_pickup": pd.to_datetime(x.get("Date Pickup"), errors='coerce').date() if isinstance(x, dict) and x.get("Date Pickup") and x.get("Date Pickup") != "Desconocido" else None,
+                        "Hours_pickup": x.get("Hours Pickup") if isinstance(x, dict) and x.get("Hours Pickup") != "Desconocido" else None,
+                    })
+                    if isinstance(x, dict) else pd.Series({"City_in": None, "Place_in": None, "City_end": None, "Place_end": None, "Date_pickup": None, "Hours_pickup": None})
+                )
+
+                # Renombrar las subcolumnas
+                transport_number = required_columns.index(transport_col) + 1
+                transport_df.columns = [
+                    f"City_in_{transport_number}",
+                    f"Place_in_{transport_number}",
+                    f"City_end_{transport_number}",
+                    f"Place_end_{transport_number}",
+                    f"Date_pickup_{transport_number}",
+                    f"Hours_pickup_{transport_number}",
+                ]
+
+                # Insertar las nuevas columnas en el lugar correcto
+                for i, new_col in enumerate(transport_df.columns):
+                    df.insert(insertion_index + i, new_col, transport_df[new_col])
+
+                insertion_index += len(transport_df.columns)  # Actualizar el índice de inserción
+
+            except Exception as e:
+                print(f"Error al procesar la columna '{transport_col}': {e}")
+                print(f"Contenido de la columna:\n{transport_data.head() if transport_col in df.columns else 'Columna no encontrada.'}")
+                continue
+
+        return df
+
+
+
+
+
+
+
+
 
 
 

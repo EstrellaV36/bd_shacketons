@@ -496,6 +496,19 @@ class AsistenciasLiquidarScreen(QWidget):
                     adjusted_width = max_length + 2
                     sheet.column_dimensions[get_column_letter(col_idx)].width = adjusted_width
 
+                # Calcular y agregar la suma de asistencias
+                if "Assistance" in df.columns:
+                    assistance_sum = df["Assistance"].astype(float).sum()  # Asegurarse de que los valores sean numéricos
+                    last_row = 4 + len(df) + 1  # Fila siguiente a los datos
+                    assistance_col_index = df.columns.get_loc("Assistance") + 1  # Columna de "Assistance" (1-indexada)
+
+                    # Escribir la suma en la fila vacía debajo de la tabla
+                    suma_cell = sheet.cell(row=last_row, column=assistance_col_index)
+                    suma_cell.value = assistance_sum
+                    suma_cell.font = Font(bold=True)  # Estilo en negrita
+                    suma_cell.alignment = Alignment(horizontal="left")  # Alineación a la izquierda
+                    suma_cell.border = border_style
+
             print(f"Archivo Excel guardado correctamente en {output_file}")
         except Exception as e:
             print(f"Error al generar el archivo Excel: {e}")
