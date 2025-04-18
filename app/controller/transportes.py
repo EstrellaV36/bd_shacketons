@@ -9,76 +9,8 @@ from sqlalchemy import func, and_
 from PyQt6.QtWidgets import QMessageBox
 from app.models import Buque, Tripulante, Vuelo, EtaCiudad, Viaje, TripulanteVuelo, Hotel, TripulanteHotel, Restaurante, TripulanteRestaurante, Transporte, TripulanteTransporte, TripulanteAsistencia
 from openpyxl import load_workbook
-from openpyxl.utils import get_column_letter
-
-CITY_AIRPORT_CODES = {
-    'PUQ': "PUNTA ARENAS",
-    'SCL': "SANTIAGO",
-    'PMC': "PUERTO MONTT",
-    'VAP': "VALPARAISO",
-    'ZAL': "VALDIVIA",
-    'WPU': "PUERTO WILLIAMS",
-    'CDG': 'PARIS',
-    'NY': 'NUEVA YORK',
-    'SPU': 'SPLIT',
-    'ZAG': 'ZAGREB',
-    'AMS': 'AMSTERDAM',
-    'EZE': 'BUENOS AIRES',
-    'LUN': "LUSAKA",
-    'DOH': "DOHA",
-    'PUJ': "PUNTA CANA",
-    'LIM': "LIMA",
-    'ANF': "ANTOFAGASTA",
-    'IQQ': "IQUIQUE",
-    'CCP': "CONCEPCIÓN",
-    'LSC': "LA SERENA",
-    'ARI': "ARICA",
-    'IPC': "RAPA NUI",
-    'LAX': "LOS ÁNGELES",
-    'JFK': "NUEVA YORK",
-    'MAD': "MADRID",
-    'LHR': "LONDRES",
-    'DXB': "DUBÁI",
-    'MQP': "MPUMALANGA",
-    'JNB': "JOHANNESBURGO",
-    'LCA': "LÁRNACA",
-    'ZRH': "ZÚRICH",
-    'GOX': "GOLFE DE GARABOGAZ",
-    'TRV': "THIRUVANANTHAPURAM",
-    'PVG': "SHANGHAI",
-    'CGK': "YAKARTA",
-    'BDS': "BRINDISI",
-    'GRU': "SÃO PAULO",
-    'NBO': "NAIROBI",
-    'ICN': "SEÚL",
-    'HRE': "HARARE",
-    'OTP': "BUCARESTANT",
-    'AKL': "AUCKLAND",
-    'FCO': "ROMA",
-    'PTY': "PANAMÁ",
-    'MNL': "MANILA",
-    'IST': "ESTAMBUL",
-    'LED': "SAN PETERSBURGO",
-    'IMF': "IMPHAL",
-    'TDG': "TANDAG",
-    'SUB': "SURABAYA",
-    'MGA': "MANAGUA",
-    'DEL': "DELHI",
-    'GEO': "GEORGETOWN",
-    'DPS': "DENPASAR",
-    'MIA': "MIAMI",
-    'SAL': "SAN SALVADOR",
-    'MRU': "MAURICIO",
-    'JKT': "YAKARTA",
-    'SAP': "SAN PEDRO SULA",
-    'SOC': "SOLO CITY",
-    'MBJ': "MONTEGO BAY",
-    'BOM': "BOMBAY",
-    'GUA': "CIUDAD DE GUATEMALA",
-    'CCU': "CALCUTA",
-    'COK': "COCHIN",
-    'CMB': "COLOMBO"
-}
+from openpyxl.utils import get_column_letter, column_index_from_string
+from app.controller.constants import CITY_AIRPORT_CODES, CITY_TO_AIRPORT_CODES
 
 CITY_TO_AIRPORT_CODES = {city: code for code, city in CITY_AIRPORT_CODES.items()}
 
@@ -415,6 +347,16 @@ def check_and_clean(file_path, transportes_df, state):
         x = indices[columna]
         y = get_excel_column_letter(file_path, sheet_name, f"Date_pickup_{x+1}")
         return y
+    
+    def get_cell_value(file_path, sheet_name, row, column):
+        # Cargar el archivo de Excel
+        workbook = load_workbook(file_path, data_only=True)  # `data_only=True` para obtener el valor calculado en celdas con fórmulas
+        sheet = workbook[sheet_name]
+
+        # Obtener el valor de la celda
+        cell_value = sheet.cell(row=row, column=column).value
+
+        return cell_value
 
     def check_date():        
         df = pd.DataFrame(transportes_df)
@@ -432,10 +374,13 @@ def check_and_clean(file_path, transportes_df, state):
 
                             if not is_valid_date(value):
                                 print(f"NE | Registro {idx} en '{columna}': Fecha es {value}")
+                                sheet_name = state
                                 column_letter = get_column(df, columna)
+                                column_number = column_index_from_string(column_letter)
+                                cell_value = get_cell_value(file_path, sheet_name, 1, column_number)
                                 errors_to_check.append([idx, columna])
                                 errors.append([idx, column_letter])
-                                errors_message.append(f"Fecha inexistente [{idx+2},{column_letter}]")
+                                errors_message.append(f"Fecha inexistente en {cell_value} [{idx+2},{column_letter}]")
                     else:
                         #print(f"{idx} | {registro.get('Date Pickup')}")
                         value = registro.get('Date Pickup')
@@ -443,17 +388,23 @@ def check_and_clean(file_path, transportes_df, state):
                         
                         if registro.get('Date Pickup') == None:
                             print(f"ER | Registro {idx+2} en '{columna}': Fecha está vacía")
+                            sheet_name = state
                             column_letter = get_column(df, columna)
+                            column_number = column_index_from_string(column_letter)
+                            cell_value = get_cell_value(file_path, sheet_name, 1, column_number)
                             errors_to_check.append([idx, columna])
                             errors.append([idx, column_letter])
-                            errors_message.append(f"Fecha faltante [{idx+2},{column_letter}]")
+                            errors_message.append(f"Fecha faltante en {cell_value} [{idx+2},{column_letter}]")
                         else:
                             if not is_valid_date(value):
                                 print(f"NE | Registro {idx+2} en '{columna}': Fecha es {registro.get('Date Pickup')}")
+                                sheet_name = state
                                 column_letter = get_column(df, columna)
+                                column_number = column_index_from_string(column_letter)
+                                cell_value = get_cell_value(file_path, sheet_name, 1, column_number)
                                 errors_to_check.append([idx, columna])
                                 errors.append([idx, column_letter])
-                                errors_message.append(f"Fecha inexistente [{idx+2},{column_letter}]")
+                                errors_message.append(f"Fecha inexistente en {columna} [{idx+2},{column_letter}]")
                 else:
                     if registro.get('City In').lower() == 'no':
                         continue
