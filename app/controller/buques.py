@@ -6,7 +6,6 @@ from app.models import Buque
 from openpyxl import load_workbook
 from openpyxl.utils import get_column_letter
 
-
 class Buques:
     def __init__(self, db_session: Session):
         self.db_session = db_session

@@ -11,7 +11,7 @@ from app.interfaz.pandas_model import PandasModel
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.sql import case
 from app.database import get_db_session
-from app.models import Buque, EtaCiudad, Tripulante, Viaje, Vuelo, TripulanteVuelo, Restaurante, TripulanteRestaurante, Transporte, TripulanteTransporte, Hotel, TripulanteHotel, Buque, TripulanteAsistencia
+from app.models import Buque, EtaCiudad, Tripulante, Viaje, Vuelo, TripulanteVuelo, Restaurante, TripulanteRestaurante, Transporte, TripulanteTransporte, Hotel, TripulanteHotel, Buque, TripulanteAsistencia, Extra
 from PyQt6.QtCore import QRunnable, pyqtSignal, QObject
 from PyQt6.QtCore import QAbstractTableModel, QThreadPool
 from openpyxl.styles import Font, PatternFill, Border, Side, Alignment
@@ -1077,12 +1077,14 @@ class VisualizacionDatosScreen(QWidget):
         extra_data = session.query(
             Viaje.tripulante_id,
             Viaje.equipaje_perdido,
-            Viaje.asistencia_medica
+            Viaje.asistencia_medica,
+            #Extra.comments
         ).join(Tripulante, Viaje.tripulante_id == Tripulante.tripulante_id) \
         .filter(Viaje.tripulante_id.in_(tripulantes)) \
         .order_by(Viaje.tripulante_id).all()
 
         #print(f"Datos de restaurantes recuperados: {restaurant_data}")  # Depuración
+        #.join(Tripulante, Extra.tripulante_id == Tripulante.tripulante_id) \
 
         # Inicializar el diccionario para almacenar datos por tripulante
         formatted_extra_data = {tripulante_id: {
@@ -1091,6 +1093,7 @@ class VisualizacionDatosScreen(QWidget):
             "Atencion Medica": None,
             "Fecha": None,
             "Ciudad": None,
+            "Comentarios": None
         } for tripulante_id in tripulantes}
 
         for extra in extra_data:
@@ -1103,6 +1106,7 @@ class VisualizacionDatosScreen(QWidget):
 
             formatted_extra_data[tripulante_id]["Atencion Medica"] = "Si" if extra.asistencia_medica else "No"
             formatted_extra_data[tripulante_id]["Fecha"] = None
+            formatted_extra_data[tripulante_id]["Ciudad"] = None
             formatted_extra_data[tripulante_id]["Ciudad"] = None
 
             # LAS DE ABAJO AUN NO SE GUARDAN NI SE DONDE OBTENERLAS // CAMBIAR ? MÁS ADELANTE

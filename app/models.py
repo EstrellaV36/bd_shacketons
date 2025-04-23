@@ -46,6 +46,7 @@ class Tripulante(Base):
     tripulante_restaurantes: Mapped[list["TripulanteRestaurante"]] = relationship("TripulanteRestaurante", back_populates="tripulante")
     viajes: Mapped[list["Viaje"]] = relationship(back_populates="tripulante")
     asistencia: Mapped["TripulanteAsistencia"] = relationship("TripulanteAsistencia", back_populates="tripulante")
+    extras: Mapped["Extra"] = relationship(back_populates="tripulante")
 
     def __repr__(self):
         return f"Tripulante(id={self.tripulante_id}, nombre={self.nombre}, apellido={self.apellido}, buque={self.buque_id})"
@@ -139,6 +140,17 @@ class Viaje(Base):
 
     def __repr__(self):
         return f"Viaje(id={self.viaje_id}, estado={self.estado}, activo={self.activo})"
+    
+class Extra(Base):
+    __tablename__ = "extras"
+
+    extra_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    comments: Mapped[str] = mapped_column(String, nullable=True)  # Comentarios
+
+    tripulante_id: Mapped[int] = mapped_column(ForeignKey("tripulantes.tripulante_id"))
+
+    #Relaciones para extra
+    tripulante: Mapped["Tripulante"] = relationship(back_populates="extras")
     
 class EtaCiudad(Base):
     __tablename__ = "etas_ciudades"

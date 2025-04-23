@@ -10,133 +10,8 @@ from sqlalchemy import func, and_
 from PyQt6.QtWidgets import QMessageBox
 from app.models import Buque, Tripulante, Vuelo, EtaCiudad, Viaje, TripulanteVuelo, Hotel, TripulanteHotel, Restaurante, TripulanteRestaurante, Transporte, TripulanteTransporte, TripulanteAsistencia
 from openpyxl import load_workbook
-from openpyxl.utils import get_column_letter, column_index_from_string
-
-CITY_AIRPORT_CODES = {
-    'PUQ': "PUNTA ARENAS",
-    'SCL': "SANTIAGO",
-    'PMC': "PUERTO MONTT",
-    'VAP': "VALPARAISO",
-    'ZAL': "VALDIVIA",
-    'WPU': "PUERTO WILLIAMS",
-    'CDG': 'PARIS',  # París, Francia
-    'NY': 'NUEVA YORK',  # Nueva York, EE. UU.
-    'SPU': 'SPLIT',  # Split, Croacia
-    'ZAG': 'ZAGREB',  # Zagreb, Croacia
-    'AMS': 'AMSTERDAM',  # Ámsterdam, Países Bajos
-    'EZE': 'BUENOS AIRES',  # Buenos Aires, Argentina
-    'LUN': "LUSAKA",  # Lusaka, Zambia
-    'DOH': "DOHA",  # Doha, Catar
-    'PUJ': "PUNTA CANA",  # Punta Cana, República Dominicana
-    'LIM': "LIMA",  # Lima, Perú
-    'ANF': "ANTOFAGASTA",  # Antofagasta, Chile
-    'IQQ': "IQUIQUE",  # Iquique, Chile
-    'CCP': "CONCEPCIÓN",  # Concepción, Chile
-    'LSC': "LA SERENA",  # La Serena, Chile
-    'ARI': "ARICA",  # Arica, Chile
-    'IPC': "RAPA NUI",  # Rapa Nui, Chile
-    'LAX': "LOS ÁNGELES",  # Los Ángeles, EE. UU.
-    'JFK': "NUEVA YORK",  # Nueva York, EE. UU.
-    'MAD': "MADRID",  # Madrid, España
-    'LHR': "LONDRES",  # Londres, Reino Unido
-    'DXB': "DUBÁI",  # Dubái, Emiratos Árabes Unidos
-    'MQP': "MPUMALANGA",  # Mpumalanga, Sudáfrica
-    'JNB': "JOHANNESBURGO",  # Johannesburgo, Sudáfrica
-    'FRA': 'FRANKFURT',  # Frankfurt, Alemania
-    'LCA': "LÁRNACA",  # Lárnaca, Chipre
-    'ZRH': "ZÚRICH",  # Zúrich, Suiza
-    'GOX': "GOLFE DE GARABOGAZ",  # Golfe de Garabogaz, Turkmenistán
-    'TRV': "THIRUVANANTHAPURAM",  # Thiruvananthapuram, India
-    'PVG': "SHANGHAI",  # Shanghái, China
-    'CGK': "YAKARTA",  # Yakarta, Indonesia
-    'BDS': "BRINDISI",  # Brindisi, Italia
-    'GRU': "SÃO PAULO",  # São Paulo, Brasil
-    'NBO': "NAIROBI",  # Nairobi, Kenia
-    'ICN': "SEÚL",  # Seúl, Corea del Sur
-    'HRE': "HARARE",  # Harare, Zimbabue
-    'OTP': "BUCARESTANT",  # Bucarest, Rumanía
-    'AKL': "AUCKLAND",  # Auckland, Nueva Zelanda
-    'FCO': "ROMA",  # Roma, Italia
-    'PTY': "PANAMÁ",  # Ciudad de Panamá, Panamá
-    'MNL': "MANILA",  # Manila, Filipinas
-    'IST': "ESTAMBUL",  # Estambul, Turquía
-    'LED': "SAN PETERSBURGO",  # San Petersburgo, Rusia
-    'IMF': "IMPHAL",  # Imphal, India
-    'TDG': "TANDAG",  # Tandag, Filipinas
-    'SUB': "SURABAYA",  # Surabaya, Indonesia
-    'MGA': "MANAGUA",  # Managua, Nicaragua
-    'DEL': "DELHI",  # Delhi, India
-    'GEO': "GEORGETOWN",  # Georgetown, Guyana
-    'DPS': "DENPASAR",  # Denpasar, Indonesia
-    'MIA': "MIAMI",  # Miami, EE. UU.
-    'SAL': "SAN SALVADOR",  # San Salvador, El Salvador
-    'MRU': "MAURICIO",  # Mauricio, Isla de Mauricio
-    'JKT': "YAKARTA",  # Yakarta, Indonesia
-    'SAP': "SAN PEDRO SULA",  # San Pedro Sula, Honduras
-    'SOC': "SOLO CITY",  # Solo City, Indonesia
-    'MBJ': "MONTEGO BAY",  # Montego Bay, Jamaica
-    'BOM': "BOMBAY",  # Bombay, India
-    'GUA': "CIUDAD DE GUATEMALA",  # Ciudad de Guatemala, Guatemala
-    'CCU': "CALCUTA",  # Calcuta, India
-    'COK': "COCHIN",  # Cochin, India
-    'CMB': "COLOMBO",  # Colombo, Sri Lanka
-    'LHE': "LAHORE",  # Lahore, Pakistán
-    'HKG': "HONG KONG",  # Hong Kong, China
-    'KHI': "KARACHI",  # Karachi, Pakistán
-    'ZHA': "ZHANGJIAJIE",  # Zhangjiajie, China
-    'SFO': "SAN FRANCISCO",  # San Francisco, EE. UU.
-    'TBS': "TBILISI",  # Tbilisi, Georgia
-    'GVA': "GINEBRA",  # Ginebra, Suiza
-    'IAH': "HOUSTON",  # Houston, EE. UU.
-    'IKF': "IKARIA",  # Ikaria, Grecia
-    'LYR': "LONGYEARBYEN",  # Longyearbyen, Noruega
-    'OSL': "OSLO",  # Oslo, Noruega
-    'STO': "ESTOCOLMO",  # Estocolmo, Suecia
-    'VIE': "VIENA",  # Viena, Austria
-    'SHA': "SHANGHAI",  # Shanghái, China
-    'KIX': "OSAKA",  # Osaka, Japón
-    'CAN': "GUANGZHOU",  # Cantón, China
-    'KTM': "KATHMANDU",  # Katmandú, Nepal
-    'BKK': "BANGKOK",  # Bangkok, Tailandia
-    'MAN': "MANCHESTER",  # Manchester, Reino Unido
-    'SGN': "CIUDAD HO CHI MINH",  # Ciudad Ho Chi Minh, Vietnam
-    'TPE': "TAIPEI",  # Taipéi, Taiwán
-    'YVR': "VANCOUVER",  # Vancouver, Canadá
-    'VCE': "VENECIA",  # Venecia, Italia
-    'BEY': "BEIRUT",  # Beirut, Líbano
-    'GMP': "SEOUL",  # Seúl, Corea del Sur
-    'PEK': "PEKÍN",  # Pekín, China
-    'CAG': "CAGLIARI",  # Cagliari, Italia
-    'BCN': "BARCELONA",  # Barcelona, España
-    'KIS': "KISUMU",  # Kisumu, Kenia
-    'ORD': "CHICAGO O'HARE",  # Chicago O'Hare, EE. UU.
-    'MEX': "CIUDAD DE MÉXICO",  # Ciudad de México, México
-    'YUL': "MONTREAL",  # Montreal, Canadá
-    'SEA': "SEATTLE",  # Seattle, EE. UU.
-    'MRS': "MARSILLA",  # Marsella, Francia
-    'NCE': "NIZA",  # Niza, Francia
-    'MEL': "MELBOURNE",  # Melbourne, Australia
-    'CPT': "CIUDAD DEL CABO",  # Ciudad del Cabo, Sudáfrica
-    'FMO': "MÜNSTER/OSNABRÜCK",  # Münster/Osnabrück, Alemania
-    'MUC': "MÚNICH",  # Múnich, Alemania
-    'FLN': "FLORIANÓPOLIS",  # Florianópolis, Brasil
-    'GOA': "GOA",  # Goa, India
-    'WLG': "WELLINGTON",  # Wellington, Nueva Zelanda
-    'CPH': "COPENHAGUE",  # Copenhague, Dinamarca
-    'VLC': "VALENCIA",  # Valencia, España
-    'NRT': "NARITA",  # Narita, Tokio, Japón
-    'IKF': "IKARIA",  # Ikaria, Grecia
-    'JFK': "NUEVA YORK",  # Nueva York, EE. UU.
-    'ADD': "ADDIS ABEBA",  # Addis Abeba, Etiopía
-    'XIY': "XIAN",  # Xi'an, China
-    'SYD': "SÍDNEY",  # Sídney, Australia
-    'BJL': "BANJUL",  # Banjul, Gambia
-    'BRU': "BRUSELAS",  # Bruselas, Bélgica
-    'DFW': "DALLAS",  # Dallas, EE. UU.
-    'PMO': "PALERMO",  # Palermo, Italia
-    'VFA': "VICTORIA FALLS",  # Victoria Falls, Zimbabue
-    'BRE': "BREMEN",  # Bremen, Alemania
-}
+from openpyxl.utils import get_column_letter
+from app.controller.constants import CITY_AIRPORT_CODES, CITY_TO_AIRPORT_CODES
 
 class Hoteles:
     def __init__(self, db_session: Session):
@@ -168,9 +43,13 @@ class Hoteles:
             if hotel_df.empty or tripulantes_df.empty:
                 #print("No hay hoteles o tripulantes para procesar.")
                 return
+            
+            #print("AÑA 0")
 
             # Extraer información de hoteles
             hoteles_info = self._extraer_hoteles_fechas(hotel_df)
+
+            #print("AÑA 1")
 
             # Asignar hoteles a tripulantes
             for i, tripulante_data in tripulantes_df.iterrows():
@@ -197,6 +76,8 @@ class Hoteles:
                     if not valid_entries:  # Si no hay entradas válidas, continuar
                         continue
 
+                    #print("AÑA 2")
+
                     for hotel_info in hotel_entries:  # Iterar sobre todos los hoteles asignados al tripulante
                         #print(hotel_info)
                         # if pd.isna(hotel_info['hotel']) or pd.isna(hotel_info['categoria']) or str(hotel_info['hotel']).lower() == 'no':
@@ -221,6 +102,8 @@ class Hoteles:
                             func.lower(Hotel.nombre) == hotel_nombre_normalizado,
                             func.lower(Hotel.ciudad) == hotel_ciudad_normalizado
                         ).first()
+
+                        #print("AÑA 3")
 
                         if not existing_hotel:
                             # Crear nuevo hotel si no existe
@@ -527,16 +410,6 @@ def check_and_clean(file_path, hoteles_df, state):
         y = get_excel_column_letter(file_path, sheet_name, f"{column} {x+1}")
         return y
     
-    def get_cell_value(file_path, sheet_name, row, column):
-        # Cargar el archivo de Excel
-        workbook = load_workbook(file_path, data_only=True)  # `data_only=True` para obtener el valor calculado en celdas con fórmulas
-        sheet = workbook[sheet_name]
-
-        # Obtener el valor de la celda
-        cell_value = sheet.cell(row=row, column=column).value
-
-        return cell_value
-    
     def check_date(df, registro, idx, columna, column, x):
         #print(registro.get(f'{column}'))
         #print(registro)
@@ -597,13 +470,10 @@ def check_and_clean(file_path, hoteles_df, state):
                         continue
                     else:
                         if pd.isna(registro.get('hotel')):
-                            sheet_name = state
                             column_letter = get_column(df, columna, 'Hotel')
-                            column_number = column_index_from_string(column_letter)
-                            cell_value = get_cell_value(file_path, sheet_name, 1, column_number)
                             errors_to_check.append([idx+2, columna])
                             errors.append([idx+2, column_letter])
-                            errors_message.append(f"Dato faltante en {cell_value} [{idx+2},{column_letter}]")
+                            errors_message.append(f"Dato faltante [{idx+2},{column_letter}]")
                             print(f"{idx+2},{column_letter} {state} {columna} | Error hotel vacío")         
                             continue
                         else:
@@ -612,33 +482,24 @@ def check_and_clean(file_path, hoteles_df, state):
                                 if hotel.lower() not in ('no', 'tbc'):
                                     hotel_parts = hotel.split()
                                     if len(hotel_parts) < 2:
-                                        sheet_name = state
                                         column_letter = get_column(df, columna, 'Hotel')
-                                        column_number = column_index_from_string(column_letter)
-                                        cell_value = get_cell_value(file_path, sheet_name, 1, column_number)
                                         errors_to_check.append([idx, columna])
                                         errors.append([idx, column_letter])
-                                        errors_message.append(f"Formato incorrecto  en {cell_value} [{idx+2},{column_letter}]")
+                                        errors_message.append(f"Formato incorrecto [{idx+2},{column_letter}]")
                                         print(f"{idx+2},{column_letter} | Formato incorrecto en el nombre del hotel: '{hotel}'")
                                     else:
                                         if hotel_parts[1].upper() in CITY_AIRPORT_CODES:
                                             if normalize_string(hotel_parts[0]) not in ['hotel', 'autogestion']:
-                                                sheet_name = state
                                                 column_letter = get_column(df, columna, 'Hotel')
-                                                column_number = column_index_from_string(column_letter)
-                                                cell_value = get_cell_value(file_path, sheet_name, 1, column_number)
                                                 errors_to_check.append([idx, columna])
                                                 errors.append([idx, column_letter])   
-                                                errors_message.append(f"Debe comenzar con 'hotel' o 'autogestión' en {cell_value} [{idx+2},{column_letter}]")
+                                                errors_message.append(f"Debe comenzar con 'hotel' o 'autogestión' [{idx+2},{column_letter}]")
                                                 print(f"{idx+2},{column_letter} | La primera palabra debe ser 'hotel' o 'autogestión': '{hotel}'")     
                                         else:
-                                            sheet_name = state
                                             column_letter = get_column(df, columna, 'Hotel')
-                                            column_number = column_index_from_string(column_letter)
-                                            cell_value = get_cell_value(file_path, sheet_name, 1, column_number)
                                             errors_to_check.append([idx, columna])
                                             errors.append([idx, column_letter])
-                                            errors_message.append(f"Ciudad no válida en {cell_value} [{idx+2},{column_letter}]")
+                                            errors_message.append(f"Ciudad no válida [{idx+2},{column_letter}]")
                                             print(f"{idx+2},{column_letter} | La segunda palabra debe ser una ciudad válida '{hotel}'")
                                 else:
                                     if hotel.lower() in ('no', 'tbc'):
@@ -646,45 +507,33 @@ def check_and_clean(file_path, hoteles_df, state):
                                     print(f"{idx+2},{column_letter} | El valor de 'hotel' debe ser una cadena, pero se recibió: {type(hotel).__name__}")
 
                             if pd.isna(registro.get('check_in')):
-                                sheet_name = state
                                 column_letter = get_column(df, columna, 'Check in')
-                                column_number = column_index_from_string(column_letter)
-                                cell_value = get_cell_value(file_path, sheet_name, 1, column_number)
                                 errors_to_check.append([idx+2, columna])
                                 errors.append([idx+2, column_letter])
                                 skip = True
-                                errors_message.append(f"Check in faltante en {cell_value} [{idx+2},{column_letter}]")
+                                errors_message.append(f"Check in faltante [{idx+2},{column_letter}]")
                                 print(f"{idx+2},{column_letter} {state} {columna} | Error check in vacío")
                             else:
-                                sheet_name = state
                                 column_letter = check_date(df, registro, idx, columna, 'check_in', 'Check in')
                                 if column_letter != True:
-                                    column_number = column_index_from_string(column_letter)
-                                    cell_value = get_cell_value(file_path, sheet_name, 1, column_number)
                                     errors_to_check.append([idx+2, columna])
                                     errors.append([idx+2, column_letter])
-                                    errors_message.append(f"Formato de check in no válido en {columna} [{idx+2},{column_letter}]")
+                                    errors_message.append(f"Formato de check in no válido [{idx+2},{column_letter}]")
                                     print(f"{idx+2},{column_letter} {state} {columna} | Error en formato de check in")
 
                             if pd.isna(registro.get('check_out')):
-                                sheet_name = state
                                 column_letter = get_column(df, columna, 'Check out')
-                                column_number = column_index_from_string(column_letter)
-                                cell_value = get_cell_value(file_path, sheet_name, 1, column_number)
                                 errors_to_check.append([idx+2, columna])
                                 errors.append([idx+2, column_letter])
-                                errors_message.append(f"Check out faltante en {cell_value} [{idx+2},{column_letter}]")
+                                errors_message.append(f"Check out faltante [{idx+2},{column_letter}]")
                                 skip = True
                                 print(f"{idx+2},{column_letter} {state} {columna} | Error check out vacío")
                             else:
-                                sheet_name = state
                                 column_letter = check_date(df, registro, idx, columna, 'check_out', 'Check out')
                                 if column_letter != True:
-                                    column_number = column_index_from_string(column_letter)
-                                    cell_value = get_cell_value(file_path, sheet_name, 1, column_number)
                                     errors_to_check.append([idx+2, columna])
                                     errors.append([idx+2, column_letter])
-                                    errors_message.append(f"Formato de check out no válido en {cell_value} [{idx+2},{column_letter}]")
+                                    errors_message.append(f"Formato de check out no válido [{idx+2},{column_letter}]")
                                     print(f"{idx+2},{column_letter} {state} {columna} | Error en formato de check out")
 
                             if not pd.isna(registro.get('habitacion')):
@@ -692,43 +541,31 @@ def check_and_clean(file_path, hoteles_df, state):
                                 if room.lower() not in ('no', 'tbc'):
                                     room_parts = room.split()
                                     if len(room_parts) > 2:
-                                        sheet_name = state
                                         column_letter = get_column(df, columna, 'Rooms')
-                                        column_number = column_index_from_string(column_letter)
-                                        cell_value = get_cell_value(file_path, sheet_name, 1, column_number)
                                         errors_to_check.append([idx, columna])
                                         errors.append([idx, column_letter])
-                                        errors_message.append(f"Formato incorrecto en {cell_value} [{idx+2},{column_letter}]")
+                                        errors_message.append(f"Formato incorrecto [{idx+2},{column_letter}]")
                                         print(f"{idx+2},{column_letter} | Formato incorrecto en el nombre del room: '{room}'")
                                     else:
                                         # Verificar que la primera palabra sea 'room' o 'autogestión'
                                         if normalize_string(room_parts[0]) not in ['single', 'doble']:
-                                            sheet_name = state
                                             column_letter = get_column(df, columna, 'Rooms')
-                                            column_number = column_index_from_string(column_letter)
-                                            cell_value = get_cell_value(file_path, sheet_name, 1, column_number)
                                             errors_to_check.append([idx, columna])
                                             errors.append([idx, column_letter])
-                                            errors_message.append(f"Debe comenzar con 'single' o 'doble' en {cell_value} [{idx+2},{column_letter}]")
+                                            errors_message.append(f"Debe comenzar con 'single' o 'doble' [{idx+2},{column_letter}]")
                                             print(f"{idx+2},{column_letter} | La primera palabra debe ser 'single' o 'doble': '{room}'")
                             else:
-                                sheet_name = state
                                 column_letter = get_column(df, columna, 'Rooms')
-                                column_number = column_index_from_string(column_letter)
-                                cell_value = get_cell_value(file_path, sheet_name, 1, column_number)
                                 errors_to_check.append([idx, columna])
                                 errors.append([idx, column_letter])
-                                errors_message.append(f"Room faltante en {cell_value} [{idx+2},{column_letter}]")
+                                errors_message.append(f"Room faltante [{idx+2},{column_letter}]")
                                 print(f"{idx+2},{column_letter} {columna} {state} | El valor de 'room' está vacío")
 
                             if pd.isna(registro.get('nombre_hotel')):
-                                sheet_name = state
                                 column_letter = get_column(df, columna, 'Nombre Hotel')
-                                column_number = column_index_from_string(column_letter)
-                                cell_value = get_cell_value(file_path, sheet_name, 1, column_number)
                                 errors_to_check.append([idx, columna])
                                 errors.append([idx, column_letter])
-                                errors_message.append(f"Nombre de hotel faltante en {cell_value} [{idx+2},{column_letter}]")
+                                errors_message.append(f"Nombre de hotel faltante [{idx+2},{column_letter}]")
                                 print(f"{idx+2},{column_letter} {columna} {state} | El valor de 'nombre_hotel' está vacío")
 
                             if skip:
@@ -736,13 +573,9 @@ def check_and_clean(file_path, hoteles_df, state):
 
                 else:
                     #print(f"Error en {registro}") ### MENSAJE DE ERROR PARA CUANDO NO TIENE LA CATEGORIA
-                    sheet_name = state
                     column_letter = get_column(df, columna, 'Categoria')
-                    column_number = column_index_from_string(column_letter)
-                    cell_value = get_cell_value(file_path, sheet_name, 1, column_number)
                     errors_to_check.append([idx, columna])
                     errors.append([idx, column_letter])
-                    errors_message.append(f"Falta la categoría en {cell_value} [{idx+2},{column_letter}]")
                     print(f"{idx+2},{column_letter} {state} {columna} | Error falta categoría") ### MENSAJE DE ERROR PARA CUANDO NO TIENE LA CATEGORIA
                     continue
 

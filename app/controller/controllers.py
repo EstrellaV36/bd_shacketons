@@ -9,135 +9,8 @@ from app.controller.transportes import Transportes
 from app.controller.restaurantes import Restaurantes
 from app.controller.extras import Extras
 from app.controller.viajes import Viajes
+from app.controller.constants import CITY_AIRPORT_CODES, CITY_TO_AIRPORT_CODES
 import pandas as pd
-
-CITY_AIRPORT_CODES = {
-    'PUQ': "PUNTA ARENAS",
-    'SCL': "SANTIAGO",
-    'PMC': "PUERTO MONTT",
-    'VAP': "VALPARAISO",
-    'ZAL': "VALDIVIA",
-    'WPU': "PUERTO WILLIAMS",
-    'CDG': 'PARIS',  # París, Francia
-    'NY': 'NUEVA YORK',  # Nueva York, EE. UU.
-    'SPU': 'SPLIT',  # Split, Croacia
-    'ZAG': 'ZAGREB',  # Zagreb, Croacia
-    'AMS': 'AMSTERDAM',  # Ámsterdam, Países Bajos
-    'EZE': 'BUENOS AIRES',  # Buenos Aires, Argentina
-    'LUN': "LUSAKA",  # Lusaka, Zambia
-    'DOH': "DOHA",  # Doha, Catar
-    'PUJ': "PUNTA CANA",  # Punta Cana, República Dominicana
-    'LIM': "LIMA",  # Lima, Perú
-    'ANF': "ANTOFAGASTA",  # Antofagasta, Chile
-    'IQQ': "IQUIQUE",  # Iquique, Chile
-    'CCP': "CONCEPCIÓN",  # Concepción, Chile
-    'LSC': "LA SERENA",  # La Serena, Chile
-    'ARI': "ARICA",  # Arica, Chile
-    'IPC': "RAPA NUI",  # Rapa Nui, Chile
-    'LAX': "LOS ÁNGELES",  # Los Ángeles, EE. UU.
-    'JFK': "NUEVA YORK",  # Nueva York, EE. UU.
-    'MAD': "MADRID",  # Madrid, España
-    'LHR': "LONDRES",  # Londres, Reino Unido
-    'DXB': "DUBÁI",  # Dubái, Emiratos Árabes Unidos
-    'MQP': "MPUMALANGA",  # Mpumalanga, Sudáfrica
-    'JNB': "JOHANNESBURGO",  # Johannesburgo, Sudáfrica
-    'FRA': 'FRANKFURT',  # Frankfurt, Alemania
-    'LCA': "LÁRNACA",  # Lárnaca, Chipre
-    'ZRH': "ZÚRICH",  # Zúrich, Suiza
-    'GOX': "GOLFE DE GARABOGAZ",  # Golfe de Garabogaz, Turkmenistán
-    'TRV': "THIRUVANANTHAPURAM",  # Thiruvananthapuram, India
-    'PVG': "SHANGHAI",  # Shanghái, China
-    'CGK': "YAKARTA",  # Yakarta, Indonesia
-    'BDS': "BRINDISI",  # Brindisi, Italia
-    'GRU': "SÃO PAULO",  # São Paulo, Brasil
-    'NBO': "NAIROBI",  # Nairobi, Kenia
-    'ICN': "SEÚL",  # Seúl, Corea del Sur
-    'HRE': "HARARE",  # Harare, Zimbabue
-    'OTP': "BUCARESTANT",  # Bucarest, Rumanía
-    'AKL': "AUCKLAND",  # Auckland, Nueva Zelanda
-    'FCO': "ROMA",  # Roma, Italia
-    'PTY': "PANAMÁ",  # Ciudad de Panamá, Panamá
-    'MNL': "MANILA",  # Manila, Filipinas
-    'IST': "ESTAMBUL",  # Estambul, Turquía
-    'LED': "SAN PETERSBURGO",  # San Petersburgo, Rusia
-    'IMF': "IMPHAL",  # Imphal, India
-    'TDG': "TANDAG",  # Tandag, Filipinas
-    'SUB': "SURABAYA",  # Surabaya, Indonesia
-    'MGA': "MANAGUA",  # Managua, Nicaragua
-    'DEL': "DELHI",  # Delhi, India
-    'GEO': "GEORGETOWN",  # Georgetown, Guyana
-    'DPS': "DENPASAR",  # Denpasar, Indonesia
-    'MIA': "MIAMI",  # Miami, EE. UU.
-    'SAL': "SAN SALVADOR",  # San Salvador, El Salvador
-    'MRU': "MAURICIO",  # Mauricio, Isla de Mauricio
-    'JKT': "YAKARTA",  # Yakarta, Indonesia
-    'SAP': "SAN PEDRO SULA",  # San Pedro Sula, Honduras
-    'SOC': "SOLO CITY",  # Solo City, Indonesia
-    'MBJ': "MONTEGO BAY",  # Montego Bay, Jamaica
-    'BOM': "BOMBAY",  # Bombay, India
-    'GUA': "CIUDAD DE GUATEMALA",  # Ciudad de Guatemala, Guatemala
-    'CCU': "CALCUTA",  # Calcuta, India
-    'COK': "COCHIN",  # Cochin, India
-    'CMB': "COLOMBO",  # Colombo, Sri Lanka
-    'LHE': "LAHORE",  # Lahore, Pakistán
-    'HKG': "HONG KONG",  # Hong Kong, China
-    'KHI': "KARACHI",  # Karachi, Pakistán
-    'ZHA': "ZHANGJIAJIE",  # Zhangjiajie, China
-    'SFO': "SAN FRANCISCO",  # San Francisco, EE. UU.
-    'TBS': "TBILISI",  # Tbilisi, Georgia
-    'GVA': "GINEBRA",  # Ginebra, Suiza
-    'IAH': "HOUSTON",  # Houston, EE. UU.
-    'IKF': "IKARIA",  # Ikaria, Grecia
-    'LYR': "LONGYEARBYEN",  # Longyearbyen, Noruega
-    'OSL': "OSLO",  # Oslo, Noruega
-    'STO': "ESTOCOLMO",  # Estocolmo, Suecia
-    'VIE': "VIENA",  # Viena, Austria
-    'SHA': "SHANGHAI",  # Shanghái, China
-    'KIX': "OSAKA",  # Osaka, Japón
-    'CAN': "GUANGZHOU",  # Cantón, China
-    'KTM': "KATHMANDU",  # Katmandú, Nepal
-    'BKK': "BANGKOK",  # Bangkok, Tailandia
-    'MAN': "MANCHESTER",  # Manchester, Reino Unido
-    'SGN': "CIUDAD HO CHI MINH",  # Ciudad Ho Chi Minh, Vietnam
-    'TPE': "TAIPEI",  # Taipéi, Taiwán
-    'YVR': "VANCOUVER",  # Vancouver, Canadá
-    'VCE': "VENECIA",  # Venecia, Italia
-    'BEY': "BEIRUT",  # Beirut, Líbano
-    'GMP': "SEOUL",  # Seúl, Corea del Sur
-    'PEK': "PEKÍN",  # Pekín, China
-    'CAG': "CAGLIARI",  # Cagliari, Italia
-    'BCN': "BARCELONA",  # Barcelona, España
-    'KIS': "KISUMU",  # Kisumu, Kenia
-    'ORD': "CHICAGO O'HARE",  # Chicago O'Hare, EE. UU.
-    'MEX': "CIUDAD DE MÉXICO",  # Ciudad de México, México
-    'YUL': "MONTREAL",  # Montreal, Canadá
-    'SEA': "SEATTLE",  # Seattle, EE. UU.
-    'MRS': "MARSILLA",  # Marsella, Francia
-    'NCE': "NIZA",  # Niza, Francia
-    'MEL': "MELBOURNE",  # Melbourne, Australia
-    'CPT': "CIUDAD DEL CABO",  # Ciudad del Cabo, Sudáfrica
-    'FMO': "MÜNSTER/OSNABRÜCK",  # Münster/Osnabrück, Alemania
-    'MUC': "MÚNICH",  # Múnich, Alemania
-    'FLN': "FLORIANÓPOLIS",  # Florianópolis, Brasil
-    'GOA': "GOA",  # Goa, India
-    'WLG': "WELLINGTON",  # Wellington, Nueva Zelanda
-    'CPH': "COPENHAGUE",  # Copenhague, Dinamarca
-    'VLC': "VALENCIA",  # Valencia, España
-    'NRT': "NARITA",  # Narita, Tokio, Japón
-    'IKF': "IKARIA",  # Ikaria, Grecia
-    'JFK': "NUEVA YORK",  # Nueva York, EE. UU.
-    'ADD': "ADDIS ABEBA",  # Addis Abeba, Etiopía
-    'XIY': "XIAN",  # Xi'an, China
-    'SYD': "SÍDNEY",  # Sídney, Australia
-    'BJL': "BANJUL",  # Banjul, Gambia
-    'BRU': "BRUSELAS",  # Bruselas, Bélgica
-    'DFW': "DALLAS",  # Dallas, EE. UU.
-    'PMO': "PALERMO",  # Palermo, Italia
-    'VFA': "VICTORIA FALLS",  # Victoria Falls, Zimbabue
-    'BRE': "BREMEN",  # Bremen, Alemania
-}
-
-CITY_TO_AIRPORT_CODES = {city: code for code, city in CITY_AIRPORT_CODES.items()}
 
 class Controller:
     def __init__(self, db_session: Session):
@@ -159,6 +32,7 @@ class Controller:
             self.buques_on, self.buques_off = self.buques_processor.buques_main(file_path)
             self.errors_buques_on, self.errors_buques_on_message = self.buques_processor._create_buque(file_path, self.buques_on, "ON")
             update_progress_callback(5)
+            
             self.errors_buques_off, self.errors_buques_off_message = self.buques_processor._create_buque(file_path, self.buques_off, "OFF")
             update_progress_callback(10)  # 10% después de procesar los buques
 
@@ -222,10 +96,12 @@ class Controller:
             update_progress_callback(90)  # 90% después de procesar restaurantes
 
             ### EXTRAS ###
-            self.extras_processor._create_extra(file_path, self.tripulantes_on, "ON")
-            self.extras_processor._create_extra(file_path, self.tripulantes_off, "OFF")
+            self.extras_on = self.extras_processor._create_extra(file_path, self.tripulantes_on, "ON")
             
-            ### FALTA GUARDARLOS EN LA DB
+            self.extras_off = self.extras_processor._create_extra(file_path, self.tripulantes_off, "OFF")
+            
+            #self.extras_processor._create_extra(file_path, self.tripulantes_on, "ON")
+            #self.extras_processor._create_extra(file_path, self.tripulantes_off, "OFF")            
             update_progress_callback(95)  # 95% después de procesar extras
 
             ### VIAJES ###
@@ -296,7 +172,6 @@ class Controller:
                     self.hoteles_on,
                     self.transportes_on,
                     self.restaurantes_on,
-                    #self.extras_on,
                 ],
                 axis=1,
             )
@@ -313,7 +188,6 @@ class Controller:
                     self.hoteles_off,
                     self.transportes_off,
                     self.restaurantes_off,
-                    #self.extras_off,
                 ],
                 axis=1,
             )
@@ -343,6 +217,11 @@ class Controller:
 
         #Procesamiento hoteles ON
         df_on = self.process_hotels(df_on)
+        df_on = self.process_transport(df_on)
+        df_on = self.process_restaurants(df_on)
+
+        # Agregar extras ON
+        df_on = self._add_extras_to_df(df_on, self.extras_on)
 
         # Limpiar los nombres de las columnas en df_off
         df_off.columns = df_off.columns.str.strip()
@@ -365,6 +244,13 @@ class Controller:
         # Reordenar las columnas para asegurar que el orden sea consistente
         self._reorder_columns_off(df_off)
         
+        df_off = self.process_hotels(df_off)
+        df_off = self.process_transport(df_off)
+        df_off = self.process_restaurants(df_off)
+
+        # Agregar extras OFF
+        df_off = self._add_extras_to_df(df_off, self.extras_off)
+
         return df_on, df_off
 
     def _process_vuelos(self, df, vuelo_columns, vuelo_prefix, nro_flight_col, date_flight_col, hora_flight_col):
@@ -482,46 +368,55 @@ class Controller:
 
         # Reordenar las columnas y mantener las adicionales al final
         df = df[existing_columns + remaining_columns]
-        return df
 
     def process_hotels(self, df):
-        # Detectar columnas de hoteles 
-        # #FUNCION EN PROCESO AUN NO FUNCIONA BIEN
+        # Detectar columnas de hoteles
         hotel_columns = [col for col in df.columns if col.startswith('Hotel')]
+
+        if not hotel_columns:
+            print("No se encontraron columnas de hoteles para procesar.")
+            return df
 
         category = None  # Variable para almacenar la categoría (se mostrará una sola vez)
 
-        for hotel_col in hotel_columns:
-            try:
-                if hotel_col not in df.columns:
-                    print(f"Error: La columna '{hotel_col}' no existe en el DataFrame.")
-                    continue
+        # Determinar la posición donde insertar las columnas de hoteles
+        insertion_index = df.columns.get_loc("Asistencia 3") + 1 if "Asistencia 3" in df.columns else len(df.columns)
 
-                # Descomponer la columna en subcolumnas
-                hotel_df = df[hotel_col].apply(
+        for hotel_col in sorted(hotel_columns):  # Asegurar el orden de Hotel 1, Hotel 2, Hotel 3
+            try:
+                # Almacenar temporalmente la columna del diccionario
+                if hotel_col not in df.columns:
+                    print(f"La columna '{hotel_col}' no existe en el DataFrame.")
+                    continue
+                
+                # Guardar la columna en memoria
+                hotel_data = df[hotel_col].copy()
+
+                # Eliminar la columna original para evitar conflictos
+                df.drop(columns=[hotel_col], inplace=True)
+
+                # Validar y descomponer la columna en subcolumnas
+                hotel_df = hotel_data.apply(
                     lambda x: pd.Series({
-                        "categoria": x.get("categoria") if isinstance(x, dict) else None,
                         "hotel": x.get("hotel") if isinstance(x, dict) else None,
                         "check_in": pd.to_datetime(x.get("check_in"), errors='coerce').date() if isinstance(x, dict) else None,
                         "check_out": pd.to_datetime(x.get("check_out"), errors='coerce').date() if isinstance(x, dict) else None,
                         "habitacion": x.get("habitacion") if isinstance(x, dict) else None,
                         "nombre_hotel": x.get("nombre_hotel") if isinstance(x, dict) else None,
-                    }) if isinstance(x, dict) else pd.Series({
-                        "categoria": None, "hotel": None, "check_in": None,
-                        "check_out": None, "habitacion": None, "nombre_hotel": None
                     })
+                    if isinstance(x, dict) else pd.Series({"hotel": None, "check_in": None, "check_out": None, "habitacion": None, "nombre_hotel": None})
                 )
 
                 # Extraer y almacenar la categoría una vez
-                if category is None and "categoria" in hotel_df:
-                    category = hotel_df['categoria']
+                if category is None and not hotel_data.isna().all():
+                    category = hotel_data.apply(lambda x: x.get("categoria") if isinstance(x, dict) else None)
                     if "Category" in df.columns:
                         df.drop(columns=["Category"], inplace=True)  # Eliminar columna previa si existe
-                    df.insert(0, "Category", category)  # Insertar la categoría al inicio del DataFrame
+                    df.insert(insertion_index, "Category", category)  # Insertar la categoría
+                    insertion_index += 1  # Mover el índice de inserción
 
-                # Renombrar las subcolumnas (sin incluir "categoria")
+                # Renombrar las subcolumnas
                 hotel_number = hotel_columns.index(hotel_col) + 1
-                hotel_df = hotel_df.drop(columns=["categoria"], errors='ignore')  # Eliminar columna innecesaria
                 hotel_df.columns = [
                     f"Hotel {hotel_number}",
                     f"Check in {hotel_number}",
@@ -530,20 +425,167 @@ class Controller:
                     f"Nombre Hotel {hotel_number}",
                 ]
 
-                # Asegurarnos de eliminar columnas existentes con el mismo nombre
-                for col in hotel_df.columns:
-                    if col in df.columns:
-                        df.drop(columns=[col], inplace=True)
+                # Insertar las nuevas columnas en el lugar correcto
+                for i, new_col in enumerate(hotel_df.columns):
+                    df.insert(insertion_index + i, new_col, hotel_df[new_col])
+
+                insertion_index += len(hotel_df.columns)  # Actualizar el índice de inserción
+
+            except Exception as e:
+                print(f"Error al procesar la columna '{hotel_col}': {e}")
+                print(f"Contenido de la columna:\n{hotel_data.head() if hotel_col in df.columns else 'Columna no encontrada.'}")
+                continue
+
+        return df
+    
+    def process_transport(self, df):
+        #print("Columnas actuales en el DataFrame antes de procesar transporte:")
+        #print(df.columns.tolist())
+
+        # Detectar columnas de transporte
+        transport_columns = [col for col in df.columns if col.startswith('Transporte')]
+
+        # Asegurarse de que se generen columnas para Transporte 1, 2, 3 y 4, incluso si faltan
+        required_columns = [f"Transporte {i}" for i in range(1, 5)]
+        for col in required_columns:
+            if col not in transport_columns:
+                df[col] = None  # Crear columnas vacías si no existen
+                transport_columns.append(col)
+
+        # Determinar la posición donde insertar las columnas de transporte
+        insertion_index = df.columns.get_loc("Nombre Hotel 3") + 1 if "Nombre Hotel 3" in df.columns else len(df.columns)
+
+        for transport_col in sorted(transport_columns):  # Asegurar el orden de Transporte 1, Transporte 2, etc.
+            try:
+                # Guardar la columna en memoria
+                transport_data = df[transport_col].copy()
+
+                # Eliminar la columna original para evitar conflictos
+                df.drop(columns=[transport_col], inplace=True)
+
+                # Validar y descomponer la columna en subcolumnas
+                transport_df = transport_data.apply(
+                    lambda x: pd.Series({
+                        "City_in": x.get("City In") if isinstance(x, dict) and x.get("City In") != "Desconocido" else None,
+                        "Place_in": x.get("Place In") if isinstance(x, dict) and x.get("Place In") != "Desconocido" else None,
+                        "City_end": x.get("City End") if isinstance(x, dict) and x.get("City End") != "Desconocido" else None,
+                        "Place_end": x.get("Place End") if isinstance(x, dict) and x.get("Place End") != "Desconocido" else None,
+                        "Date_pickup": pd.to_datetime(x.get("Date Pickup"), errors='coerce').date() if isinstance(x, dict) and x.get("Date Pickup") and x.get("Date Pickup") != "Desconocido" else None,
+                        "Hours_pickup": x.get("Hours Pickup") if isinstance(x, dict) and x.get("Hours Pickup") != "Desconocido" else None,
+                    })
+                    if isinstance(x, dict) else pd.Series({"City_in": None, "Place_in": None, "City_end": None, "Place_end": None, "Date_pickup": None, "Hours_pickup": None})
+                )
+
+                # Renombrar las subcolumnas
+                transport_number = required_columns.index(transport_col) + 1
+                transport_df.columns = [
+                    f"City_in_{transport_number}",
+                    f"Place_in_{transport_number}",
+                    f"City_end_{transport_number}",
+                    f"Place_end_{transport_number}",
+                    f"Date_pickup_{transport_number}",
+                    f"Hours_pickup_{transport_number}",
+                ]
 
                 # Insertar las nuevas columnas en el lugar correcto
-                col_index = df.columns.get_loc(hotel_col)
-                for i, new_col in enumerate(hotel_df.columns):
-                    df.insert(col_index + i + 1, new_col, hotel_df[new_col])
+                for i, new_col in enumerate(transport_df.columns):
+                    df.insert(insertion_index + i, new_col, transport_df[new_col])
+
+                insertion_index += len(transport_df.columns)  # Actualizar el índice de inserción
+
+            except Exception as e:
+                print(f"Error al procesar la columna '{transport_col}': {e}")
+                print(f"Contenido de la columna:\n{transport_data.head() if transport_col in df.columns else 'Columna no encontrada.'}")
+                continue
+
+        return df
+
+    def process_restaurants(self, df):
+        # Detectar columnas de restaurantes
+        restaurant_columns = [col for col in df.columns if col.startswith('Restaurante')]
+        #print("Columnas detectadas para restaurantes:", restaurant_columns)
+
+        if not restaurant_columns:
+            #print("No se encontraron columnas de restaurantes para procesar.")
+            return df
+
+        # Determinar la posición donde insertar las columnas de restaurantes
+        insertion_index = len(df.columns)  # Insertar al final
+        #print("Índice de inserción inicial:", insertion_index)
+
+        preferencia_col = None  # Para almacenar "Preferencia" una única vez
+
+        for restaurant_col in sorted(restaurant_columns):  # Asegurar el orden Restaurante 1, Restaurante 2, etc.
+            try:
+                # Guardar la columna en memoria
+                restaurant_data = df[restaurant_col].copy()
+                #print(f"Primeros valores de la columna {restaurant_col}:", restaurant_data.head())
+
+                # Validar y descomponer la columna en subcolumnas
+                restaurant_df = restaurant_data.apply(
+                    lambda x: pd.Series({
+                        "Preferencia": x.get("Preferencia") if isinstance(x, dict) else None,
+                        "Servicio Comida": x.get("Servicio Comida") if isinstance(x, dict) else None,
+                        "Fecha Desde": pd.to_datetime(x.get("Fecha desde"), errors='coerce').date() if isinstance(x, dict) and x.get("Fecha desde") else None,
+                        "Fecha Hasta": pd.to_datetime(x.get("Fecha hasta"), errors='coerce').date() if isinstance(x, dict) and x.get("Fecha hasta") else None,
+                        "Restaurante": x.get("Restaurante") if isinstance(x, dict) else None,
+                    })
+                    if isinstance(x, dict) else pd.Series({"Preferencia": None, "Servicio Comida": None, "Fecha Desde": None, "Fecha Hasta": None, "Restaurante": None})
+                )
+                # Extraer y almacenar "Preferencia" una única vez
+                if preferencia_col is None and not restaurant_df["Preferencia"].isna().all():
+                    preferencia_col = restaurant_df["Preferencia"]
+                    df["Prefer. Aliment"] = preferencia_col
+                    #print(f"Columna 'Prefer. Aliment' insertada.")
+
+                # Renombrar las subcolumnas restantes
+                restaurant_number = restaurant_columns.index(restaurant_col) + 1
+                restaurant_df = restaurant_df.drop(columns=["Preferencia"])
+                restaurant_df.columns = [
+                    f"Servicio Comida {restaurant_number}",
+                    f"Fecha Desde {restaurant_number}",
+                    f"Fecha Hasta {restaurant_number}",
+                    f"Restaurant {restaurant_number}",
+                ]
+                #print(f"Nombres de subcolumnas renombrados para {restaurant_col}:", restaurant_df.columns.tolist())
+
+                # Insertar las nuevas columnas al final
+                for new_col in restaurant_df.columns:
+                    df[new_col] = restaurant_df[new_col]
 
                 # Eliminar la columna original
-                df.drop(columns=[hotel_col], inplace=True)
+                df.drop(columns=[restaurant_col], inplace=True)
+                #print(f"Columna {restaurant_col} eliminada del DataFrame.")
+
+                #print(f"Columnas insertadas para {restaurant_col}.")
+
             except Exception as e:
-                print(f"Error al procesar '{hotel_col}': {e}")
+                print(f"Error al procesar la columna '{restaurant_col}': {e}")
+                print(f"Contenido de la columna:\n{restaurant_data.head() if restaurant_col in df.columns else 'Columna no encontrada.'}")
                 continue
+
+        print("Procesamiento de restaurantes completado.")
+        return df
+    
+    def _add_extras_to_df(self, df, extras):
+        """
+        Agregar los extras al DataFrame principal (df) desde el DataFrame de extras.
+        """
+        if extras.empty:
+            #print(f"[Extras] No se encontraron extras para el DataFrame.")
+            return df
+
+        try:
+            # Iterar sobre las columnas del DataFrame de extras y agregarlas directamente
+            for col in extras.columns:
+                if col not in df.columns:
+                    df[col] = extras[col]
+                    #print(f"[Extras] Columna '{col}' agregada al DataFrame.")
+                else:
+                    print(f"[Extras] La columna '{col}' ya existe en el DataFrame.")
+
+            print(f"[Extras] Todos los extras agregados al DataFrame.")
+        except Exception as e:
+            print(f"[Extras] Error al agregar extras al DataFrame: {e}")
 
         return df

@@ -6,19 +6,19 @@ import traceback
 from datetime import time
 from sqlalchemy import func, and_
 from PyQt6.QtWidgets import QMessageBox
-from app.models import Buque, Tripulante, Vuelo, EtaCiudad, Viaje, TripulanteVuelo, Hotel, TripulanteHotel, Restaurante, TripulanteRestaurante, Transporte, TripulanteTransporte, TripulanteAsistencia
+from app.models import Extra, Buque, Tripulante, Vuelo, EtaCiudad, Viaje, TripulanteVuelo, Hotel, TripulanteHotel, Restaurante, TripulanteRestaurante, Transporte, TripulanteTransporte, TripulanteAsistencia
 
 class Extras:
     def __init__(self, db_session: Session):
         self.db_session = db_session
         
     def _create_extra(self, file_path, tripulantes_df, state):
-        extra_columns = ['Maleta perdida', 'Transporte', 'Atencion Medica', 'Fecha', 'Ciudad']
+        extra_columns = ['Maleta perdida', 'Transporte', 'Atencion Medica', 'Fecha', 'Ciudad', 'Comentarios']
         excel_data = pd.read_excel(file_path, sheet_name=state, header=None)
         if state == "ON":
-            extras = self.read_all_rows(excel_data, start_row=1, column_range=slice(101, 106), column_names=extra_columns)
+            extras = self.read_all_rows(excel_data, start_row=1, column_range=slice(101, 107), column_names=extra_columns)
         elif state == "OFF":
-            extras = self.read_all_rows(excel_data, start_row=1, column_range=slice(89, 94), column_names=extra_columns)
+            extras = self.read_all_rows(excel_data, start_row=1, column_range=slice(89, 95), column_names=extra_columns)
 
         extras = extras.where(pd.notnull(extras), None)
 
@@ -40,29 +40,43 @@ class Extras:
                         #print(f"No se encontró tripulante con pasaporte {tripulante_data['Pasaporte']} en la fila {i}.")
                         continue
 
-                    existing_tripulante_extra = self.db_session.query(Viaje).filter(
+                    existing_tripulante_extra_viaje = self.db_session.query(Viaje).filter(
                         Viaje.tripulante_id == tripulante.tripulante_id,
                     ).first()
 
-                    if existing_tripulante_extra:
+                    existing_tripulante_extra = self.db_session.query(Extra).filter(
+                        Extra.extra_id == tripulante.tripulante_id,
+                    ).first()
+
+                    if existing_tripulante_extra_viaje:
                         if str(extras.loc[i]['Maleta perdida'].strip().lower()) == "si":
-                            existing_tripulante_extra.equipaje_perdido = True
+                            existing_tripulante_extra_viaje.equipaje_perdido = True
                             self.db_session.commit()
                         elif str(extras.loc[i]['Maleta perdida'].strip().lower()) == "no":
-                            existing_tripulante_extra.equipaje_perdido = False
+                            existing_tripulante_extra_viaje.equipaje_perdido = False
                             self.db_session.commit()
 
                         print(extras.loc[i]['Atencion Medica'].strip().lower())
                         if str(extras.loc[i]['Atencion Medica'].strip().lower()) == "si":
-                            existing_tripulante_extra.asistencia_medica = True
+                            existing_tripulante_extra_viaje.asistencia_medica = True
                             self.db_session.commit()
                         elif str(extras.loc[i]['Atencion Medica'].strip().lower()) == "no":
-                            existing_tripulante_extra.asistencia_medica = False
+                            existing_tripulante_extra_viaje.asistencia_medica = False
                             self.db_session.commit()
-                        
                     else:
                         #print("No existe su viaje")
-                        continue
+                        pass
+
+                    if existing_tripulante_extra:
+                        existing_tripulante_extra.comments = comments=extras.loc[i]['Comentarios']  # Actualizar el estado 'activo'
+                        self.db_session.add(existing_tripulante_extra)
+                    else:
+                        extra = Extra(
+                            tripulante_id=tripulante.tripulante_id,
+                            comments=extras.loc[i]['Comentarios']
+                        )
+                        self.db_session.add(extra)
+                        self.db_session.flush()
 
                     self.db_session.commit()
                 except Exception as e:
@@ -72,11 +86,14 @@ class Extras:
 
             # Confirmar los cambios en la base de datos
             self.db_session.commit()
-            print("Asignación de extras completada.")
+            print(f"Asignación de extras {state} completada.")
 
         except Exception as e:
             self.db_session.rollback()
             print(e)
+
+        self.db_session.commit()
+        return extras
 
     def read_all_rows(self, data, start_row, column_range, column_names):
         # Convertir column_range en una lista si es necesario

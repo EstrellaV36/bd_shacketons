@@ -10,75 +10,7 @@ from PyQt6.QtWidgets import QMessageBox
 from app.models import Buque, Tripulante, Vuelo, EtaCiudad, Viaje, TripulanteVuelo, Hotel, TripulanteHotel, Restaurante, TripulanteRestaurante, Transporte, TripulanteTransporte, TripulanteAsistencia
 from openpyxl import load_workbook
 from openpyxl.utils import get_column_letter, column_index_from_string
-
-CITY_AIRPORT_CODES = {
-    'PUQ': "PUNTA ARENAS",
-    'SCL': "SANTIAGO",
-    'PMC': "PUERTO MONTT",
-    'VAP': "VALPARAISO",
-    'ZAL': "VALDIVIA",
-    'WPU': "PUERTO WILLIAMS",
-    'CDG': 'PARIS',
-    'NY': 'NUEVA YORK',
-    'SPU': 'SPLIT',
-    'ZAG': 'ZAGREB',
-    'AMS': 'AMSTERDAM',
-    'EZE': 'BUENOS AIRES',
-    'LUN': "LUSAKA",
-    'DOH': "DOHA",
-    'PUJ': "PUNTA CANA",
-    'LIM': "LIMA",
-    'ANF': "ANTOFAGASTA",
-    'IQQ': "IQUIQUE",
-    'CCP': "CONCEPCIÓN",
-    'LSC': "LA SERENA",
-    'ARI': "ARICA",
-    'IPC': "RAPA NUI",
-    'LAX': "LOS ÁNGELES",
-    'JFK': "NUEVA YORK",
-    'MAD': "MADRID",
-    'LHR': "LONDRES",
-    'DXB': "DUBÁI",
-    'MQP': "MPUMALANGA",
-    'JNB': "JOHANNESBURGO",
-    'LCA': "LÁRNACA",
-    'ZRH': "ZÚRICH",
-    'GOX': "GOLFE DE GARABOGAZ",
-    'TRV': "THIRUVANANTHAPURAM",
-    'PVG': "SHANGHAI",
-    'CGK': "YAKARTA",
-    'BDS': "BRINDISI",
-    'GRU': "SÃO PAULO",
-    'NBO': "NAIROBI",
-    'ICN': "SEÚL",
-    'HRE': "HARARE",
-    'OTP': "BUCARESTANT",
-    'AKL': "AUCKLAND",
-    'FCO': "ROMA",
-    'PTY': "PANAMÁ",
-    'MNL': "MANILA",
-    'IST': "ESTAMBUL",
-    'LED': "SAN PETERSBURGO",
-    'IMF': "IMPHAL",
-    'TDG': "TANDAG",
-    'SUB': "SURABAYA",
-    'MGA': "MANAGUA",
-    'DEL': "DELHI",
-    'GEO': "GEORGETOWN",
-    'DPS': "DENPASAR",
-    'MIA': "MIAMI",
-    'SAL': "SAN SALVADOR",
-    'MRU': "MAURICIO",
-    'JKT': "YAKARTA",
-    'SAP': "SAN PEDRO SULA",
-    'SOC': "SOLO CITY",
-    'MBJ': "MONTEGO BAY",
-    'BOM': "BOMBAY",
-    'GUA': "CIUDAD DE GUATEMALA",
-    'CCU': "CALCUTA",
-    'COK': "COCHIN",
-    'CMB': "COLOMBO"
-}
+from app.controller.constants import CITY_AIRPORT_CODES, CITY_TO_AIRPORT_CODES
 
 CITY_TO_AIRPORT_CODES = {city: code for code, city in CITY_AIRPORT_CODES.items()}
 
@@ -523,4 +455,3 @@ def check_and_clean(file_path, transportes_df, state):
 #         #print(f"Tipo de dato inesperado para {field_name}: {type(value)}")
 #         else:
 #             return None
-
