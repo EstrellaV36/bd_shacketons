@@ -5,6 +5,9 @@ CITY_AIRPORT_CODES = {
     'VAP': "VALPARAISO",
     'ZAL': "VALDIVIA",
     'WPU': "PUERTO WILLIAMS",
+    'NAT': "PUERTO NATALES",
+    'USH': "USHUAIA",
+    'CAL': "CALAFATE",
     'CDG': 'PARIS',  # París, Francia
     'NY': 'NUEVA YORK',  # Nueva York, EE. UU.
     'SPU': 'SPLIT',  # Split, Croacia

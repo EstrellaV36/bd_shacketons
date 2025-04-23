@@ -16,12 +16,12 @@ class Tripulantes:
 
             excel_data_on = pd.read_excel(file_path, sheet_name='ON', header=None)
 
-            tripulantes_on = self.read_all_rows(excel_data_on, start_row=1, column_range=slice(10, 17), column_names=tripulante_columns)  
+            tripulantes_on = self.read_all_rows(excel_data_on, start_row=2, column_range=slice(10, 17), column_names=tripulante_columns)  
             tripulantes_on.reset_index(drop=True, inplace=True)
 
             excel_data_off = pd.read_excel(file_path, sheet_name='OFF', header=None)
 
-            tripulantes_off = self.read_all_rows(excel_data_off, start_row=1, column_range=slice(10, 17), column_names=tripulante_columns) 
+            tripulantes_off = self.read_all_rows(excel_data_off, start_row=2, column_range=slice(10, 17), column_names=tripulante_columns) 
             tripulantes_off.reset_index(drop=True, inplace=True)
 
             return tripulantes_on, tripulantes_off

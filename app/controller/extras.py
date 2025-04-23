@@ -16,9 +16,9 @@ class Extras:
         extra_columns = ['Maleta perdida', 'Transporte', 'Atencion Medica', 'Fecha', 'Ciudad', 'Comentarios']
         excel_data = pd.read_excel(file_path, sheet_name=state, header=None)
         if state == "ON":
-            extras = self.read_all_rows(excel_data, start_row=1, column_range=slice(101, 107), column_names=extra_columns)
+            extras = self.read_all_rows(excel_data, start_row=2, column_range=slice(101, 107), column_names=extra_columns)
         elif state == "OFF":
-            extras = self.read_all_rows(excel_data, start_row=1, column_range=slice(89, 95), column_names=extra_columns)
+            extras = self.read_all_rows(excel_data, start_row=2, column_range=slice(89, 95), column_names=extra_columns)
 
         extras = extras.where(pd.notnull(extras), None)
 

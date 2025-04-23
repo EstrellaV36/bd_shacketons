@@ -352,3 +352,146 @@ Fecha faltante en Date_pickup_2 [2,BK]
 Fecha faltante en Date_pickup_3 [2,BQ]
 Fecha faltante en Date_pickup_4 [2,BW]
 
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+

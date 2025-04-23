@@ -17,8 +17,8 @@ class Asistencias:
             excel_data_off = pd.read_excel(file_path, sheet_name='OFF', header=None)
 
             # Extraer asistencias de cada hoja
-            asistencias_on = self._extract_assist(excel_data_on, start_row=1, column_range=slice(42, 48), column_names=asistencia_columns)
-            asistencias_off = self._extract_assist(excel_data_off, start_row=1, column_range=slice(30, 36), column_names=asistencia_columns)
+            asistencias_on = self._extract_assist(excel_data_on, start_row=2, column_range=slice(42, 48), column_names=asistencia_columns)
+            asistencias_off = self._extract_assist(excel_data_off, start_row=2, column_range=slice(30, 36), column_names=asistencia_columns)
 
             asistencias_on.reset_index(drop=True, inplace=True)
             asistencias_off.reset_index(drop=True, inplace=True)

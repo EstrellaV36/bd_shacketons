@@ -246,7 +246,7 @@ class Vuelos:
         #print("Columnas disponibles:", flight_columns)  # Imprimir las columnas para verificar qué se está cargando
 
         # Iterar sobre cada fila, comenzando desde la fila indicada
-        for i in range(start_row + 1, excel_data.shape[0]):
+        for i in range(start_row + 2, excel_data.shape[0]):
             tripulante_vuelos = {}
             vuelo_num = 1
             
@@ -365,7 +365,7 @@ class Vuelos:
         col_idx_hora_flight = vuelos_columns.index(hora_flight)
 
         # Iterar sobre cada fila, comenzando desde la fila indicada
-        for i in range(start_row + 1, excel_data.shape[0]):
+        for i in range(start_row + 2, excel_data.shape[0]):
             tripulante_vuelos = {}
             vuelos_num = 1
             

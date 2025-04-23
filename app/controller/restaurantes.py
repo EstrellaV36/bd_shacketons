@@ -150,7 +150,7 @@ class Restaurantes:
         restaurant_columns = excel_data.loc[start_row].dropna().str.lower().tolist()
 
         # Iterar sobre cada fila, comenzando desde la fila indicada
-        for i in range(start_row + 1, excel_data.shape[0]):
+        for i in range(start_row + 2, excel_data.shape[0]):
             tripulante_restaurants = {}
             restaurants_num = 1
             

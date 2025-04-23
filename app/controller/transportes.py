@@ -115,6 +115,7 @@ class Transportes:
                                         self.db_session.add(transporte)
                                         self.db_session.flush()  # Asegurar que el transporte esté disponible en la base de datos
                                         transportes.append(transporte)
+                                        self.db_session.commit()
 
                                     # Verificar si ya existe la relación entre tripulante y transporte
                                     tripulante_transporte_existente = self.db_session.query(TripulanteTransporte).filter_by(
@@ -124,7 +125,9 @@ class Transportes:
 
                                     #print(f"HOLA {type(hours_pickup)}")
                                     
-                                    if not tripulante_transporte_existente and transporte.transporte_id != None:
+                                    if not tripulante_transporte_existente: #and transporte.transporte_id != None:
+                                        print(f"No existe la relación entre {tripulante.tripulante_id} y {transporte.transporte_id}")
+                                        print(f"{_transporte['Date Pickup']} | {_transporte['Hours Pickup']}")
                                         tripulante_transporte = TripulanteTransporte(
                                             tripulante_id=tripulante.tripulante_id,
                                             transporte_id=transporte.transporte_id,
@@ -133,10 +136,12 @@ class Transportes:
                                             hours_pickup=_transporte['Hours Pickup']
                                         )
 
+                                        print(tripulante_transporte)
+
                                         self.db_session.add(tripulante_transporte)
                                         self.db_session.flush()
                                         self.db_session.commit()
-                                        #print(f"Transporte guardado correctamente: {tripulante_transporte}")
+                                        print(f"Relación de transporte guardado correctamente: {tripulante_transporte}")
 
                                     elif tripulante_transporte_existente:
                                         #print(f"Ya existe relación para Tripulante ID {tripulante.tripulante_id} y Transporte ID {transporte.transporte_id}.")
@@ -147,6 +152,7 @@ class Transportes:
                                     ###traceback.print_exc()
                                     self.db_session.rollback()
                                     continue
+                            
 
                 except Exception as fila_error:
                     #print(f"[Transporte] Error procesando fila {i}: {fila_error}")
@@ -199,7 +205,7 @@ class Transportes:
         transport_columns = excel_data.loc[start_row].dropna().str.lower().tolist()
 
         # Iterar sobre cada fila, comenzando desde la fila indicada
-        for i in range(start_row + 1, excel_data.shape[0]):
+        for i in range(start_row + 2, excel_data.shape[0]):
             tripulante_transports = {}
             transports_num = 1
 

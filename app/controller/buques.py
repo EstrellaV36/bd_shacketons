@@ -17,13 +17,13 @@ class Buques:
 
             excel_data_on = pd.read_excel(file_path, sheet_name='ON', header=None)
 
-            buques_on = self.read_all_rows(excel_data_on, start_row=1, column_range=slice(0, 8), column_names=buques_on_columns) 
+            buques_on = self.read_all_rows(excel_data_on, start_row=2, column_range=slice(0, 8), column_names=buques_on_columns) 
             buques_on.reset_index(drop=True, inplace=True)
             #errors.append(self.check_and_clean(buques_on, file_path, "ON"))
 
             excel_data_off = pd.read_excel(file_path, sheet_name='OFF', header=None)
 
-            buques_off = self.read_all_rows(excel_data_off, start_row=1, column_range=slice(0, 8), column_names=buques_off_columns)
+            buques_off = self.read_all_rows(excel_data_off, start_row=2, column_range=slice(0, 8), column_names=buques_off_columns)
             buques_off.reset_index(drop=True, inplace=True)
             #errors.append(self.check_and_clean(buques_off, file_path, "ON"))
 
