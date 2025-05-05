@@ -27,8 +27,8 @@ class Asistencias:
             asistencias_on = self._normalize_assistance_dataframe(asistencias_on)
             asistencias_off = self._normalize_assistance_dataframe(asistencias_off)
 
-            print(f"ASISTENCIAS ON: {asistencias_on}")
-            print(f"ASISTENCIAS OFF: {asistencias_off}")
+            # print(f"ASISTENCIAS ON: {asistencias_on}")
+            # print(f"ASISTENCIAS OFF: {asistencias_off}")
 
             return asistencias_on, asistencias_off
         except Exception as e:
@@ -98,7 +98,7 @@ class Asistencias:
                         existing_asistencia.proveedor_scl = proveedores_lista[0] if 'asistencia scl' in asistencias_lista else None
                         existing_asistencia.proveedor_puq = proveedores_lista[1] if 'asistencia puq' in asistencias_lista else None
                         existing_asistencia.proveedor_wpu = proveedores_lista[2] if 'asistencia wpu' in asistencias_lista else None
-                        print(f"Asistencia actualizada para tripulante ID {tripulante.tripulante_id}.")
+                        # print(f"Asistencia actualizada para tripulante ID {tripulante.tripulante_id}.")
 
                     self.db_session.commit()
 

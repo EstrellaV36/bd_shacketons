@@ -32,6 +32,8 @@ class Controller:
             self.buques_on, self.buques_off = self.buques_processor.buques_main(file_path)
             self.errors_buques_on, self.errors_buques_on_message = self.buques_processor._create_buque(file_path, self.buques_on, "ON")
             update_progress_callback(5)
+
+            print("Buques creados con éxito")
             
             self.errors_buques_off, self.errors_buques_off_message = self.buques_processor._create_buque(file_path, self.buques_off, "OFF")
             update_progress_callback(10)  # 10% después de procesar los buques
@@ -44,10 +46,14 @@ class Controller:
             self.errors_tripulantes_off, self.errors_tripulantes_off_message = self.tripulantes_processor._create_tripulantes(file_path, self.tripulantes_off, self.buques_off, "OFF")
             update_progress_callback(20)  # 20% después de procesar los tripulantes
 
+            print("Tripulantes creados con éxito")
+
             ### AEROLINEAS ###
             self.aerolineas_on, self.aerolineas_off = self.aerolineas_processor.aerolineas_main(file_path)
             update_progress_callback(30)  # 30% después de procesar aerolíneas
             # FALTA GUARDARLOS EN LA DB
+
+            print("Aerolineas creados con éxito")
 
             ### VUELOS ###
             self.vuelos_internacionales_on, self.vuelos_internacionales_off, self.vuelos_domesticos_on, self.vuelos_domesticos_off, self.vuelos_regionales_on, self.vuelos_regionales_off = self.vuelos_processor.vuelos_main(file_path)
@@ -55,14 +61,24 @@ class Controller:
             self.errors_vuelos_internacionales_on, self.errors_vuelos_internacionales_on_message = self.vuelos_processor._create_vuelos(file_path, self.vuelos_internacionales_on, self.tripulantes_on, 'ON', 'INTERNACIONAL')
             self.errors_vuelos_internacionales_off, self.errors_vuelos_internacionales_off_message = self.vuelos_processor._create_vuelos(file_path, self.vuelos_internacionales_off, self.tripulantes_off, 'OFF', 'INTERNACIONAL')
             update_progress_callback(40)
+
+            print("Vuelos internacionales creados | ", end="")
+
             self.errors_vuelos_domesticos_on, self.errors_vuelos_domesticos_on_message = self.vuelos_processor._create_vuelos(file_path, self.vuelos_domesticos_on, self.tripulantes_on, 'ON', 'DOMESTICO')
             self.errors_vuelos_domesticos_off, self.errors_vuelos_domesticos_off_message = self.vuelos_processor._create_vuelos(file_path, self.vuelos_domesticos_off, self.tripulantes_off, 'OFF', 'DOMESTICO')
             update_progress_callback(45)  # 50% después de procesar vuelos
+
+            print("Vuelos domesticos creados | ", end="")
+
             self.errors_vuelos_regionales_on, self.errors_vuelos_regionales_on_message = self.vuelos_processor._create_vuelos(file_path, self.vuelos_regionales_on, self.tripulantes_on, 'ON', 'REGIONAL')
             self.errors_vuelos_regionales_off, self.errors_vuelos_regionales_off_message = self.vuelos_processor._create_vuelos(file_path, self.vuelos_regionales_off, self.tripulantes_off, 'OFF', 'REGIONAL')            
             update_progress_callback(50)  # 50% después de procesar vuelos
+            
+            print("Vuelos regionales creados")
 
             #print(self.vuelos_internacionales_on)
+            
+            print("Vuelos creados con éxito")
 
             ### ASISTENCIAS ###
             self.asistencias_on, self.asistencias_off = self.asistencias_processor.asistencias_main(file_path)
@@ -70,6 +86,8 @@ class Controller:
             self.asistencias_processor.procesar_asistencias(self.tripulantes_on, self.asistencias_on, self.tripulantes_off, self.asistencias_off)
 
             update_progress_callback(60)  # 60% después de procesar asistencias
+
+            print("Asistencias creadas con éxito")
 
             ### HOTELES ###
             self.hoteles_on, self.hoteles_off = self.hoteles_processor.hoteles_main(file_path)
@@ -79,6 +97,8 @@ class Controller:
             self.errors_hoteles_off, self.errors_hoteles_off_message = self.hoteles_processor._create_hotel(file_path, self.hoteles_off, self.tripulantes_off, "OFF")
             update_progress_callback(70)  # 70% después de procesar hoteles
 
+            print("Hoteles creados con éxito")
+
             ### TRANSPORTES ###
             self.transportes_on, self.transportes_off = self.transportes_processor.transportes_main(file_path)
 
@@ -87,6 +107,8 @@ class Controller:
             self.errors_transportes_off, self.errors_transportes_off_message = self.transportes_processor._create_transporte(file_path, self.transportes_off, self.tripulantes_off, "OFF")
             update_progress_callback(80)  # 80% después de procesar transportes
 
+            print("Transportes creados con éxito")
+
             ### RESTAURANTES ###
             self.restaurantes_on, self.restaurantes_off = self.restaurantes_processor.restaurantes_main(file_path)
             
@@ -94,19 +116,24 @@ class Controller:
             update_progress_callback(85)
             self.restaurantes_processor._create_restaurantes(self.restaurantes_off, self.tripulantes_off)
             update_progress_callback(90)  # 90% después de procesar restaurantes
+            
+            print("Restaurantes creados con éxito")
 
             ### EXTRAS ###
             self.extras_on = self.extras_processor._create_extra(file_path, self.tripulantes_on, "ON")
-            
             self.extras_off = self.extras_processor._create_extra(file_path, self.tripulantes_off, "OFF")
             
             #self.extras_processor._create_extra(file_path, self.tripulantes_on, "ON")
             #self.extras_processor._create_extra(file_path, self.tripulantes_off, "OFF")            
             update_progress_callback(95)  # 95% después de procesar extras
 
+            print("Extras creados con éxito")
+
             ### VIAJES ###
             self.viaje_processor._create_viajes_from_dataframes(self.tripulantes_on, self.tripulantes_off, self.buques_on, self.buques_off)
             update_progress_callback(100)  # 100% después de procesar viajes
+
+            print("Viajes creados con éxito")
 
             ### ERRORES ###
             self.errors_on = []

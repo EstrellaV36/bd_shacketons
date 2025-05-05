@@ -495,3 +495,1550 @@ Fecha faltante en Date_pickup_2 [2,BK]
 Fecha faltante en Date_pickup_3 [2,BQ]
 Fecha faltante en Date_pickup_4 [2,BW]
 
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Formato incorrecto en Fecha Vuelo Int 1 [3,W]
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Formato incorrecto en Fecha Vuelo Int 2 [3,Z]
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Formato incorrecto en Fecha Vuelo Int 1 [3,W]
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Formato incorrecto en Fecha Vuelo Int 1 [3,W]
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Formato incorrecto en Fecha Vuelo Int 1 [3,W]
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Formato incorrecto en Fecha Vuelo Int 1 [3,W]
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Formato incorrecto en Fecha Vuelo Int 1 [3,W]
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AL]
+Dato faltante [2,AQ]
+Dato faltante [2,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Formato incorrecto en Fecha Vuelo Int 1 [3,W]
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AK]
+Dato faltante [2,AK]
+Dato faltante [2,AK]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Formato incorrecto en Fecha Vuelo Int 1 [3,W]
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AK]
+Dato faltante [2,AK]
+Dato faltante [2,AK]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Formato incorrecto en Fecha Vuelo Int 1 [3,W]
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AK]
+Dato faltante [2,AK]
+Dato faltante [2,AK]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Formato incorrecto en Fecha Vuelo Int 1 [3,W]
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AK]
+Dato faltante [2,AK]
+Dato faltante [2,AK]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados:
+Formato incorrecto en Fecha Vuelo Int 1 [3,W]
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AK]
+Dato faltante [2,AK]
+Dato faltante [2,AK]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados [ON]:
+Formato incorrecto en Fecha Vuelo Int 1 [3,W]
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados [OFF]:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AK]
+Dato faltante [2,AK]
+Dato faltante [2,AK]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados [ON]:
+Formato incorrecto en Fecha Vuelo Int 1 [3,W]
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados [OFF]:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AK]
+Dato faltante [2,AK]
+Dato faltante [2,AK]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados [ON]:
+Formato incorrecto en Fecha Vuelo Int 1 [3,W]
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados [OFF]:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AK]
+Dato faltante [2,AK]
+Dato faltante [2,AK]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados [ON]:
+Formato incorrecto en Fecha Vuelo Int 1 [3,W]
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados [OFF]:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AK]
+Dato faltante [2,AK]
+Dato faltante [2,AK]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados [ON]:
+Formato incorrecto en Fecha Vuelo Int 1 [3,W]
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados [OFF]:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AK]
+Dato faltante [2,AK]
+Dato faltante [2,AK]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados [ON]:
+Formato incorrecto en Fecha Vuelo Int 1 [3,W]
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados [OFF]:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AK]
+Dato faltante [2,AK]
+Dato faltante [2,AK]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados [ON]:
+Formato incorrecto en Fecha Vuelo Int 1 [3,W]
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados [OFF]:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [2,AK]
+Dato faltante [2,AK]
+Dato faltante [2,AK]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados [ON]:
+Formato incorrecto en Fecha Vuelo Int 1 [3,W]
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados [OFF]:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [3,AK]
+Dato faltante [3,AK]
+Dato faltante [3,AK]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados [ON]:
+Formato incorrecto en Fecha Vuelo Int 1 [3,W]
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados [OFF]:
+Formato de fecha incorrecto en DOB [2,Q]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados [ON]:
+Formato incorrecto en Fecha Vuelo Int 1 [3,W]
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados [OFF]:
+Formato de fecha incorrecto en DOB [2,Q]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados [ON]:
+Formato incorrecto en Fecha Vuelo Int 1 [3,W]
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados [OFF]:
+Formato de fecha incorrecto en DOB [2,Q]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados [ON]:
+Formato incorrecto en Fecha Vuelo Int 1 [3,W]
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados [OFF]:
+Formato de fecha incorrecto en DOB [2,Q]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados [ON]:
+Formato incorrecto en Fecha Vuelo Int 1 [3,W]
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados [OFF]:
+Formato de fecha incorrecto en DOB [2,Q]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados [ON]:
+Formato incorrecto en Fecha Vuelo Int 1 [3,W]
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados [OFF]:
+Formato de fecha incorrecto en DOB [2,Q]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados [ON]:
+Formato incorrecto en Fecha Vuelo Int 1 [3,W]
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados [OFF]:
+Formato de fecha incorrecto en DOB [2,Q]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados [ON]:
+Formato incorrecto en Fecha Vuelo Int 1 [3,W]
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados [OFF]:
+Formato de fecha incorrecto en DOB [2,Q]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados [ON]:
+Formato incorrecto en Fecha Vuelo Int 1 [3,W]
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados [OFF]:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [3,AK]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados [ON]:
+Formato incorrecto en Fecha Vuelo Int 1 [3,W]
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados [OFF]:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [3,AK]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados [ON]:
+Formato incorrecto en Fecha Vuelo Int 1 [3,W]
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados [OFF]:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [3,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados [ON]:
+Formato incorrecto en Fecha Vuelo Int 1 [3,W]
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados [OFF]:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [3,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados [ON]:
+Formato incorrecto en Fecha Vuelo Int 1 [3,W]
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados [OFF]:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [3,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados [ON]:
+Formato incorrecto en Fecha Vuelo Int 1 [3,W]
+Categoría faltante [3,AW]
+Categoría faltante [3,AW]
+Categoría faltante [3,AW]
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados [OFF]:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [3,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados [ON]:
+Formato incorrecto en Fecha Vuelo Int 1 [3,W]
+Categoría faltante [3,AW]
+Categoría faltante [3,AW]
+Categoría faltante [3,AW]
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados [OFF]:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [3,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados [ON]:
+Formato incorrecto en Fecha Vuelo Int 1 [3,W]
+Categoría faltante [3,AW]
+Categoría faltante [3,AW]
+Categoría faltante [3,AW]
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados [OFF]:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [3,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados [ON]:
+Formato incorrecto en Fecha Vuelo Int 1 [3,W]
+Dato faltante [3,BC]
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados [OFF]:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [3,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados [ON]:
+Formato incorrecto en Fecha Vuelo Int 1 [3,W]
+Dato faltante [3,BC]
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados [OFF]:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [3,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados [ON]:
+Formato incorrecto en Fecha Vuelo Int 1 [3,W]
+Dato faltante [3,BC]
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados [OFF]:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [3,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados [ON]:
+Formato incorrecto en Fecha Vuelo Int 1 [3,W]
+Dato faltante [3,BC]
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados [OFF]:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [3,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados [ON]:
+Formato incorrecto en Fecha Vuelo Int 1 [3,W]
+Dato faltante [3,BC]
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados [OFF]:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [3,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados [ON]:
+Formato incorrecto en Fecha Vuelo Int 1 [3,W]
+Dato faltante [3,BC]
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados [OFF]:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [3,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados [ON]:
+Formato incorrecto en Fecha Vuelo Int 1 [3,W]
+Dato faltante [3,BC]
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados [OFF]:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [3,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados [ON]:
+Formato incorrecto en Fecha Vuelo Int 1 [3,W]
+Dato faltante [3,BC]
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados [OFF]:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [3,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados [ON]:
+Formato incorrecto en Fecha Vuelo Int 1 [3,W]
+Dato faltante [3,BC]
+Fecha inexistente en Transporte 2 [9,BW]
+
+Errores detectados [OFF]:
+Formato de fecha incorrecto en DOB [2,Q]
+Dato faltante [3,AV]
+Fecha faltante en Date_pickup_1 [2,BE]
+Fecha faltante en Date_pickup_2 [2,BK]
+Fecha faltante en Date_pickup_3 [2,BQ]
+Fecha faltante en Date_pickup_4 [2,BW]
+
+Errores detectados [ON]:
+Formato incorrecto en Fecha Vuelo Int 1 [3,W]
+Dato faltante [3,BC]
+Fecha inexistente en Transporte 2 [9,BW]
+

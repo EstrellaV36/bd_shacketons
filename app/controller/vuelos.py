@@ -15,33 +15,41 @@ class Vuelos:
     def vuelos_main(self, file_path):
         try:
             # Leer la hoja ON del archivo Excel
-            excel_data_on = pd.read_excel(file_path, sheet_name='ON', header=None)
+            excel_data_on = pd.read_excel(file_path, sheet_name='ON', header=None)        
 
             vuelos_internacionales_on = self._extract_international_flights(excel_data_on, start_row=0, state="on")
             vuelos_internacionales_on.reset_index(drop=True, inplace=True)  # Reiniciar el índice
+            print("Internacional ON done")
 
             vuelos_domesticos_on = self._extract_flights(excel_data_on, start_row=0, state="DOMESTICO")
             vuelos_domesticos_on.reset_index(drop=True, inplace=True)  # Reiniciar el índice
+            print("Domesticos ON done")
 
             vuelos_regionales_on = self._extract_flights(excel_data_on, start_row=0, state="REGIONAL")
             vuelos_regionales_on.reset_index(drop=True, inplace=True)  # Reiniciar el índice
+            print("Regional ON done")
 
             excel_data_off = pd.read_excel(file_path, sheet_name='OFF', header=None)
 
             vuelos_internacionales_off = self._extract_flights(excel_data_off, start_row=0, state="INTERNACIONAL")
             vuelos_internacionales_off.reset_index(drop=True, inplace=True)  # Reiniciar el índice
+            print("Internacional OFF done")
 
             vuelos_domesticos_off = self._extract_flights(excel_data_off, start_row=0, state="DOMESTICO")
             vuelos_domesticos_off.reset_index(drop=True, inplace=True)  # Reiniciar el índice
+            print("Domesticos OFF done")
 
             vuelos_regionales_off = self._extract_flights(excel_data_off, start_row=0, state="REGIONAL")
             vuelos_regionales_off.reset_index(drop=True, inplace=True)  # Reiniciar el índice
+            print("Regional OFF done")
+
+            # print("Viajes de OFF terminados")
 
             return vuelos_internacionales_on, vuelos_internacionales_off, vuelos_domesticos_on, vuelos_domesticos_off, vuelos_regionales_on, vuelos_regionales_off
         except Exception as e:
             raise Exception(f"[Vuelos] Error al procesar el archivo: {e}")
 
-    def _extraer_ciudades_y_horarios(self, vuelo_info, i):        
+    def _extraer_ciudades_y_horarios(self, vuelo_info, i, state, tipo):        
         try:
             vuelo = vuelo_info['vuelo']
 
@@ -49,7 +57,7 @@ class Vuelos:
             if vuelo is None or pd.isna(vuelo):
                 #print("Vuelo es NaN o None. Omitiendo...")
                 return None  
-
+            
             # Utilizar una expresión regular para capturar el código de vuelo y los aeropuertos
             expresion_vuelo = r'^(.+)\s([A-Z]{3})[-\s]([A-Z]{3})$'  # Acepta '-' o ' ' como separador
             match = re.match(expresion_vuelo, vuelo)
@@ -60,6 +68,8 @@ class Vuelos:
                 aeropuerto_llegada = match.group(3)    # Ciudad de destino
             else:
                 return None
+            
+            # print(f"Vuelo = {codigo_vuelo} | {aeropuerto_salida} | {aeropuerto_llegada} ({tipo, state})")
 
             # Obtener la fecha del vuelo
             fecha_vuelo = vuelo_info['fecha']  # Se espera que sea un objeto Timestamp
@@ -94,6 +104,13 @@ class Vuelos:
                 hora_llegada = match_horas.group(2)
                 dia_siguiente = match_horas.group(3)  # Detectar si hay '+1'
 
+                if isinstance(fecha_vuelo, str):
+                    fecha_vuelo = pd.to_datetime(fecha_vuelo, errors='coerce')
+
+                if pd.isna(fecha_vuelo):
+                    print(f"[ERROR] Fecha de vuelo inválida: {fecha_vuelo} | {codigo_vuelo}")
+                    return None
+
                 hora_salida = datetime.combine(fecha_vuelo.date(), datetime.strptime(hora_salida, "%H:%M").time())
                 hora_llegada = datetime.combine(fecha_vuelo.date(), datetime.strptime(hora_llegada, "%H:%M").time())
             # elif isinstance(hora, datetime.time):
@@ -106,8 +123,15 @@ class Vuelos:
                 hora_llegada = hora
                 hora_llegada = datetime.combine(fecha_vuelo.date(), hora)
             else:
-                print("Error en esta parte")
-                #print(f"Error en la fila {i+2}")
+                if codigo_vuelo not in ["NO", "TBC"]:
+                    # print("Error en esta parte")
+                    hora_salida = None
+                    hora_llegada = None
+                    dia_siguiente = None
+
+                    # print(codigo_vuelo)
+                    print(f"Error en la fila {i+3} | {state} | {tipo} | {hora_salida},{hora_llegada}")
+                    
 
             # Convertir horas a objetos datetime
             # print("Intentando convertir hora de salida y llegada a datetime...")
@@ -139,7 +163,7 @@ class Vuelos:
             }
 
         except Exception as e:
-            print(f"Error al procesar el vuelo: {e} | HORA : {vuelo_info['hora']} {vuelo_info.loc['hora']}")
+            print(f"Error al procesar el vuelo: {e} | HORA : {vuelo_info.get('hora')}")
             ###traceback.print_exc()  # Imprime el seguimiento completo del error
             # print("=== Depuración final ===")
             # print(f"Datos actuales de vuelo_info: {vuelo_info}")
@@ -151,10 +175,9 @@ class Vuelos:
 
         try:
             if vuelos_df.empty or tripulantes_df.empty:
-                #print("No hay vuelos o tripulantes para procesar.")
-                return []
+                print("No hay vuelos o tripulantes para procesar.")
+                return [], []
 
-            # Iterar sobre cada fila de los dataframes correspondientes de vuelos y tripulantes
             for i, (vuelo_row, tripulante_data) in enumerate(zip(vuelos_df.iterrows(), tripulantes_df.iterrows())):
                 vuelo_row = vuelo_row[1]  # Acceder a la serie de la fila
                 tripulante_data = tripulante_data[1]  # Acceder a la serie de la fila
@@ -174,9 +197,9 @@ class Vuelos:
                     # Verificar que haya información válida sobre el vuelo
                     if pd.notna(vuelo_info) and isinstance(vuelo_info, dict) and vuelo_info.get('vuelo') != 'No disponible':
                         #print(i)
-                        vuelo_info = self._extraer_ciudades_y_horarios(vuelo_info, i)
+                        vuelo_info = self._extraer_ciudades_y_horarios(vuelo_info, i, state, tipo)
 
-                        #print(f"Vuelo info es: {vuelo_info}")
+                        # print(f"Vuelo info es: {vuelo_info}")
 
                         if vuelo_info is None or 'codigo_vuelo' not in vuelo_info:
                             #print(f"Omitiendo vuelo {vuelo_key} en la fila {i} debido a datos faltantes. {vuelo_info}")
@@ -207,7 +230,7 @@ class Vuelos:
                             self.db_session.add(vuelo)
                             self.db_session.flush()  # Asegurar que el vuelo esté disponible en la base de datos
                             vuelos.append(vuelo)  # Agregar el vuelo a la lista de vuelos
-                            #print(f"Vuelo creado {vuelo}")
+                            print(f"Vuelo creado {vuelo}")
 
                         # Verificar si ya existe una asociación entre el tripulante y el vuelo
                         tripulante_vuelo_existente = self.db_session.query(TripulanteVuelo).filter_by(
@@ -240,7 +263,6 @@ class Vuelos:
         
         # Convertir los nombres de las columnas a cadenas y quitar espacios
         flight_columns = excel_data.loc[start_row].dropna().str.lower().tolist()
-        #print(flight_columns)
 
         # Verificar las columnas con las que estamos trabajando
         #print("Columnas disponibles:", flight_columns)  # Imprimir las columnas para verificar qué se está cargando
@@ -264,7 +286,7 @@ class Vuelos:
                         col_idx_vuelo = flight_columns.index(vuelo_col)
                         col_idx_fecha = flight_columns.index(fecha_col)
                         col_idx_hora = flight_columns.index(hora_col)  
-                        #print(f"{vuelo_col} | {fecha_col} | {hora_col}")
+                        # print(f"{vuelo_col} | {fecha_col} | {hora_col}")
 
                         vuelo = excel_data.iloc[i, col_idx_vuelo]
                         fecha = excel_data.iloc[i, col_idx_fecha]
@@ -281,14 +303,22 @@ class Vuelos:
                                 hora = hora.strip().replace("-", " ")
                                 #print(f"LA HORA ES {type(hora)} {hora}")
 
-                        #print(f"{i} {vuelo} | {fecha} | {hora}")
-
-                        tripulante_vuelos[f'Vuelo {vuelo_num}'] = {
-                            "vuelo": vuelo,
-                            #"fecha": pd.to_datetime(fecha, errors='coerce'),
-                            "fecha": fecha,
-                            "hora": hora  # Mantener la hora como string, o usar pd.to_datetime si es necesario
-                        }
+                        if vuelo not in ["NO", "TBC"] and not pd.isna(vuelo):
+                            # print(f"(A) {i} {vuelo} | {fecha} | {hora}")
+                            tripulante_vuelos[f'Vuelo {vuelo_num}'] = {
+                                "vuelo": vuelo,
+                                #"fecha": pd.to_datetime(fecha, errors='coerce'),
+                                "fecha": fecha,
+                                "hora": hora  # Mantener la hora como string, o usar pd.to_datetime si es necesario
+                            }
+                        else:
+                            if pd.isna(vuelo):
+                                # print(f"(B) {i} {vuelo} | {fecha} | {hora}")
+                                print(f"[ERROR] Vuelo faltante")
+                            elif vuelo in ["NO", "TBC"]:
+                                # print(f"Vuelo {vuelo} omitido")
+                                vuelo_num += 1
+                                continue
 
                         # Incrementar el vuelo_num para buscar el siguiente conjunto
                         vuelo_num += 1
@@ -374,14 +404,25 @@ class Vuelos:
             date_flight_value = excel_data.iloc[i, col_idx_date_flight] if col_idx_date_flight is not None else None
             hora_flight_value = excel_data.iloc[i, col_idx_hora_flight] if col_idx_hora_flight is not None else None
 
+            # print(f"{nro_flight_value} | {date_flight_value} | {hora_flight_value}")
+
             # Incluso si los valores son nulos, agregar los vuelos con 'NaN' o entradas vacías
-            tripulante_vuelos[f'Vuelo {vuelos_num}'] = {
-                "vuelo": nro_flight_value if pd.notna(nro_flight_value) else 'No disponible',
-                #"fecha": pd.to_datetime(date_flight_value, errors='coerce') if pd.notna(date_flight_value) else 'No disponible',
-                "fecha": date_flight_value if pd.notna(date_flight_value) else 'No disponible',
-                "hora": hora_flight_value if pd.notna(hora_flight_value) else 'No disponible'
-            }
-            vuelos_num += 1  # Incrementar el número de vuelo para el siguiente
+            if nro_flight_value not in ["NO", "TBC"] and not pd.isna(nro_flight_value):
+                tripulante_vuelos[f'Vuelo {vuelos_num}'] = {
+                    "vuelo": nro_flight_value if pd.notna(nro_flight_value) else 'No disponible',
+                    #"fecha": pd.to_datetime(date_flight_value, errors='coerce') if pd.notna(date_flight_value) else 'No disponible',
+                    "fecha": date_flight_value if pd.notna(date_flight_value) else 'No disponible',
+                    "hora": hora_flight_value if pd.notna(hora_flight_value) else 'No disponible'
+                }
+                vuelos_num += 1  # Incrementar el número de vuelo para el siguiente
+            else:
+                if pd.isna(nro_flight_value):
+                    # print(f"(B) {i} {vuelo} | {fecha} | {hora}")
+                    print(f"[ERROR] Vuelo faltante")
+                elif nro_flight_value in ["NO", "TBC"]:
+                    # print(f"Vuelo {vuelo} omitido")
+                    vuelos_num += 1  # Incrementar el número de vuelo para el siguiente
+                    continue
 
             # Agregar la información del vuelo, aunque sea incompleta
             vuelos.append(tripulante_vuelos)
@@ -395,7 +436,7 @@ class Vuelos:
 def check_and_clean(file_path, vuelos_df, state, tipo):
     errors_to_check = []
 
-    print(tipo)
+    # print(f"El tipo es {tipo}")
 
     errors = []
     errors_message = []
@@ -466,7 +507,9 @@ def check_and_clean(file_path, vuelos_df, state, tipo):
             #print(f"Columna: {columna} | {state} | {tipo}")
             vuelo = df[columna].tolist()  # Convertir la columna en una lista
             for idx, registro in enumerate(vuelo):  # Iterar sobre los diccionarios
-                if str(registro.get('vuelo')).lower() != 'no':
+                if pd.isna(registro):
+                    continue
+                elif str(registro.get('vuelo')).lower() != 'no':
                     if str(registro.get('vuelo')).lower() == 'tbc':
                         continue
 
@@ -476,14 +519,14 @@ def check_and_clean(file_path, vuelos_df, state, tipo):
                             value = clean_value(value)
 
                             if not is_valid_date(value):
-                                print(f"NE 1 {state} | Registro {idx+2} en '{columna}': Vuelo es {value}")
+                                print(f"NE 1 {state} | Registro {idx+3} en '{columna}': Vuelo es {value}")
                                 sheet_name = state
                                 column_letter = get_column(df, columna)
                                 column_number = column_index_from_string(column_letter)
                                 cell_value = get_cell_value(file_path, sheet_name, 1, column_number)
-                                errors_to_check.append([idx+2, columna])
-                                errors.append([idx+2, column_letter])
-                                errors_message.append(f"Fecha inexistente en {cell_value} [{idx+2},{column_letter}]")
+                                errors_to_check.append([idx+3, columna])
+                                errors.append([idx+3, column_letter])
+                                errors_message.append(f"Fecha inexistente en {cell_value} [{idx+3},{column_letter}]")
                     else:
                         #print(f"{idx} | {registro.get('Date Pickup')}")
                         value = registro.get('fecha')
@@ -491,39 +534,39 @@ def check_and_clean(file_path, vuelos_df, state, tipo):
                         
                         if registro.get('fecha') == None or pd.isna(registro.get('fecha')):
                             if str(registro.get('vuelo')).lower() != 'no' and not pd.isna(registro.get('vuelo')):
-                                print(f"ER {state} | Registro {idx+2} en '{columna}': Vuelo es {registro.get('vuelo')}")
+                                print(f"ER {state} | Registro {idx+3} en '{columna}': Vuelo es {registro.get('vuelo')}")
                                 sheet_name = state
                                 column_letter = get_column(df, columna)
                                 column_number = column_index_from_string(column_letter)
                                 cell_value = get_cell_value(file_path, sheet_name, 1, column_number)
-                                errors_to_check.append([idx+2, columna])
-                                errors.append([idx+2, column_letter])
-                                errors_message.append(f"Formato incorrecto en {cell_value} [{idx+2},{column_letter}]")
+                                errors_to_check.append([idx+3, columna])
+                                errors.append([idx+3, column_letter])
+                                errors_message.append(f"Formato incorrecto en {cell_value} [{idx+3},{column_letter}]")
                                 continue
 
                             #print(f"{type(registro.get('vuelo'))} | {registro.get('vuelo')}")
                             #print(f"ER | Registro {idx+2} en '{columna}': Vuelo es {registro.get('fecha')}")
-                            print(f"ER {state} | Registro {idx+2} en '{columna}': Vuelo está vacío")
+                            print(f"ER {state} | Registro {idx+3} en '{columna}': Vuelo está vacío")
                             sheet_name = state
                             column_letter = get_column(df, columna)
                             column_number = column_index_from_string(column_letter)
                             cell_value = get_cell_value(file_path, sheet_name, 1, column_number)
-                            errors_to_check.append([idx+2, columna])
-                            errors.append([idx+2, column_letter])
-                            errors_message.append(f"Dato faltante en {cell_value} [{idx+2},{column_letter}]")
+                            errors_to_check.append([idx+3, columna])
+                            errors.append([idx+3, column_letter])
+                            errors_message.append(f"Dato faltante en {cell_value} [{idx+3},{column_letter}]")
                         else:
                             if not is_valid_date(value):
-                                print(f"NE 2 {state} | Registro {idx+2} en '{columna}': Vuelo es {registro.get('fecha')}")
+                                print(f"NE 2 {state} | Registro {idx+3} en '{columna}': Vuelo es {registro.get('fecha')}")
                                 sheet_name = state
                                 column_letter = get_column(df, columna)
                                 column_number = column_index_from_string(column_letter)
                                 cell_value = get_cell_value(file_path, sheet_name, 1, column_number)
-                                errors_to_check.append([idx+2, columna])
-                                errors.append([idx+2, column_letter])
-                                errors_message.append(f"Fecha inexistente en {cell_value} [{idx+2},{column_letter}]")
+                                errors_to_check.append([idx+3, columna])
+                                errors.append([idx+3, column_letter])
+                                errors_message.append(f"Fecha inexistente en {cell_value} [{idx+3},{column_letter}]")
                 else:
                     if str(registro.get('vuelo')).lower() != 'tbc' and str(registro.get('vuelo')).lower() != 'no':
-                        print(f"{state} | Registro {idx+2} en '{columna}': Vuelo es {registro.get('vuelo')}")
+                        print(f"{state} | Registro {idx+3} en '{columna}': Vuelo es {registro.get('vuelo')}")
                     # if registro.get('vuelo').lower() == 'no':
                     #     continue
                     # else:

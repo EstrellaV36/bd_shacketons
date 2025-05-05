@@ -141,13 +141,17 @@ class CargaMasivaScreen(QWidget):
 
         # Actualiza la tabla de "ON"
         # Mostrar los datos combinados en la pestaña "ON"
-        self.show_sheet(full_data_on, self.on_table_view, errors_on, errors_on_message)
+
+        print(f"Los errores en ON son = {errors_on}")
+        print(f"Los errores en ON son = {errors_on_message}")
+
+        self.show_sheet(full_data_on, self.on_table_view, errors_on, errors_on_message, "ON")
 
         # Actualiza la tabla de "OFF"
         # Mostrar los datos combinados en la pestaña "OFF"
-        self.show_sheet(full_data_off, self.off_table_view, errors_off, errors_off_message)
+        self.show_sheet(full_data_off, self.off_table_view, errors_off, errors_off_message, "OFF")
 
-    def show_sheet(self, df, table_view, errors_df, errors_message_df):
+    def show_sheet(self, df, table_view, errors_df, errors_message_df, state):
         highlighted_rows = errors_df
         model = PandasModel(df, highlighted_rows)
         table_view.setModel(model)
@@ -184,13 +188,13 @@ class CargaMasivaScreen(QWidget):
         if errors_message_df:
             error_messages = "\n".join(errors_message_df)  # Combina los errores en texto separado por líneas
             with open("errores_detectados.txt", "a") as error_file:  # Abre en modo append para no sobrescribir
-                error_file.write("Errores detectados:\n")
+                error_file.write(f"Errores detectados [{state}]:\n")
                 error_file.write(error_messages)
                 error_file.write("\n\n")
                 
             error_box = QMessageBox(self)
             error_box.setIcon(QMessageBox.Icon.Warning)
-            error_box.setWindowTitle("Errores en los datos")
+            error_box.setWindowTitle(f"Errores en los datos [{state}]")
             error_box.setText("Se encontraron los siguientes errores:")
             error_box.setDetailedText(error_messages)  # Mostrar los detalles con los errores específicos
             error_box.exec()

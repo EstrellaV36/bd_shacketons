@@ -37,19 +37,17 @@ class Hoteles:
         
     def _create_hotel(self, file_path, hotel_df, tripulantes_df, state):
         #print(f"Estoy creando hoteles de {state}")
+        # print(f"Hoteles de ({state}) = {hotel_df}")
         errors, errors_message = check_and_clean(file_path, hotel_df, state)
+        # print(f"Entre a create (1) {state}")
 
         try:
             if hotel_df.empty or tripulantes_df.empty:
-                #print("No hay hoteles o tripulantes para procesar.")
-                return
-            
-            #print("AÑA 0")
+                # print("No hay hoteles o tripulantes para procesar.")
+                return [], []
 
             # Extraer información de hoteles
             hoteles_info = self._extraer_hoteles_fechas(hotel_df)
-
-            #print("AÑA 1")
 
             # Asignar hoteles a tripulantes
             for i, tripulante_data in tripulantes_df.iterrows():
@@ -76,8 +74,6 @@ class Hoteles:
                     if not valid_entries:  # Si no hay entradas válidas, continuar
                         continue
 
-                    #print("AÑA 2")
-
                     for hotel_info in hotel_entries:  # Iterar sobre todos los hoteles asignados al tripulante
                         #print(hotel_info)
                         # if pd.isna(hotel_info['hotel']) or pd.isna(hotel_info['categoria']) or str(hotel_info['hotel']).lower() == 'no':
@@ -103,19 +99,19 @@ class Hoteles:
                             func.lower(Hotel.ciudad) == hotel_ciudad_normalizado
                         ).first()
 
-                        #print("AÑA 3")
-
-                        if not existing_hotel:
-                            # Crear nuevo hotel si no existe
-                            print(f"Creando nuevo hotel: {hotel_info['nombre_hotel']}, Ciudad: {hotel_info['ciudad']}")
-                            hotel = Hotel(
-                                nombre=hotel_info['nombre_hotel'].strip(),
-                                ciudad=hotel_info['ciudad'].strip(),
-                            )
-                            self.db_session.add(hotel)
-                            self.db_session.flush()  # Obtener el ID del hotel recién creado
-                        else:
-                            hotel = existing_hotel
+                        print(hotel_nombre_normalizado)
+                        if hotel_ciudad_normalizado != "no":
+                            if not existing_hotel:
+                                # Crear nuevo hotel si no existe
+                                print(f"Creando nuevo hotel: {hotel_info['nombre_hotel']}, Ciudad: {hotel_info['ciudad']}")
+                                hotel = Hotel(
+                                    nombre=hotel_info['nombre_hotel'].strip(),
+                                    ciudad=hotel_info['ciudad'].strip(),
+                                )
+                                self.db_session.add(hotel)
+                                self.db_session.flush()  # Obtener el ID del hotel recién creado
+                            else:
+                                hotel = existing_hotel
 
                         # Verificar si ya existe la relación entre tripulante y hotel
                         #print(hotel_info['check_in'])
@@ -131,7 +127,7 @@ class Hoteles:
                             continue  # Omitir creación de nueva relación si ya existe
 
                         if hotel_info['nombre_hotel'] != 'TBC':
-                            x = i+2
+                            x = i+3
                             if hotel_info['check_in'] == None:
                                 #y = 37 + (5 * hotel_info['nro']) - 3
                                 #letra_columna = self.indice_a_letra_columna(y)
@@ -174,6 +170,7 @@ class Hoteles:
             print(f"Error general al asignar hoteles: {e}")
             ###traceback.print_exc()
         
+        # print(f"Errores de hotel ({state}) = {errors, errors_message}")
         return errors, errors_message
 
     def _extraer_hoteles_fechas(self, hotel_df):
@@ -304,23 +301,39 @@ class Hoteles:
                     nombre_hotel = excel_data.iloc[i, col_idx_hotel_name]
 
                     #print(check_out)
+                    
+                    if not pd.isna(categoria):
+                        # Si hay información válida en las columnas, agregarla
+                        #if pd.notna(categoria) and pd.notna(hotel):
+                        tripulante_hotels[f'Hotel {hotel_num}'] = {
+                            "categoria": categoria if categoria else None,
+                            "hotel": hotel if hotel else None,
+                            #"check_in": pd.to_datetime(check_in, errors='coerce') if check_in else None,
+                            "check_in": check_in if check_in else None,
+                            "check_out": pd.to_datetime(check_out, errors='coerce') if check_out else None,
+                            "habitacion": habitacion if habitacion else None,
+                            "nombre_hotel": nombre_hotel if nombre_hotel else None,
+                            "nro": hotel_num if hotel_num else None
+                        }
+                        found_hotels = True  # Se encontró al menos un hotel
 
-                    # Si hay información válida en las columnas, agregarla
-                    #if pd.notna(categoria) and pd.notna(hotel):
-                    tripulante_hotels[f'Hotel {hotel_num}'] = {
-                        "categoria": categoria if categoria else None,
-                        "hotel": hotel if hotel else None,
-                        #"check_in": pd.to_datetime(check_in, errors='coerce') if check_in else None,
-                        "check_in": check_in if check_in else None,
-                        "check_out": pd.to_datetime(check_out, errors='coerce') if check_out else None,
-                        "habitacion": habitacion if habitacion else None,
-                        "nombre_hotel": nombre_hotel if nombre_hotel else None,
-                        "nro": hotel_num if hotel_num else None
-                    }
-                    found_hotels = True  # Se encontró al menos un hotel
+                        # Incrementar el número de hotel para buscar el siguiente conjunto
+                        hotel_num += 1
+                    else:
+                        # print(categoria)
+                        tripulante_hotels[f'Hotel {hotel_num}'] = {
+                            "categoria": None,
+                            "hotel": hotel if hotel else None,
+                            #"check_in": pd.to_datetime(check_in, errors='coerce') if check_in else None,
+                            "check_in": check_in if check_in else None,
+                            "check_out": pd.to_datetime(check_out, errors='coerce') if check_out else None,
+                            "habitacion": habitacion if habitacion else None,
+                            "nombre_hotel": nombre_hotel if nombre_hotel else None,
+                            "nro": hotel_num if hotel_num else None
+                        }
+                        print("[ERROR] Categoria faltante en ...")
+                        hotel_num += 1
 
-                    # Incrementar el número de hotel para buscar el siguiente conjunto
-                    hotel_num += 1
                 else:
                     break  # Detener la búsqueda si no se encuentra una de las columnas
 
@@ -407,7 +420,10 @@ def check_and_clean(file_path, hoteles_df, state):
         sheet_name = state
         indices = {key: idx for idx, key in enumerate(df.keys())}
         x = indices[columna]
-        y = get_excel_column_letter(file_path, sheet_name, f"{column} {x+1}")
+        if column != "Categoria":
+            y = get_excel_column_letter(file_path, sheet_name, f"{column} {x+1}")
+        else:
+            y = get_excel_column_letter(file_path, sheet_name, "Category")
         return y
     
     def check_date(df, registro, idx, columna, column, x):
@@ -471,10 +487,10 @@ def check_and_clean(file_path, hoteles_df, state):
                     else:
                         if pd.isna(registro.get('hotel')):
                             column_letter = get_column(df, columna, 'Hotel')
-                            errors_to_check.append([idx+2, columna])
-                            errors.append([idx+2, column_letter])
-                            errors_message.append(f"Dato faltante [{idx+2},{column_letter}]")
-                            print(f"{idx+2},{column_letter} {state} {columna} | Error hotel vacío")         
+                            errors_to_check.append([idx+3, columna])
+                            errors.append([idx+3, column_letter])
+                            errors_message.append(f"Dato faltante [{idx+3},{column_letter}]")
+                            print(f"{idx+3},{column_letter} {state} {columna} | Error hotel vacío")         
                             continue
                         else:
                             if isinstance(registro.get('hotel'), str):  # Asegurarse de que sea una cadena antes de dividir
@@ -485,56 +501,56 @@ def check_and_clean(file_path, hoteles_df, state):
                                         column_letter = get_column(df, columna, 'Hotel')
                                         errors_to_check.append([idx, columna])
                                         errors.append([idx, column_letter])
-                                        errors_message.append(f"Formato incorrecto [{idx+2},{column_letter}]")
-                                        print(f"{idx+2},{column_letter} | Formato incorrecto en el nombre del hotel: '{hotel}'")
+                                        errors_message.append(f"Formato incorrecto [{idx+3},{column_letter}]")
+                                        print(f"{idx+3},{column_letter} | Formato incorrecto en el nombre del hotel: '{hotel}'")
                                     else:
                                         if hotel_parts[1].upper() in CITY_AIRPORT_CODES:
                                             if normalize_string(hotel_parts[0]) not in ['hotel', 'autogestion']:
                                                 column_letter = get_column(df, columna, 'Hotel')
                                                 errors_to_check.append([idx, columna])
                                                 errors.append([idx, column_letter])   
-                                                errors_message.append(f"Debe comenzar con 'hotel' o 'autogestión' [{idx+2},{column_letter}]")
-                                                print(f"{idx+2},{column_letter} | La primera palabra debe ser 'hotel' o 'autogestión': '{hotel}'")     
+                                                errors_message.append(f"Debe comenzar con 'hotel' o 'autogestión' [{idx+3},{column_letter}]")
+                                                print(f"{idx+3},{column_letter} | La primera palabra debe ser 'hotel' o 'autogestión': '{hotel}'")     
                                         else:
                                             column_letter = get_column(df, columna, 'Hotel')
                                             errors_to_check.append([idx, columna])
                                             errors.append([idx, column_letter])
-                                            errors_message.append(f"Ciudad no válida [{idx+2},{column_letter}]")
-                                            print(f"{idx+2},{column_letter} | La segunda palabra debe ser una ciudad válida '{hotel}'")
+                                            errors_message.append(f"Ciudad no válida [{idx+3},{column_letter}]")
+                                            print(f"{idx+3},{column_letter} | La segunda palabra debe ser una ciudad válida '{hotel}'")
                                 else:
                                     if hotel.lower() in ('no', 'tbc'):
                                         continue
-                                    print(f"{idx+2},{column_letter} | El valor de 'hotel' debe ser una cadena, pero se recibió: {type(hotel).__name__}")
+                                    print(f"{idx+3},{column_letter} | El valor de 'hotel' debe ser una cadena, pero se recibió: {type(hotel).__name__}")
 
                             if pd.isna(registro.get('check_in')):
                                 column_letter = get_column(df, columna, 'Check in')
-                                errors_to_check.append([idx+2, columna])
-                                errors.append([idx+2, column_letter])
+                                errors_to_check.append([idx+3, columna])
+                                errors.append([idx+3, column_letter])
                                 skip = True
-                                errors_message.append(f"Check in faltante [{idx+2},{column_letter}]")
-                                print(f"{idx+2},{column_letter} {state} {columna} | Error check in vacío")
+                                errors_message.append(f"Check in faltante [{idx+3},{column_letter}]")
+                                print(f"{idx+3},{column_letter} {state} {columna} | Error check in vacío")
                             else:
                                 column_letter = check_date(df, registro, idx, columna, 'check_in', 'Check in')
                                 if column_letter != True:
-                                    errors_to_check.append([idx+2, columna])
-                                    errors.append([idx+2, column_letter])
-                                    errors_message.append(f"Formato de check in no válido [{idx+2},{column_letter}]")
-                                    print(f"{idx+2},{column_letter} {state} {columna} | Error en formato de check in")
+                                    errors_to_check.append([idx+3, columna])
+                                    errors.append([idx+3, column_letter])
+                                    errors_message.append(f"Formato de check in no válido [{idx+3},{column_letter}]")
+                                    print(f"{idx+3},{column_letter} {state} {columna} | Error en formato de check in")
 
                             if pd.isna(registro.get('check_out')):
                                 column_letter = get_column(df, columna, 'Check out')
-                                errors_to_check.append([idx+2, columna])
-                                errors.append([idx+2, column_letter])
-                                errors_message.append(f"Check out faltante [{idx+2},{column_letter}]")
+                                errors_to_check.append([idx+3, columna])
+                                errors.append([idx+3, column_letter])
+                                errors_message.append(f"Check out faltante [{idx+3},{column_letter}]")
                                 skip = True
-                                print(f"{idx+2},{column_letter} {state} {columna} | Error check out vacío")
+                                print(f"{idx+3},{column_letter} {state} {columna} | Error check out vacío")
                             else:
                                 column_letter = check_date(df, registro, idx, columna, 'check_out', 'Check out')
                                 if column_letter != True:
-                                    errors_to_check.append([idx+2, columna])
-                                    errors.append([idx+2, column_letter])
-                                    errors_message.append(f"Formato de check out no válido [{idx+2},{column_letter}]")
-                                    print(f"{idx+2},{column_letter} {state} {columna} | Error en formato de check out")
+                                    errors_to_check.append([idx+3, columna])
+                                    errors.append([idx+3, column_letter])
+                                    errors_message.append(f"Formato de check out no válido [{idx+3},{column_letter}]")
+                                    print(f"{idx+3},{column_letter} {state} {columna} | Error en formato de check out")
 
                             if not pd.isna(registro.get('habitacion')):
                                 room = registro.get('habitacion')
@@ -544,29 +560,29 @@ def check_and_clean(file_path, hoteles_df, state):
                                         column_letter = get_column(df, columna, 'Rooms')
                                         errors_to_check.append([idx, columna])
                                         errors.append([idx, column_letter])
-                                        errors_message.append(f"Formato incorrecto [{idx+2},{column_letter}]")
-                                        print(f"{idx+2},{column_letter} | Formato incorrecto en el nombre del room: '{room}'")
+                                        errors_message.append(f"Formato incorrecto [{idx+3},{column_letter}]")
+                                        print(f"{idx+3},{column_letter} | Formato incorrecto en el nombre del room: '{room}'")
                                     else:
                                         # Verificar que la primera palabra sea 'room' o 'autogestión'
                                         if normalize_string(room_parts[0]) not in ['single', 'doble']:
                                             column_letter = get_column(df, columna, 'Rooms')
                                             errors_to_check.append([idx, columna])
                                             errors.append([idx, column_letter])
-                                            errors_message.append(f"Debe comenzar con 'single' o 'doble' [{idx+2},{column_letter}]")
-                                            print(f"{idx+2},{column_letter} | La primera palabra debe ser 'single' o 'doble': '{room}'")
+                                            errors_message.append(f"Debe comenzar con 'single' o 'doble' [{idx+3},{column_letter}]")
+                                            print(f"{idx+3},{column_letter} | La primera palabra debe ser 'single' o 'doble': '{room}'")
                             else:
                                 column_letter = get_column(df, columna, 'Rooms')
                                 errors_to_check.append([idx, columna])
                                 errors.append([idx, column_letter])
-                                errors_message.append(f"Room faltante [{idx+2},{column_letter}]")
-                                print(f"{idx+2},{column_letter} {columna} {state} | El valor de 'room' está vacío")
+                                errors_message.append(f"Room faltante [{idx+3},{column_letter}]")
+                                print(f"{idx+3},{column_letter} {columna} {state} | El valor de 'room' está vacío")
 
                             if pd.isna(registro.get('nombre_hotel')):
                                 column_letter = get_column(df, columna, 'Nombre Hotel')
                                 errors_to_check.append([idx, columna])
                                 errors.append([idx, column_letter])
-                                errors_message.append(f"Nombre de hotel faltante [{idx+2},{column_letter}]")
-                                print(f"{idx+2},{column_letter} {columna} {state} | El valor de 'nombre_hotel' está vacío")
+                                errors_message.append(f"Nombre de hotel faltante [{idx+3},{column_letter}]")
+                                print(f"{idx+3},{column_letter} {columna} {state} | El valor de 'nombre_hotel' está vacío")
 
                             if skip:
                                 continue
@@ -576,8 +592,10 @@ def check_and_clean(file_path, hoteles_df, state):
                     column_letter = get_column(df, columna, 'Categoria')
                     errors_to_check.append([idx, columna])
                     errors.append([idx, column_letter])
-                    print(f"{idx+2},{column_letter} {state} {columna} | Error falta categoría") ### MENSAJE DE ERROR PARA CUANDO NO TIENE LA CATEGORIA
+                    errors_message.append(f"Categoría faltante [{idx+3},{column_letter}]")
+                    print(f"{idx+3},{column_letter} {state} {columna} | Error falta categoría") ### MENSAJE DE ERROR PARA CUANDO NO TIENE LA CATEGORIA
                     continue
 
     check_column()
+    # print(f"Errores de hotel ({state})= {errors}, {errors_message}")
     return errors, errors_message

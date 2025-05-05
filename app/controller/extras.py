@@ -68,7 +68,7 @@ class Extras:
                         pass
 
                     if existing_tripulante_extra:
-                        existing_tripulante_extra.comments = comments=extras.loc[i]['Comentarios']  # Actualizar el estado 'activo'
+                        existing_tripulante_extra.comments =extras.loc[i]['Comentarios']  # Actualizar el estado 'activo'
                         self.db_session.add(existing_tripulante_extra)
                     else:
                         extra = Extra(

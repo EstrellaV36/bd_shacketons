@@ -30,9 +30,11 @@ class Viajes:
             if viaje_existente:
                 # Si el viaje ya existe, actualizar el campo 'activo' si es diferente
                 if viaje_existente.activo != activo:
-                    #print(f"El viaje ya existe. Actualizando el campo 'activo' de {viaje_existente.viaje_id} a {activo}")
+                    # print(f"El viaje ya existe. Actualizando el campo 'activo' de {viaje_existente.viaje_id} a {activo}")
                     viaje_existente.activo = activo  # Actualizar el estado 'activo'
                     self.db_session.add(viaje_existente)  # Asegurarse de que se guarde el cambio
+                    self.db_session.commit()
+
                 else:
                     #print(f"El viaje para Tripulante ID {tripulante_id}, Buque ID {buque_id}, Estado {estado} ya existe y está activo como {activo}.")
                     pass
@@ -73,11 +75,12 @@ class Viajes:
     def _create_viajes_from_dataframes(self, tripulantes_on, tripulantes_off, buques_on, buques_off):
         try:
             # Iterar sobre los DataFrames ON
+
             for index, row in buques_on.iterrows():
                 # Buscar el buque en la base de datos por nombre y empresa
-                buque = self.db_session.query(Buque).filter_by(nombre=row["Vessel"], empresa=row["Owner"]).first()
+                buque = self.db_session.query(Buque).filter_by(nombre=(row["Vessel"]).strip(), empresa=row["Owner"]).first()
                 if not buque:
-                    #print(f"Error: No se encontró el buque con nombre '{row['Vessel']}' y empresa '{row['Owner']}'")
+                    print(f"Error: No se encontró el buque con nombre '{row['Vessel']}' y empresa '{row['Owner']}'")
                     continue 
 
                 # Buscar el tripulante en la base de datos por pasaporte o, si es nulo, por nombre y apellido
@@ -94,7 +97,7 @@ class Viajes:
                     #print(f"Buscando {tripulantes_on.loc[index, "First name"]} {tripulantes_on.loc[index, "Last name"]}")
                     nombre = tripulantes_on.loc[index, "First name"]
                     apellido = tripulantes_on.loc[index, "Last name"]
-                    #print(f"Encontrado: {nombre} {apellido}")
+                    # print(f"Encontrado: {nombre} {apellido}")
 
                     tripulante = self.db_session.query(Tripulante).filter_by(nombre=nombre, apellido=apellido).first()
 
@@ -105,9 +108,13 @@ class Viajes:
 
                 # Verificar y asignar la columna 'Activo'
                 activo_valor = buques_on.loc[index].get("Activo")
-                if activo_valor is None:
-                    #print(f"Advertencia: Columna 'Activo' faltante o vacía en fila {index}")
+                if pd.isna(activo_valor):
+                    print(f"[ERROR] Columna 'Activo' faltante o vacía en fila {index}")
                     continue
+                else:
+                    activo_valor = activo_valor.upper()
+
+                # print(f"El valor de activo es: [{index}] | {activo_valor}")
 
                 # Convertir el valor de 'Activo' a booleano
                 activo = True if str(activo_valor).strip().upper() == "SI" else False
@@ -131,6 +138,7 @@ class Viajes:
 
                 # Verificar y asignar la columna 'Activo'
                 activo_valor = buques_off.loc[index].get("Activo")
+                # print(f"El valor de activo es: [{index}]{activo_valor}")
                 if activo_valor is None:
                     #print(f"Advertencia: Columna 'Activo' faltante o vacía en fila {index}")
                     continue
