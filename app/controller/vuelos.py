@@ -91,7 +91,7 @@ class Vuelos:
                         hora += "+1"
                     #print(f"Hora reparada automáticamente: '{hora}'")
 
-                match_horas = re.match(r'^(\d{1,2}:\d{2})[-\s](\d{1,2}:\d{2})(\+1)?$', hora)
+                match_horas = re.match(r'^(\d{1,2}:\d{2})[-\s](\d{1,2}:\d{2})(\+\d+)?$', hora)
                 #if not match_horas:
                     #if isinstance(hora, str) and hora != "TBC":
                         #print(hora)
@@ -138,8 +138,12 @@ class Vuelos:
             #print(f"{hora_llegada} | {hora_salida}")
 
             # Ajustar fecha de llegada si contiene '+1'
+
+            # print(dia_siguiente)
             if dia_siguiente:
-                hora_llegada += timedelta(days=1)
+                numero_de_dias = int(dia_siguiente.lstrip("+"))  # convertir a int
+                hora_llegada += timedelta(days=numero_de_dias)
+                print(hora_llegada)
                 # print(f"Hora llegada ajustada por día siguiente: {hora_llegada}")
 
             # Buscar las ciudades en el diccionario de aeropuertos

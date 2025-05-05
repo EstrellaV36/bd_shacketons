@@ -309,60 +309,6 @@ class TransportesScreen(QWidget):
                             "nacionalidad": transporte.Nacionalidad
                         })
 
-                # Caso 'HOTEL-VESSEL'
-                elif 'HOTEL-VESSEL' == tramo:
-                    vuelos_salida = [v for v in vuelos if v.Aeropuerto_Salida.lower() == city_select]
-                    for vuelo in vuelos_salida:
-                        codigo = f"{str(vuelo.Codigo)} {CITY_TO_AIRPORT_CODES.get(vuelo.Aeropuerto_Salida)}-{CITY_TO_AIRPORT_CODES.get(vuelo.Aeropuerto_Llegada)}"
-                        tiempo_a_restar = timedelta(hours=3) if city_select == 'scl' else timedelta(hours=2)
-                        hora_pick_up = (vuelo.Hora_Salida - tiempo_a_restar).time()
-                        data_rows.append({
-                            "estado": transporte.Estado,
-                            "fecha_pickup": date_pickup,
-                            "hora_pick_up": hora_pick_up,
-                            "nombre_hotel": hotel.Nombre_Hotel if hotel else "Sin hotel",
-                            "ciudad_transporte_in": transporte.Ciudad_Transporte_in,
-                            "lugar_transporte_in": transporte.Lugar_Transporte_in,
-                            "ciudad_transporte_end": transporte.Ciudad_Transporte_end,
-                            "lugar_transporte_end": transporte.Lugar_Transporte_end,
-                            "codigo_vuelo": codigo,
-                            "fecha_vuelo": vuelo.Fecha.date(),
-                            "hora_salida": None,
-                            "hora_llegada": vuelo.Hora_Llegada.time(),
-                            "owner": owner,
-                            "buque": buque,
-                            "eta": eta,
-                            "first_name": transporte.First_Name,
-                            "last_name": transporte.Last_Name,
-                            "nacionalidad": transporte.Nacionalidad
-                        })
-
-                # Caso 'VESSEL-HOTEL'
-                elif 'VESSEL-HOTEL' == tramo:
-                    vuelos_bus = [v for v in vuelos if v.Codigo.lower() == 'bus']
-                    for vuelo in vuelos_bus:
-                        codigo = f"{str(vuelo.Codigo)} {CITY_TO_AIRPORT_CODES.get(vuelo.Aeropuerto_Salida)}-{CITY_TO_AIRPORT_CODES.get(vuelo.Aeropuerto_Llegada)}"
-                        data_rows.append({
-                            "estado": transporte.Estado,
-                            "fecha_pickup": date_pickup,
-                            "hora_pick_up": transporte.Hora_Pickup,
-                            "nombre_hotel": hotel.Nombre_Hotel if hotel else "Sin hotel",
-                            "ciudad_transporte_in": transporte.Ciudad_Transporte_in,
-                            "lugar_transporte_in": transporte.Lugar_Transporte_in,
-                            "ciudad_transporte_end": transporte.Ciudad_Transporte_end,
-                            "lugar_transporte_end": transporte.Lugar_Transporte_end,
-                            "codigo_vuelo": codigo,
-                            "hora_salida": None,
-                            "fecha_vuelo": vuelo.Fecha.date(),
-                            "hora_llegada": vuelo.Hora_Llegada.time(),
-                            "owner": owner,
-                            "buque": buque,
-                            "eta": eta,
-                            "first_name": transporte.First_Name,
-                            "last_name": transporte.Last_Name,
-                            "nacionalidad": transporte.Nacionalidad
-                        })
-
                 elif 'ATO-NAVE' == tramo or 'NAVE-ATO' == tramo or 'NAVE-HOTEL' == tramo:
                     vuelos_llegada = [v for v in vuelos if v.Aeropuerto_Llegada.lower() == city_select]
                     for vuelo in vuelos_llegada:

@@ -152,6 +152,9 @@ class CargaMasivaScreen(QWidget):
         self.show_sheet(full_data_off, self.off_table_view, errors_off, errors_off_message, "OFF")
 
     def show_sheet(self, df, table_view, errors_df, errors_message_df, state):
+        df = df.copy()
+        df.insert(0, "Índice [Excel]", range(3, len(df) + 3))
+
         highlighted_rows = errors_df
         model = PandasModel(df, highlighted_rows)
         table_view.setModel(model)
