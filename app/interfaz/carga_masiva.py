@@ -5,6 +5,7 @@ from app.controller.controllers import Controller
 from app.database import get_db_session
 import pandas as pd
 from openpyxl import load_workbook
+from datetime import datetime
 import json
 import os
 
@@ -18,6 +19,7 @@ class CargaMasivaScreen(QWidget):
         
         self.main_window = main_window
         self.setup_ui()
+        self.nombre_archivo_errores = None
 
     def setup_ui(self):
         layout = QVBoxLayout(self)
@@ -189,17 +191,26 @@ class CargaMasivaScreen(QWidget):
 
         # Mostrar errores si existen
         if errors_message_df:
-            error_messages = "\n".join(errors_message_df)  # Combina los errores en texto separado por líneas
-            with open("errores_detectados.txt", "a") as error_file:  # Abre en modo append para no sobrescribir
-                error_file.write(f"Errores detectados [{state}]:\n")
+            error_messages = "\n".join(errors_message_df)
+
+            # Crear el archivo si es la primera vez
+            if self.nombre_archivo_errores is None:
+                ahora = datetime.now()
+                fecha_hora_str = ahora.strftime("%Y-%m-%d_%H-%M")
+                self.nombre_archivo_errores = f"errores_detectados_{fecha_hora_str}.txt"
+
+            # Escribir en modo "append" para no sobrescribir
+            with open(self.nombre_archivo_errores, "a") as error_file:
+                error_file.write(f"Errores detectados en {state}:\n")
                 error_file.write(error_messages)
                 error_file.write("\n\n")
-                
+
+            # Mostrar ventana con errores
             error_box = QMessageBox(self)
             error_box.setIcon(QMessageBox.Icon.Warning)
             error_box.setWindowTitle(f"Errores en los datos [{state}]")
             error_box.setText("Se encontraron los siguientes errores:")
-            error_box.setDetailedText(error_messages)  # Mostrar los detalles con los errores específicos
+            error_box.setDetailedText(error_messages)
             error_box.exec()
 
     def on_load_finished(self):
