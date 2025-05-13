@@ -22,131 +22,7 @@ import json
 from openpyxl import Workbook
 from PyQt6.QtWidgets import QFileDialog
 
-CITY_AIRPORT_CODES = {
-    'PUQ': "PUNTA ARENAS",
-    'SCL': "SANTIAGO",
-    'PMC': "PUERTO MONTT",
-    'VAP': "VALPARAISO",
-    'ZAL': "VALDIVIA",
-    'WPU': "PUERTO WILLIAMS",
-    'CDG': 'PARIS',  # París, Francia
-    'NY': 'NUEVA YORK',  # Nueva York, EE. UU.
-    'SPU': 'SPLIT',  # Split, Croacia
-    'ZAG': 'ZAGREB',  # Zagreb, Croacia
-    'AMS': 'AMSTERDAM',  # Ámsterdam, Países Bajos
-    'EZE': 'BUENOS AIRES',  # Buenos Aires, Argentina
-    'LUN': "LUSAKA",  # Lusaka, Zambia
-    'DOH': "DOHA",  # Doha, Catar
-    'PUJ': "PUNTA CANA",  # Punta Cana, República Dominicana
-    'LIM': "LIMA",  # Lima, Perú
-    'ANF': "ANTOFAGASTA",  # Antofagasta, Chile
-    'IQQ': "IQUIQUE",  # Iquique, Chile
-    'CCP': "CONCEPCIÓN",  # Concepción, Chile
-    'LSC': "LA SERENA",  # La Serena, Chile
-    'ARI': "ARICA",  # Arica, Chile
-    'IPC': "RAPA NUI",  # Rapa Nui, Chile
-    'LAX': "LOS ÁNGELES",  # Los Ángeles, EE. UU.
-    'JFK': "NUEVA YORK",  # Nueva York, EE. UU.
-    'MAD': "MADRID",  # Madrid, España
-    'LHR': "LONDRES",  # Londres, Reino Unido
-    'DXB': "DUBÁI",  # Dubái, Emiratos Árabes Unidos
-    'MQP': "MPUMALANGA",  # Mpumalanga, Sudáfrica
-    'JNB': "JOHANNESBURGO",  # Johannesburgo, Sudáfrica
-    'FRA': 'FRANKFURT',  # Frankfurt, Alemania
-    'LCA': "LÁRNACA",  # Lárnaca, Chipre
-    'ZRH': "ZÚRICH",  # Zúrich, Suiza
-    'GOX': "GOLFE DE GARABOGAZ",  # Golfe de Garabogaz, Turkmenistán
-    'TRV': "THIRUVANANTHAPURAM",  # Thiruvananthapuram, India
-    'PVG': "SHANGHAI",  # Shanghái, China
-    'CGK': "YAKARTA",  # Yakarta, Indonesia
-    'BDS': "BRINDISI",  # Brindisi, Italia
-    'GRU': "SÃO PAULO",  # São Paulo, Brasil
-    'NBO': "NAIROBI",  # Nairobi, Kenia
-    'ICN': "SEÚL",  # Seúl, Corea del Sur
-    'HRE': "HARARE",  # Harare, Zimbabue
-    'OTP': "BUCARESTANT",  # Bucarest, Rumanía
-    'AKL': "AUCKLAND",  # Auckland, Nueva Zelanda
-    'FCO': "ROMA",  # Roma, Italia
-    'PTY': "PANAMÁ",  # Ciudad de Panamá, Panamá
-    'MNL': "MANILA",  # Manila, Filipinas
-    'IST': "ESTAMBUL",  # Estambul, Turquía
-    'LED': "SAN PETERSBURGO",  # San Petersburgo, Rusia
-    'IMF': "IMPHAL",  # Imphal, India
-    'TDG': "TANDAG",  # Tandag, Filipinas
-    'SUB': "SURABAYA",  # Surabaya, Indonesia
-    'MGA': "MANAGUA",  # Managua, Nicaragua
-    'DEL': "DELHI",  # Delhi, India
-    'GEO': "GEORGETOWN",  # Georgetown, Guyana
-    'DPS': "DENPASAR",  # Denpasar, Indonesia
-    'MIA': "MIAMI",  # Miami, EE. UU.
-    'SAL': "SAN SALVADOR",  # San Salvador, El Salvador
-    'MRU': "MAURICIO",  # Mauricio, Isla de Mauricio
-    'JKT': "YAKARTA",  # Yakarta, Indonesia
-    'SAP': "SAN PEDRO SULA",  # San Pedro Sula, Honduras
-    'SOC': "SOLO CITY",  # Solo City, Indonesia
-    'MBJ': "MONTEGO BAY",  # Montego Bay, Jamaica
-    'BOM': "BOMBAY",  # Bombay, India
-    'GUA': "CIUDAD DE GUATEMALA",  # Ciudad de Guatemala, Guatemala
-    'CCU': "CALCUTA",  # Calcuta, India
-    'COK': "COCHIN",  # Cochin, India
-    'CMB': "COLOMBO",  # Colombo, Sri Lanka
-    'LHE': "LAHORE",  # Lahore, Pakistán
-    'HKG': "HONG KONG",  # Hong Kong, China
-    'KHI': "KARACHI",  # Karachi, Pakistán
-    'ZHA': "ZHANGJIAJIE",  # Zhangjiajie, China
-    'SFO': "SAN FRANCISCO",  # San Francisco, EE. UU.
-    'TBS': "TBILISI",  # Tbilisi, Georgia
-    'GVA': "GINEBRA",  # Ginebra, Suiza
-    'IAH': "HOUSTON",  # Houston, EE. UU.
-    'IKF': "IKARIA",  # Ikaria, Grecia
-    'LYR': "LONGYEARBYEN",  # Longyearbyen, Noruega
-    'OSL': "OSLO",  # Oslo, Noruega
-    'STO': "ESTOCOLMO",  # Estocolmo, Suecia
-    'VIE': "VIENA",  # Viena, Austria
-    'SHA': "SHANGHAI",  # Shanghái, China
-    'KIX': "OSAKA",  # Osaka, Japón
-    'CAN': "GUANGZHOU",  # Cantón, China
-    'KTM': "KATHMANDU",  # Katmandú, Nepal
-    'BKK': "BANGKOK",  # Bangkok, Tailandia
-    'MAN': "MANCHESTER",  # Manchester, Reino Unido
-    'SGN': "CIUDAD HO CHI MINH",  # Ciudad Ho Chi Minh, Vietnam
-    'TPE': "TAIPEI",  # Taipéi, Taiwán
-    'YVR': "VANCOUVER",  # Vancouver, Canadá
-    'VCE': "VENECIA",  # Venecia, Italia
-    'BEY': "BEIRUT",  # Beirut, Líbano
-    'GMP': "SEOUL",  # Seúl, Corea del Sur
-    'PEK': "PEKÍN",  # Pekín, China
-    'CAG': "CAGLIARI",  # Cagliari, Italia
-    'BCN': "BARCELONA",  # Barcelona, España
-    'KIS': "KISUMU",  # Kisumu, Kenia
-    'ORD': "CHICAGO O'HARE",  # Chicago O'Hare, EE. UU.
-    'MEX': "CIUDAD DE MÉXICO",  # Ciudad de México, México
-    'YUL': "MONTREAL",  # Montreal, Canadá
-    'SEA': "SEATTLE",  # Seattle, EE. UU.
-    'MRS': "MARSILLA",  # Marsella, Francia
-    'NCE': "NIZA",  # Niza, Francia
-    'MEL': "MELBOURNE",  # Melbourne, Australia
-    'CPT': "CIUDAD DEL CABO",  # Ciudad del Cabo, Sudáfrica
-    'FMO': "MÜNSTER/OSNABRÜCK",  # Münster/Osnabrück, Alemania
-    'MUC': "MÚNICH",  # Múnich, Alemania
-    'FLN': "FLORIANÓPOLIS",  # Florianópolis, Brasil
-    'GOA': "GOA",  # Goa, India
-    'WLG': "WELLINGTON",  # Wellington, Nueva Zelanda
-    'CPH': "COPENHAGUE",  # Copenhague, Dinamarca
-    'VLC': "VALENCIA",  # Valencia, España
-    'NRT': "NARITA",  # Narita, Tokio, Japón
-    'IKF': "IKARIA",  # Ikaria, Grecia
-    'JFK': "NUEVA YORK",  # Nueva York, EE. UU.
-    'ADD': "ADDIS ABEBA",  # Addis Abeba, Etiopía
-    'XIY': "XIAN",  # Xi'an, China
-    'SYD': "SÍDNEY",  # Sídney, Australia
-    'BJL': "BANJUL",  # Banjul, Gambia
-    'BRU': "BRUSELAS",  # Bruselas, Bélgica
-    'DFW': "DALLAS",  # Dallas, EE. UU.
-    'PMO': "PALERMO",  # Palermo, Italia
-    'VFA': "VICTORIA FALLS",  # Victoria Falls, Zimbabue
-    'BRE': "BREMEN",  # Bremen, Alemania
-}
+from app.controller.constants import CITY_AIRPORT_CODES, CITY_TO_AIRPORT_CODES
 
 CITY_TO_AIRPORT_CODES = {city: code for code, city in CITY_AIRPORT_CODES.items()}
 
@@ -251,7 +127,7 @@ class VisualizacionDatosScreen(QWidget):
 
         # Crear archivo Excel con estilos
         self.create_excel(file_path, on_data, off_data, header_styles)
-        print(f"Archivo exportado exitosamente a {file_path}")
+        # print(f"Archivo exportado exitosamente a {file_path}")
 
     def add_data_to_sheet(self, sheet, data, header_styles, sheet_type):
         """Agrega datos y aplica estilos a una hoja de Excel."""
@@ -297,8 +173,8 @@ class VisualizacionDatosScreen(QWidget):
 
         # Limpiar encabezados y estilos eliminando espacios adicionales
         data.columns = [col.strip() for col in data.columns]  # Convertir los encabezados a minúsculas, solo si se necesita
-        print("Encabezados de la tabla:", data.columns)
-        print("Estilos disponibles:", styles.keys())
+        # print("Encabezados de la tabla:", data.columns)
+        # print("Estilos disponibles:", styles.keys())
 
         # Aplicar estilo a cada encabezado
         for col_num, header in enumerate(data.columns, start=1):
@@ -306,7 +182,7 @@ class VisualizacionDatosScreen(QWidget):
             cell.alignment = Alignment(horizontal="center", vertical="center")
 
             header_cleaned = header.strip()  # Limpiar encabezado
-            print(f"Comparando: '{header_cleaned}'")
+            # print(f"Comparando: '{header_cleaned}'")
 
             # Verificar si el encabezado limpio está en los estilos
             if header_cleaned in styles:
@@ -390,12 +266,46 @@ class VisualizacionDatosScreen(QWidget):
         # Guardar archivo
         wb.save(file_path)
 
+    def actualizar_ciudades_y_buques(self):
+        """Actualiza tanto el ComboBox de ciudades como el de buques."""
+        try:
+            session = get_db_session()
+
+            # Actualizar ciudades
+            self.city_combo_box.clear()
+            self.city_combo_box.addItem("Ciudad")  # Valor por defecto
+
+            ciudades = session.query(EtaCiudad.puerto).distinct().all()
+            ciudades_unicas = sorted({ciudad[0] for ciudad in ciudades if ciudad[0]})
+            if ciudades_unicas:
+                self.city_combo_box.addItems(ciudades_unicas)
+            else:
+                self.city_combo_box.addItem("No hay ciudades disponibles")
+
+            # Actualizar buques
+            self.buque_combo_box.clear()
+            self.buque_combo_box.addItem("Vessel")  # Valor por defecto
+
+            buques = session.query(Buque.nombre).distinct().all()
+            buques_unicos = sorted({buque[0] for buque in buques if buque[0]})
+            if buques_unicos:
+                self.buque_combo_box.addItems(buques_unicos)
+            else:
+                self.buque_combo_box.addItem("No hay buques disponibles")
+
+            # print("[VisualizacionDatosScreen] ComboBox de ciudades y buques actualizados correctamente.")
+        except Exception as e:
+            print(f"[VisualizacionDatosScreen] Error al actualizar ciudades y buques: {e}")
+        finally:
+            session.close()
+
     def get_city_list(self):
         """Obtiene la lista de ciudades asociadas a los buques en la tabla Buque."""
         try:
             session = get_db_session()
             session.flush()
-            ciudades = session.query(EtaCiudad.puerto).distinct()
+            ciudades = session.query(EtaCiudad.puerto).distinct().all()
+            # print("Ciudades encontradas en la DB:", ciudades)  # <--- línea de depuración
             
             ciudades_unicas = sorted({ciudad[0] for ciudad in ciudades if ciudad[0]})
             
@@ -432,12 +342,16 @@ class VisualizacionDatosScreen(QWidget):
 
     def load_existing_data(self):
         """Carga los datos de buques ON y OFF y los muestra en diferentes pestañas."""
+        # print("[VisualizacionDatosScreen] load_existing_data() llamado")
+        # print("Buque seleccionado:", self.buque_combo_box.currentText())
+
         selected_buque = self.buque_combo_box.currentText()
         if not selected_buque or selected_buque == "No hay buques disponibles":
             return
 
         try:
             session = get_db_session()
+            selected_city = self.city_combo_box.currentText()
 
             # Consulta para obtener todos los datos del buque seleccionado
             buque_data = session.query(
@@ -465,6 +379,9 @@ class VisualizacionDatosScreen(QWidget):
             .join(EtaCiudad, Viaje.eta_id == EtaCiudad.eta_id) \
             .join(Tripulante, Viaje.tripulante_id == Tripulante.tripulante_id) \
             .filter(func.lower(Buque.nombre) == func.lower(selected_buque.strip()))
+
+            if selected_city != "Ciudad":
+                buque_data = buque_data.filter(func.lower(EtaCiudad.puerto) == func.lower(selected_city.strip()))
 
             # Ejecutar la consulta y obtener los resultados como una lista
             buque_data = buque_data.all()
@@ -534,7 +451,7 @@ class VisualizacionDatosScreen(QWidget):
             asistencia_data_off = self.get_asistencia_tripulantes(session, tripulantes_off_ids)
             # Obtener los tripulantes ON para hoteles
             hoteles_data_off = self.get_hoteles_tripulantes(session, tripulantes_off_ids)
-            print(hoteles_data_off)
+            # print(hoteles_data_off)
             # Obtener los tripulantes ON para transporte
             transport_data_off = self.get_transport_data(session, tripulantes_off_ids)
             restaurant_data_off = self.get_restaurant_data(session, tripulantes_off_ids)
@@ -633,11 +550,16 @@ class VisualizacionDatosScreen(QWidget):
 
     def show_data_in_tab(self, data, table_view, columns, puerto_label, estado):
         """Convierte los datos a un DataFrame y los muestra en el QTableView."""
-        if not data:
-            print(f"No hay datos para mostrar en la pestaña {puerto_label}")
-            return
-
         try:
+            if not data:
+                # print(f"No hay datos para mostrar en la pestaña {puerto_label}")
+                # Crear un DataFrame con el mensaje de advertencia
+                df = pd.DataFrame({"Mensaje": ["No existen datos para la consulta"]})
+                model = PandasModel(df)
+                table_view.setModel(model)
+                table_view.resizeColumnsToContents()
+                table_view.setAlternatingRowColors(True)
+                return
             # Crear un DataFrame directamente desde los datos
             df = pd.DataFrame(data)
 
@@ -696,7 +618,7 @@ class VisualizacionDatosScreen(QWidget):
         """
         Recupera vuelos internacionales y los estructura por tripulante,
         incluyendo el último vuelo internacional (que llega a Chile)"""
-        print(f"Tripulantes recibidos para búsqueda de vuelos: {tripulantes}")  # Depuración inicial
+        # print(f"Tripulantes recibidos para búsqueda de vuelos: {tripulantes}")  # Depuración inicial
         
         vuelos_data = session.query(
             Tripulante.tripulante_id,
@@ -926,7 +848,7 @@ class VisualizacionDatosScreen(QWidget):
         for hotel in hoteles_data:
             tripulante_id = hotel.tripulante_id
             index = tripulante_indices[tripulante_id]
-            print(f"El index es = {index}")
+            # print(f"El index es = {index}")
 
             if index < 3:  # Limitar a 3 hoteles por tripulante
                 hoteles_formateados[tripulante_id]["Category"] = int(hotel.categoria) if hotel.categoria is not None else None

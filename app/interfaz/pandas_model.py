@@ -3,10 +3,10 @@ from PyQt6.QtCore import QAbstractTableModel, Qt
 from PyQt6.QtGui import QColor
 
 class PandasModel(QAbstractTableModel):
-    def __init__(self, df, highlighted_rows=None):
+    def __init__(self, df, highlighted_cells=None):
         super().__init__()
         self._df = df
-        self.highlighted_rows = highlighted_rows or []
+        self.highlighted_cells = highlighted_cells or []
 
     def rowCount(self, parent=None):
         return self._df.shape[0]
@@ -20,15 +20,14 @@ class PandasModel(QAbstractTableModel):
 
         row, col = index.row(), index.column()
 
-        # Formato de fondo para filas resaltadas
-        if role == Qt.ItemDataRole.BackgroundRole and row in self.highlighted_rows:
-            return QColor("#ffff99")  # Fondo amarillo claro
+        if role == Qt.ItemDataRole.BackgroundRole:
+            if (row, col) in self.highlighted_cells:
+                return QColor("#fdecea")  # fondo rojo pálido para error
 
-        # Formato de texto para filas resaltadas
-        if role == Qt.ItemDataRole.ForegroundRole and row in self.highlighted_rows:
-            return QColor("#ff0000")  # Texto rojo
+        if role == Qt.ItemDataRole.ForegroundRole:
+            if (row, col) in self.highlighted_cells:
+                return QColor("#b20000")  # texto rojo oscuro
 
-        # Valores de la celda
         if role == Qt.ItemDataRole.DisplayRole or role == Qt.ItemDataRole.EditRole:
             value = self._df.iloc[row, col]
             return str(value) if not pd.isna(value) else ""

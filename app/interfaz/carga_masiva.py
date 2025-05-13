@@ -1,10 +1,11 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTabWidget, QComboBox, QTableView, QSizePolicy, QMessageBox, QFileDialog, QProgressBar, QDialog, QLabel
+from PyQt6.QtWidgets import QWidget, QTextEdit, QVBoxLayout, QHBoxLayout, QPushButton, QTabWidget, QComboBox, QTableView, QSizePolicy, QMessageBox, QFileDialog, QProgressBar, QDialog, QLabel
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from app.interfaz.pandas_model import PandasModel
 from app.controller.controllers import Controller
 from app.database import get_db_session
 import pandas as pd
 from openpyxl import load_workbook
+from openpyxl.utils import column_index_from_string
 from datetime import datetime
 import json
 import os
@@ -153,15 +154,35 @@ class CargaMasivaScreen(QWidget):
         # Mostrar los datos combinados en la pestaña "OFF"
         self.show_sheet(full_data_off, self.off_table_view, errors_off, errors_off_message, "OFF")
 
+        self.main_window.visualizacion_datos_screen.actualizar_ciudades_y_buques()
+
     def show_sheet(self, df, table_view, errors_df, errors_message_df, state):
         df = df.copy()
         df.insert(0, "Índice [Excel]", range(3, len(df) + 3))
 
-        highlighted_rows = errors_df
-        model = PandasModel(df, highlighted_rows)
+        # highlighted_rows = errors_df
+        # model = PandasModel(df, highlighted_rows)
+        # table_view.setModel(model)
+        
+        errores_coords = []
+        for fila_excel, col_letra in errors_df:
+            try:
+                coord = excel_coords_to_indices(fila_excel, col_letra)
+                errores_coords.append(coord)
+            except Exception as e:
+                print(f"Error con coordenada {[fila_excel, col_letra]}: {e}")
+
+        model = PandasModel(df, highlighted_cells=errores_coords)
         table_view.setModel(model)
 
-        print(type(errors_message_df))
+        # print("Índices y nombres de columnas en el QTableView:")
+        # for col in range(model.columnCount()):
+        #     nombre_columna = df.columns[col]
+        #     print(f"Índice: {col} → Columna: {nombre_columna}")
+
+        # print(type(errors_message_df))
+        # print(f"Errores: {errors_df}")
+        # print(f"Coordenada errores: {errores_coords}")
 
         # Configura el estilo y formato del QTableView
         table_view.resizeColumnsToContents()  # Ajusta el ancho de las columnas
@@ -197,7 +218,10 @@ class CargaMasivaScreen(QWidget):
             if self.nombre_archivo_errores is None:
                 ahora = datetime.now()
                 fecha_hora_str = ahora.strftime("%Y-%m-%d_%H-%M")
-                self.nombre_archivo_errores = f"errores_detectados_{fecha_hora_str}.txt"
+
+                carpeta_errores = "files/errores"
+                os.makedirs(carpeta_errores, exist_ok=True)
+                self.nombre_archivo_errores = f"{carpeta_errores}/errores_detectados_{fecha_hora_str}.txt"
 
             # Escribir en modo "append" para no sobrescribir
             with open(self.nombre_archivo_errores, "a") as error_file:
@@ -205,13 +229,53 @@ class CargaMasivaScreen(QWidget):
                 error_file.write(error_messages)
                 error_file.write("\n\n")
 
-            # Mostrar ventana con errores
-            error_box = QMessageBox(self)
-            error_box.setIcon(QMessageBox.Icon.Warning)
-            error_box.setWindowTitle(f"Errores en los datos [{state}]")
-            error_box.setText("Se encontraron los siguientes errores:")
-            error_box.setDetailedText(error_messages)
-            error_box.exec()
+            error_dialog = QDialog(self)
+            error_dialog.setWindowTitle(f"Errores en los datos [{state}]")
+            error_dialog.resize(500, 300)
+
+            # Layout principal
+            main_layout = QVBoxLayout(error_dialog)
+
+            # Etiqueta del mensaje principal
+            label = QLabel("Se encontraron los siguientes errores:")
+            label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            label.setStyleSheet("font-size: 16px; font-weight: bold; color: #00272d;")
+            main_layout.addWidget(label)
+
+            # Cuadro de texto para mostrar los errores
+            text_edit = QTextEdit()
+            text_edit.setPlainText("\n".join(errors_message_df))
+            text_edit.setReadOnly(True)
+            text_edit.setStyleSheet("""
+                QTextEdit {
+                    color: black;
+                    background-color: white;
+                    font-size: 14px;
+                    font-family: Arial;
+                }
+            """)
+            text_edit.setMinimumSize(400, 200)
+            main_layout.addWidget(text_edit)
+
+            # Layout horizontal para el botón OK
+            button_layout = QHBoxLayout()
+            button_layout.addStretch()  # Empuja el botón hacia la derecha
+
+            ok_button = QPushButton("OK")
+            ok_button.setFixedSize(80, 35)
+            ok_button.setStyleSheet("""
+                QPushButton {
+                    font-size: 14px;
+                    padding: 5px;
+                }
+            """)
+            ok_button.clicked.connect(error_dialog.accept)
+            button_layout.addWidget(ok_button)
+
+            main_layout.addLayout(button_layout)
+
+            # Mostrar el diálogo
+            error_dialog.exec()
 
     def on_load_finished(self):
         self.progress_dialog.accept()
@@ -319,3 +383,20 @@ class ExcelFormatManager:
             print("Estilos de encabezado y otras propiedades guardadas exitosamente.")
         except Exception as e:
             print(f"Error al guardar estilos: {e}")
+
+def excel_coords_to_indices(row_excel, col_letter, row_offset=3):
+    """
+    Convierte coordenada estilo Excel (e.g. 5, 'L') a índice (fila, columna) de DataFrame,
+    considerando que las columnas 'I' y 'J' fueron omitidas.
+    """
+    col_letter = col_letter.upper()
+    col_excel = column_index_from_string(col_letter)
+
+    # Ajuste de columna: si la columna está después de la 'J' (columna 10 en Excel), resta 2
+    if col_excel > 10:
+        col_index = col_excel - 2  # Excel base 1, restamos 1 para índice, y 2 por las omitidas
+    else:
+        col_index = col_excel      # Solo restamos 1 por el índice base 0
+
+    row_index = row_excel - row_offset  # El índice base parte desde la fila 3
+    return (row_index, col_index)

@@ -7,151 +7,162 @@ from datetime import time
 from sqlalchemy import func, and_
 from PyQt6.QtWidgets import QMessageBox
 from app.models import Buque, Tripulante, Vuelo, EtaCiudad, Viaje, TripulanteVuelo, Hotel, TripulanteHotel, Restaurante, TripulanteRestaurante, Transporte, TripulanteTransporte, TripulanteAsistencia
+from openpyxl import load_workbook
+from openpyxl.utils import get_column_letter, column_index_from_string
 
 class Viajes:
     def __init__(self, db_session: Session):
         self.db_session = db_session
 
-    def _create_viaje(self, tripulante_id, buque_id, estado, activo):
+    def viajes_main(self, file_path):
         try:
-            # Buscar el registro EtaCiudad correspondiente
-            eta_ciudad = self.db_session.query(EtaCiudad).filter_by(tripulante_id=tripulante_id, buque_id=buque_id).first()
-            if not eta_ciudad:
-                raise Exception(f"No se encontró EtaCiudad para tripulante ID {tripulante_id} y buque ID {buque_id}")
+            column_names_to_extract = ['Activo', 'Maleta perdida', 'Transporte', 'atencion Medica']
 
-            # Verificar si ya existe un viaje con los mismos parámetros (tripulante_id, buque_id, eta_fecha, estado)
-            viaje_existente = self.db_session.query(Viaje).filter_by(
-                tripulante_id=tripulante_id,
-                buque_id=buque_id,
-                eta_id=eta_ciudad.eta_id,
-                estado=estado
-            ).first()
+            excel_data_on = pd.read_excel(file_path, sheet_name='ON', header=None)
 
-            if viaje_existente:
-                # Si el viaje ya existe, actualizar el campo 'activo' si es diferente
-                if viaje_existente.activo != activo:
-                    # print(f"El viaje ya existe. Actualizando el campo 'activo' de {viaje_existente.viaje_id} a {activo}")
-                    viaje_existente.activo = activo  # Actualizar el estado 'activo'
-                    self.db_session.add(viaje_existente)  # Asegurarse de que se guarde el cambio
-                    self.db_session.commit()
+            viajes_on = self.read_selected_columns(excel_data_on, start_row=0, column_names_to_extract=column_names_to_extract)  
+            # viajes_on.reset_index(drop=True, inplace=True)
 
-                else:
-                    #print(f"El viaje para Tripulante ID {tripulante_id}, Buque ID {buque_id}, Estado {estado} ya existe y está activo como {activo}.")
-                    pass
-                return viaje_existente  # Retornamos el viaje existente (sin crear uno nuevo)
+            excel_data_off = pd.read_excel(file_path, sheet_name='OFF', header=None)
 
-            # Si no existe, crear el nuevo viaje
-            viaje = Viaje(
-                tripulante_id=tripulante_id,
-                buque_id=buque_id,
-                eta_id=eta_ciudad.eta_id,  # Asignar el ID de EtaCiudad
-                estado=estado,
-                activo=activo
-            )
-            self.db_session.add(viaje)
-            self.db_session.flush()  # Obtener el ID del viaje recién creado
+            viajes_off = self.read_selected_columns(excel_data_off, start_row=0, column_names_to_extract=column_names_to_extract)  
+            # viajes_off.reset_index(drop=True, inplace=True)
 
-            # Asignar los hoteles existentes al viaje
-            tripulante_hoteles = self._get_hoteles_para_tripulante(tripulante_id, viaje.viaje_id)
-            if tripulante_hoteles:
-                viaje.tripulante_hoteles.extend(tripulante_hoteles)
-                # Imprimir los hoteles asignados al viaje
-                print(f"Hoteles asignados al viaje {viaje.viaje_id} para Tripulante ID {tripulante_id}:")
-                for hotel in tripulante_hoteles:
-                    print(f"- Hotel: {hotel.hotel.nombre}, Fecha Entrada: {hotel.fecha_entrada}, Fecha Salida: {hotel.fecha_salida}")
-            else:
-                print("Tripulante_hotel no existente")
-
-            # Guardar el viaje y los hoteles
-            self.db_session.commit()
-            #print(f"Viaje creado para Tripulante ID {tripulante_id} en Buque ID {buque_id} con Estado {estado}")
-            return viaje  # Retornar el viaje recién creado
-
+            return viajes_on, viajes_off
         except Exception as e:
-            self.db_session.rollback()  # Revertir en caso de error
-            print(f"Error al crear o actualizar viaje: {e}")
-            return None
+            raise Exception(f"[Viajes] Error al procesar el archivo: {e}")
+        
+    def read_selected_columns(self, data, start_row, column_names_to_extract):
+        column_names = data.iloc[start_row].tolist()
+        column_names = [str(col).strip().lower() for col in column_names]
+        data.columns = column_names
+        data = data.iloc[start_row + 2:].reset_index(drop=True)  # Eliminar filas de encabezado
 
-    def _create_viajes_from_dataframes(self, tripulantes_on, tripulantes_off, buques_on, buques_off):
+        # Validar columnas requeridas
+        column_names_to_extract = [col.strip().lower() for col in column_names_to_extract]
+        missing_columns = [col for col in column_names_to_extract if col not in data.columns]
+
+        if missing_columns:
+            raise ValueError(f"Columnas no encontradas en el archivo: {missing_columns}")
+
+        # Leer los datos
+        data_block = []
+        current_row = 0  # Ya eliminamos encabezados, así que partimos desde 0
+
+        while current_row < len(data):
+            row_data = data.iloc[current_row]
+            if row_data[column_names_to_extract].isnull().all():
+                data_block.append({col: pd.NA for col in column_names_to_extract})
+                current_row += 1
+                continue
+            data_block.append(row_data[column_names_to_extract].to_dict())
+            current_row += 1
+
+        return pd.DataFrame(data_block)
+
+    def _create_viaje(self, file_path, viajes_df, tripulantes_df, buques_df, estado):
         try:
-            # Iterar sobre los DataFrames ON
+            errors = []
+            errors_message = []
 
-            for index, row in buques_on.iterrows():
-                # Buscar el buque en la base de datos por nombre y empresa
-                buque = self.db_session.query(Buque).filter_by(nombre=(row["Vessel"]).strip(), empresa=row["Owner"]).first()
-                if not buque:
-                    print(f"Error: No se encontró el buque con nombre '{row['Vessel']}' y empresa '{row['Owner']}'")
-                    continue 
+            for index, row in tripulantes_df.iterrows():
+                if "activo" not in viajes_df.columns:
+                    # print(f"[ERROR] Columna 'Activo' no existe en el DataFrame. Verifica el archivo Excel.")
+                    continue  # O manejar el error como corresponda
 
-                # Buscar el tripulante en la base de datos por pasaporte o, si es nulo, por nombre y apellido
-                pasaporte = tripulantes_on.loc[index, "Pasaporte"]
+                # print(f"ID = {index} | {viajes_df.loc[index]}")
+                activo_valor = viajes_df.loc[index].get("activo")
+                # print(f"Valor de activo = {activo_valor}")
+                # print(f"[DEBUG] Tipo de activo_valor: {type(activo_valor)} | Valor: {activo_valor}")
 
-                if pd.isna(pasaporte):
-                    pasaporte = None
 
-                if pasaporte:
-                    # Si el pasaporte está presente, buscar por pasaporte
-                    tripulante = self.db_session.query(Tripulante).filter_by(pasaporte=pasaporte).first()
-                else:
-                    # Si el pasaporte es nulo, buscar por nombre y apellido
-                    #print(f"Buscando {tripulantes_on.loc[index, "First name"]} {tripulantes_on.loc[index, "Last name"]}")
-                    nombre = tripulantes_on.loc[index, "First name"]
-                    apellido = tripulantes_on.loc[index, "Last name"]
-                    # print(f"Encontrado: {nombre} {apellido}")
-
-                    tripulante = self.db_session.query(Tripulante).filter_by(nombre=nombre, apellido=apellido).first()
-
-                if not tripulante:
-                    # Si no se encontró el tripulante por ninguno de los dos métodos
-                    #print(f"Error: No se encontró el tripulante con Pasaporte '{pasaporte}' o Nombre '{nombre}' y Apellido '{apellido}'")
-                    continue
-
-                # Verificar y asignar la columna 'Activo'
-                activo_valor = buques_on.loc[index].get("Activo")
                 if pd.isna(activo_valor):
-                    print(f"[ERROR] Columna 'Activo' faltante o vacía en fila {index}")
+                    # print(f"[ERROR] Columna 'Activo' faltante o vacía en fila {index + 3}")
+                    # Registrar en errors y errors_message
+                    y = get_excel_column_letter(file_path, estado, "Activo")
+                    errors.append([index + 3, y])
+                    errors_message.append(f"Valor 'Activo' faltante [{index + 3},{y}]")
                     continue
                 else:
-                    activo_valor = activo_valor.upper()
+                    activo_valor_str = str(activo_valor).strip().upper()
+                    if activo_valor_str not in ["SI", "NO"]:
+                        # Registrar en errors y errors_message
+                        y = get_excel_column_letter(file_path, estado, "Activo")
+                        errors.append([index + 3, y])
+                        errors_message.append(f"Valor no válido en 'Activo' [{index + 3},{y}]")
+                        print(f"[ERROR] Valor no válido en 'Activo' en fila {index + 3}: {activo_valor_str} [{index + 3},{y}]")
+                        continue
+                    else:
+                        activo_valor = activo_valor_str  # Confirmado como "SI" o "NO"
 
                 # print(f"El valor de activo es: [{index}] | {activo_valor}")
 
                 # Convertir el valor de 'Activo' a booleano
                 activo = True if str(activo_valor).strip().upper() == "SI" else False
 
-                self._create_viaje(tripulante_id=tripulante.tripulante_id, buque_id=buque.buque_id, estado="ON", activo=activo)
-
-            # Iterar sobre los DataFrames OFF
-            for index, row in buques_off.iterrows():
-                # Buscar el buque en la base de datos por nombre y empresa
-                buque = self.db_session.query(Buque).filter_by(nombre=row["Vessel"], empresa=row["Owner"]).first()
-                if not buque:
-                    #print(f"Error: No se encontró el buque con nombre '{row['Vessel']}' y empresa '{row['Owner']}'")
-                    continue
-
-                # Buscar el tripulante en la base de datos por pasaporte
-                pasaporte = tripulantes_off.loc[index, "Pasaporte"]
+                pasaporte = tripulantes_df.loc[index]["Pasaporte"].strip()
                 tripulante = self.db_session.query(Tripulante).filter_by(pasaporte=pasaporte).first()
-                if not tripulante:
-                    #print(f"Error: No se encontró el tripulante con pasaporte '{pasaporte}'")
-                    continue
 
-                # Verificar y asignar la columna 'Activo'
-                activo_valor = buques_off.loc[index].get("Activo")
-                # print(f"El valor de activo es: [{index}]{activo_valor}")
-                if activo_valor is None:
-                    #print(f"Advertencia: Columna 'Activo' faltante o vacía en fila {index}")
-                    continue
+                if tripulante:
+                    tripulante_id = tripulante.tripulante_id  # O 'tripulante.id' si así se llama en tu modelo
+                    buque_id = tripulante.buque_id  # O 'tripulante.id' si así se llama en tu modelo
+                    # print(f"Pasaporte = {pasaporte} | ID = {tripulante_id} | buque_id = {buque_id}")
+                else:
+                    print(f"[ERROR] Tripulante con pasaporte {pasaporte} no encontrado.")
+                    # Aquí puedes registrar el error en errors y errors_message si corresponde
+                    pass
 
-                # Convertir el valor de 'Activo' a booleano
-                activo = True if str(activo_valor).strip().upper() == "SI" else False
+                eta_ciudad = self.db_session.query(EtaCiudad).filter_by(tripulante_id=tripulante_id, buque_id=buque_id).first()
+                if not eta_ciudad:
+                    raise Exception(f"No se encontró EtaCiudad para tripulante ID {tripulante_id} y buque ID {buque_id}")
+                
+                viaje_existente = self.db_session.query(Viaje).filter_by(
+                    tripulante_id=tripulante_id,
+                    buque_id=buque_id,
+                    eta_id=eta_ciudad.eta_id,
+                    estado=estado
+                ).first()
 
-                self._create_viaje(tripulante_id=tripulante.tripulante_id, buque_id=buque.buque_id, estado="OFF", activo=activo)
+                if viaje_existente:
+                    # Si el viaje ya existe, actualizar el campo 'activo' si es diferente
+                    if viaje_existente.activo != activo:
+                        # print(f"El viaje ya existe. Actualizando el campo 'activo' de {viaje_existente.viaje_id} a {activo}")
+                        viaje_existente.activo = activo  # Actualizar el estado 'activo'
+                        self.db_session.add(viaje_existente)  # Asegurarse de que se guarde el cambio
+                        self.db_session.commit()
 
-            print("\nViajes creados exitosamente.")
+                    else:
+                        #print(f"El viaje para Tripulante ID {tripulante_id}, Buque ID {buque_id}, Estado {estado} ya existe y está activo como {activo}.")
+                        continue
+                        # Retornamos el viaje existente (sin crear uno nuevo)
+
+                # Si no existe, crear el nuevo viaje
+                equipaje_perdido = True if str(viajes_df.loc[index]["maleta perdida"]).strip().upper() == "SI" else False
+                asistencia_medica = True if str(viajes_df.loc[index]["atencion medica"]).strip().upper() == "SI" else False
+
+                viaje = Viaje(
+                    tripulante_id=tripulante_id,
+                    buque_id=buque_id,
+                    eta_id=eta_ciudad.eta_id,  # Asignar el ID de EtaCiudad
+                    estado=estado,
+                    activo=activo,
+                    equipaje_perdido=equipaje_perdido,
+                    asistencia_medica=asistencia_medica
+                )
+                self.db_session.add(viaje)
+                self.db_session.flush()  # Obtener el ID del viaje recién creado
+
+                # Guardar el viaje y los hoteles
+                self.db_session.commit()
+                #print(f"Viaje creado para Tripulante ID {tripulante_id} en Buque ID {buque_id} con Estado {estado}")
+
+            return errors, errors_message  # Retornar el viaje recién creado
+
         except Exception as e:
-            print(f"Error al crear los viajes: {e}")
-
+            self.db_session.rollback()  # Revertir en caso de error
+            print(f"Error al crear o actualizar viaje: {e}")
+            return errors, errors_message
+    
     def _get_hoteles_para_tripulante(self, tripulante_id, viaje_id):
         """
         Obtiene las reservas de hotel asociadas a un tripulante y las asigna a un viaje.
@@ -181,3 +192,26 @@ class Viajes:
             print(f"Error al obtener y asignar hoteles para tripulante {tripulante_id}: {e}")
             self.db_session.rollback()  # Revertir cualquier cambio en caso de error
             return []
+        
+def get_excel_column_letter(file_path, sheet_name, column_name):
+    # Cargar el archivo y la hoja
+    workbook = load_workbook(file_path)
+    sheet = workbook[sheet_name]
+    
+    # Buscar la columna por nombre (suponiendo que los nombres están en la primera fila)
+    for col in sheet.iter_cols(1, sheet.max_column, 1, 1):  # Iterar solo en la primera fila
+        if col[0].value == column_name:
+            # Devolver la letra de la columna
+            return get_column_letter(col[0].column)
+    
+    raise ValueError(f"Columna con nombre '{column_name}' no encontrada en el archivo.")
+
+def get_cell_value(file_path, sheet_name, row, column):
+    # Cargar el archivo de Excel
+    workbook = load_workbook(file_path, data_only=True)  # `data_only=True` para obtener el valor calculado en celdas con fórmulas
+    sheet = workbook[sheet_name]
+
+    # Obtener el valor de la celda
+    cell_value = sheet.cell(row=row, column=column).value
+
+    return cell_value

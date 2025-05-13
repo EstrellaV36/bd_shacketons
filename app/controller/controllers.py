@@ -14,17 +14,17 @@ import pandas as pd
 
 class Controller:
     def __init__(self, db_session: Session):
-        db_session = db_session
-        self.buques_processor = Buques(db_session)
-        self.tripulantes_processor = Tripulantes(db_session)
-        self.aerolineas_processor = Aerolineas(db_session)
-        self.vuelos_processor = Vuelos(db_session)
-        self.asistencias_processor = Asistencias(db_session)
-        self.hoteles_processor = Hoteles(db_session)
-        self.transportes_processor = Transportes(db_session)
-        self.restaurantes_processor = Restaurantes(db_session)
-        self.extras_processor = Extras(db_session)
-        self.viaje_processor = Viajes(db_session)
+        self.db_session = db_session
+        self.buques_processor = Buques(self.db_session)
+        self.tripulantes_processor = Tripulantes(self.db_session)
+        self.aerolineas_processor = Aerolineas(self.db_session)
+        self.vuelos_processor = Vuelos(self.db_session)
+        self.asistencias_processor = Asistencias(self.db_session)
+        self.hoteles_processor = Hoteles(self.db_session)
+        self.transportes_processor = Transportes(self.db_session)
+        self.restaurantes_processor = Restaurantes(self.db_session)
+        self.extras_processor = Extras(self.db_session)
+        self.viajes_processor = Viajes(self.db_session)
 
     def process_excel_file(self, file_path, update_progress_callback):
         try:
@@ -83,7 +83,8 @@ class Controller:
             ### ASISTENCIAS ###
             self.asistencias_on, self.asistencias_off = self.asistencias_processor.asistencias_main(file_path)
             # Procesa las asistencias para ambos conjuntos de datos
-            self.asistencias_processor.procesar_asistencias(self.tripulantes_on, self.asistencias_on, self.tripulantes_off, self.asistencias_off)
+            self.errors_asistencias_on, self.errors_asistencias_on_message = self.asistencias_processor._create_asistencias(file_path, self.tripulantes_on, self.asistencias_on, "ON")
+            self.errors_asistencias_off, self.errors_asistencias_off_message = self.asistencias_processor._create_asistencias(file_path, self.tripulantes_off, self.asistencias_off, "OFF")
 
             update_progress_callback(60)  # 60% después de procesar asistencias
 
@@ -130,7 +131,14 @@ class Controller:
             print("Extras creados con éxito")
 
             ### VIAJES ###
-            self.viaje_processor._create_viajes_from_dataframes(self.tripulantes_on, self.tripulantes_off, self.buques_on, self.buques_off)
+            self.viajes_on, self.viajes_off = self.viajes_processor.viajes_main(file_path)
+
+            self.errors_viajes_on, self.errors_viajes_on_message = self.viajes_processor._create_viaje(file_path, self.viajes_on, self.tripulantes_on, self.buques_on, "ON")
+            self.errors_viajes_off, self.errors_viajes_off_message = self.viajes_processor._create_viaje(file_path, self.viajes_off, self.tripulantes_off, self.buques_off, "OFF")
+
+            print(f"Los errores de viajes on son = {self.errors_viajes_on}")
+
+            # self.errors_viajes, self.errors_message_viajes = self.viaje_processor._create_viajes_from_dataframes(file_path, self.tripulantes_on, self.tripulantes_off, self.buques_on, self.buques_off)
             update_progress_callback(100)  # 100% después de procesar viajes
 
             print("Viajes creados con éxito")
@@ -173,6 +181,16 @@ class Controller:
             self.errors_off.extend(self.errors_transportes_off)
             self.errors_on_message.extend(self.errors_transportes_on_message)
             self.errors_off_message.extend(self.errors_transportes_off_message)
+
+            self.errors_on.extend(self.errors_viajes_on)
+            self.errors_off.extend(self.errors_viajes_off)
+            self.errors_on_message.extend(self.errors_viajes_on_message)
+            self.errors_off_message.extend(self.errors_viajes_off_message)
+            
+            self.errors_on.extend(self.errors_asistencias_on)
+            self.errors_off.extend(self.errors_asistencias_off)
+            self.errors_on_message.extend(self.errors_asistencias_on_message)
+            self.errors_off_message.extend(self.errors_asistencias_off_message)
 
             # self.errors_on_transportes = self.vuelos_processor.check_and_clean(self.vuelos_internacionales_on, file_path, "ON")
             # self.errors_off_transportes = self.vuelos_processor.check_and_clean(self.vuelos_internacionales_off, file_path, "OFF")
@@ -221,7 +239,35 @@ class Controller:
             
             full_data_on, full_data_off = self.process_all_to_show(full_data_on, full_data_off)
 
-            return full_data_on, full_data_off, self.errors_on, self.errors_off, self.errors_on_message, self.errors_off_message
+            self.db_session.commit()
+            # self.visualizacion_datos_screen.actualizar_ciudades()
+            
+            ## Limpieza de errores repetidos
+            errors_on_unique = []
+            errors_on_message_unique = []
+
+            seen_coords = []
+
+            for idx, coord in enumerate(self.errors_on):
+                if coord not in seen_coords:
+                    seen_coords.append(coord)
+                    errors_on_unique.append(coord)  # Mantener como lista [fila, columna]
+                    errors_on_message_unique.append(self.errors_on_message[idx])
+
+            # Lo mismo para OFF
+            errors_off_unique = []
+            errors_off_message_unique = []
+
+            seen_coords_off = []
+
+            for idx, coord in enumerate(self.errors_off):
+                if coord not in seen_coords_off:
+                    seen_coords_off.append(coord)
+                    errors_off_unique.append(coord)
+                    errors_off_message_unique.append(self.errors_off_message[idx])
+
+            # Retornar los errores sin duplicados
+            return full_data_on, full_data_off, errors_on_unique, errors_off_unique, errors_on_message_unique, errors_off_message_unique
         except Exception as e:
             raise Exception(f"[Controller] Error al procesar el archivo: {e}")
         

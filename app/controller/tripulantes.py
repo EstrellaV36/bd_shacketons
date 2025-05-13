@@ -60,6 +60,10 @@ class Tripulantes:
 
                     # Si no existe el tripulante, lo creamos
                     if not tripulante_existente:
+                        if pd.isna(tripulante_row['Gender']):
+                            # print("[ERROR TRIPULANTE] Género faltante en...")
+                            continue
+
                         tripulante = Tripulante(
                             nombre=nombre_normalizado,
                             apellido=apellido_normalizado,
@@ -225,13 +229,30 @@ class Tripulantes:
                     cell_value = get_cell_value(file_path, sheet_name, 1, column_number)
 
                     if isinstance(value, str) and '-' in value and len(value.split('-')) == 3:
-                        print(f"Error [Tripulante]: Fecha inexistente en la fila {x}, columna '{column_name} ({y})'. Valor: '{error}'")
-                        errors.append([i, y])
-                        errors_message.append(f"Fecha inexistente en {cell_value} [{x},{y}]")
+                        print(f"Error [Tripulante]: Fecha inexistente en la fila {x+3}, columna '{column_name} ({y})'. Valor: '{error}'")
+                        errors.append([i+3, y])
+                        errors_message.append(f"Fecha inexistente en {cell_value} [{x+3},{y}]")
                     elif not pd.isna(value):
-                        print(f"Error [Tripulante]: Formato de fecha incorrecto en la fila {x}, columna '{y}'. Valor: '{error}'")
-                        errors.append([i, y])
-                        errors_message.append(f"Formato de fecha incorrecto en {cell_value} [{x},{y}]")
+                        print(f"Error [Tripulante]: Formato de fecha incorrecto en la fila {x+3}, columna '{y}'. Valor: '{error}'")
+                        errors.append([i+3, y])
+                        errors_message.append(f"Formato de fecha incorrecto en {cell_value} [{x+3},{y}]")
+
+        def validate_genders(tripulantes_df, column_name, file_path, state):
+            for i, value in tripulantes_df[column_name].items():
+                # Determinar si la fecha es válida
+                # print(f"Genero: {tripulantes_df.loc[i][column_name]}")
+                if pd.isna(tripulantes_df.loc[i][column_name]) or tripulantes_df.loc[i][column_name] not in ['F', 'M']:
+                    print(f"[ERROR TRIPULANTES] Género no existente: {tripulantes_df.loc[i][column_name]}")
+                    error = tripulantes_df.loc[i][column_name]
+                    sheet_name = state
+                    x = i + 3  # Ajustar el índice a la fila de Excel (inicia en 1)
+                    y = get_excel_column_letter(file_path, sheet_name, column_name)
+                    column_number = column_index_from_string(y)
+                    cell_value = get_cell_value(file_path, sheet_name, 1, column_number)
+
+                    print(f"Error [Tripulante]: Género inexistente en la fila {x+3}, columna '{column_name} ({y})'. Valor: '{error}'")
+                    errors.append([i+3, y])
+                    errors_message.append(f"Género inexistente en {cell_value} [{x+3},{y}]")
 
         def get_excel_column_letter(file_path, sheet_name, column_name):
             # Cargar el archivo y la hoja
@@ -264,5 +285,7 @@ class Tripulantes:
 
         # Convertir finalmente a datetime, asignando NaT para los valores inválidos
         tripulantes_df["DOB"] = pd.to_datetime(tripulantes_df["DOB"], format='%d/%m/%y', errors='coerce')
+
+        validate_genders(tripulantes_df, "Gender", file_path, state)
 
         return errors, errors_message

@@ -56,8 +56,8 @@ class Vuelos:
             # Verifica si el vuelo es NaN o None
             if vuelo is None or pd.isna(vuelo):
                 #print("Vuelo es NaN o None. Omitiendo...")
-                return None  
-            
+                return None
+
             # Utilizar una expresión regular para capturar el código de vuelo y los aeropuertos
             expresion_vuelo = r'^(.+)\s([A-Z]{3})[-\s]([A-Z]{3})$'  # Acepta '-' o ' ' como separador
             match = re.match(expresion_vuelo, vuelo)
@@ -99,7 +99,7 @@ class Vuelos:
                     #else:
                         #print(f"Formato de hora inválido: '{hora}'")
                         #return None
-                
+
                 hora_salida = match_horas.group(1)
                 hora_llegada = match_horas.group(2)
                 dia_siguiente = match_horas.group(3)  # Detectar si hay '+1'
@@ -219,6 +219,7 @@ class Vuelos:
                         ).first()
 
                         #print(f"HORA LLEGADA: {vuelo_info['hora_llegada']}")
+                        # print(f"El vuelo es {vuelo}")
 
                         if not vuelo:
                             # Crear el vuelo si no existe
@@ -266,7 +267,7 @@ class Vuelos:
         vuelos = []
         
         # Convertir los nombres de las columnas a cadenas y quitar espacios
-        flight_columns = excel_data.loc[start_row].dropna().str.lower().tolist()
+        flight_columns = excel_data.loc[start_row].fillna("").astype(str).str.strip().str.lower().tolist()
 
         # Verificar las columnas con las que estamos trabajando
         #print("Columnas disponibles:", flight_columns)  # Imprimir las columnas para verificar qué se está cargando
@@ -318,9 +319,14 @@ class Vuelos:
                         else:
                             if pd.isna(vuelo):
                                 # print(f"(B) {i} {vuelo} | {fecha} | {hora}")
-                                print(f"[ERROR] Vuelo faltante")
+                                print(f"[ERROR] Vuelo faltante en...")
                             elif vuelo in ["NO", "TBC"]:
                                 # print(f"Vuelo {vuelo} omitido")
+                                tripulante_vuelos[f'Vuelo {vuelo_num}'] = {
+                                    "vuelo": vuelo if not pd.isna(vuelo) else None,
+                                    "fecha": None,
+                                    "hora": None
+                                }
                                 vuelo_num += 1
                                 continue
 
@@ -329,18 +335,24 @@ class Vuelos:
                     else:
                         break  # Detener la búsqueda si no se encuentra una de las columnas
                 elif state=="off":
+                    print("Debug 1")
                     nro_regional_flight  = 'nro regional flight'
                     date_reg_flight = 'date reg flight'
                     hora_reg_flight = 'hora reg flight'
+                    print("Debug 2")
 
                     if nro_regional_flight in flight_columns and date_reg_flight in flight_columns and hora_reg_flight in flight_columns: 
                         col_idx_nro = flight_columns.index(nro_regional_flight)
                         col_idx_date = flight_columns.index(date_reg_flight)
                         col_idx_hora = flight_columns.index(hora_reg_flight)
+                        print("Debug 3")
 
                         nro = excel_data.iloc[i, col_idx_nro]
                         date = excel_data.iloc[i, col_idx_date]
                         hora = excel_data.iloc[i, col_idx_hora]
+                        print("Debug 4")
+
+                        print(f"{nro} | {state}")
 
                         if pd.notna(nro) and pd.notna(date) and pd.notna(hora):
                             tripulante_vuelos[f'Vuelo {vuelo_num}'] = {
@@ -349,14 +361,21 @@ class Vuelos:
                                 "fecha": date,
                                 "hora": hora  # Mantener la hora como string, o usar pd.to_datetime si es necesario
                             }
+                        elif nro.lower() == "no":
+                            tripulante_vuelos[f'Vuelo {vuelo_num}'] = {
+                                "vuelo": 'NO',
+                                "fecha": None,
+                                "hora": None  # Mantener la hora como string, o usar pd.to_datetime si es necesario
+                            }
+                            vuelo_num += 1
                         else:
                             tripulante_vuelos[f'Vuelo {vuelo_num}'] = {
                                 "vuelo": 'Desconocido',
                                 "fecha": None,
                                 "hora": 'Desconocido'  # Mantener la hora como string, o usar pd.to_datetime si es necesario
                             }
-
-                        break
+                        vuelo_num += 1
+                        # break
                     else:
                         break
 
@@ -408,7 +427,7 @@ class Vuelos:
             date_flight_value = excel_data.iloc[i, col_idx_date_flight] if col_idx_date_flight is not None else None
             hora_flight_value = excel_data.iloc[i, col_idx_hora_flight] if col_idx_hora_flight is not None else None
 
-            # print(f"{nro_flight_value} | {date_flight_value} | {hora_flight_value}")
+            print(f"{state} | {nro_flight_value} | {date_flight_value} | {hora_flight_value}")
 
             # Incluso si los valores son nulos, agregar los vuelos con 'NaN' o entradas vacías
             if nro_flight_value not in ["NO", "TBC"] and not pd.isna(nro_flight_value):
@@ -422,10 +441,24 @@ class Vuelos:
             else:
                 if pd.isna(nro_flight_value):
                     # print(f"(B) {i} {vuelo} | {fecha} | {hora}")
+                    tripulante_vuelos[f'Vuelo {vuelos_num}'] = {
+                        "vuelo": "NO",
+                        "fecha": None,
+                        "hora": None
+                    }
+                    vuelos_num += 1 
                     print(f"[ERROR] Vuelo faltante")
                 elif nro_flight_value in ["NO", "TBC"]:
                     # print(f"Vuelo {vuelo} omitido")
+                    print(f"El vuelo es {nro_flight_value}")
+                    tripulante_vuelos[f'Vuelo {vuelos_num}'] = {
+                        "vuelo": "NO",
+                        #"fecha": pd.to_datetime(date_flight_value, errors='coerce') if pd.notna(date_flight_value) else 'No disponible',
+                        "fecha": None,
+                        "hora": None
+                    }
                     vuelos_num += 1  # Incrementar el número de vuelo para el siguiente
+                    vuelos.append(tripulante_vuelos)
                     continue
 
             # Agregar la información del vuelo, aunque sea incompleta
@@ -575,6 +608,6 @@ def check_and_clean(file_path, vuelos_df, state, tipo):
                     #     continue
                     # else:
                     #     print(f"Registro {idx+2} en '{columna}': Vuelo está vacío")
-            
+
     check_date()
     return errors, errors_message

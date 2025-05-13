@@ -3,6 +3,8 @@ import pandas as pd
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.models import Tripulante, TripulanteAsistencia
+from openpyxl import load_workbook
+from openpyxl.utils import get_column_letter, column_index_from_string
 
 asistencia_columns = ['Proveedor SCL', 'Asistencia 1', 'Proveedor PUQ', 'Asistencia 2', 'Proveedor WPU', 'Asistencia 3']
 
@@ -34,50 +36,91 @@ class Asistencias:
         except Exception as e:
             raise Exception(f"[Asistencias] Error al procesar el archivo: {e}")
 
-    def procesar_asistencias(self, tripulantes_on_df, asistencias_on_df, tripulantes_off_df, asistencias_off_df):
-        try:
-            print("Procesando asistencias para ON...")
-            self._create_asistencias(tripulantes_on_df, asistencias_on_df)
+    # def procesar_asistencias(self, file_path, tripulantes_on_df, asistencias_on_df, tripulantes_off_df, asistencias_off_df):
+    #     errors = []
+    #     errors_message = []
+    #     try:
+    #         print("Procesando asistencias para ON...")
+    #         self._create_asistencias(file_path, tripulantes_on_df, asistencias_on_df, "ON", errors, errors_message)
 
-            print("Procesando asistencias para OFF...")
-            self._create_asistencias(tripulantes_off_df, asistencias_off_df)
+    #         print("Procesando asistencias para OFF...")
+    #         self._create_asistencias(file_path, tripulantes_off_df, asistencias_off_df, "OFF", errors, errors_message)
 
-            print("Procesamiento de asistencias completado para ambas hojas.")
-        except Exception as e:
-            print(f"Error al procesar asistencias: {e}")
+    #         print("Procesamiento de asistencias completado para ambas hojas.")
+            
+    #         return errors, errors_message
+    #     except Exception as e:
+    #         print(f"Error al procesar asistencias: {e}")
 
-    def _create_asistencias(self, tripulantes_df, asistencias_df):
+    def _create_asistencias(self, file_path, tripulantes_df, asistencias_df, state):
+        errors = []
+        errors_message = []
+
         try:
             if tripulantes_df.empty or asistencias_df.empty:
                 print("No hay datos de tripulantes o asistencias para procesar.")
-                return
+                return errors, errors_message
 
             for (i, tripulante_row), (_, asistencia_row) in zip(tripulantes_df.iterrows(), asistencias_df.iterrows()):
                 try:
-                    # Validar pasaporte
                     if pd.isna(tripulante_row['Pasaporte']) or not tripulante_row['Pasaporte']:
                         print(f"Pasaporte vacío o nulo en fila {i}. Registro omitido.")
                         continue
 
-                    # Buscar tripulante
                     tripulante = self.db_session.query(Tripulante).filter_by(pasaporte=tripulante_row['Pasaporte']).first()
                     if not tripulante:
-                        print(f"No se encontró tripulante con pasaporte {tripulante_row['Pasaporte']} en la fila {i}. Registro omitido.")
+                        print(f"No se encontró tripulante con pasaporte {tripulante_row['Pasaporte']} en la fila {i}.")
                         continue
 
-                    # Extraer y comparar asistencias y proveedores
-                    asistencias_lista = [x for x in [
-                        asistencia_row['Asistencia 1'], asistencia_row['Asistencia 2'], asistencia_row['Asistencia 3']
-                    ]]
+                    asistencias_lista = [
+                        str(asistencia_row.get('Asistencia 1', '')).strip().lower(),
+                        str(asistencia_row.get('Asistencia 2', '')).strip().lower(),
+                        str(asistencia_row.get('Asistencia 3', '')).strip().lower()
+                    ]
 
-                    proveedores_lista = [x for x in [
-                        asistencia_row['Proveedor SCL'], asistencia_row['Proveedor PUQ'], asistencia_row['Proveedor WPU']
-                    ]]
+                    proveedores_lista = [
+                        asistencia_row.get('Proveedor SCL', None),
+                        asistencia_row.get('Proveedor PUQ', None),
+                        asistencia_row.get('Proveedor WPU', None)
+                    ]
 
-                    # Verificar si ya existe la asistencia
                     existing_asistencia = self.db_session.query(TripulanteAsistencia).filter_by(
                         tripulante_id=tripulante.tripulante_id
                     ).first()
+
+                    asistencias_ciudades = [
+                        ("asistencia scl", "Asistencia 1", "Proveedor SCL"),
+                        ("asistencia puq", "Asistencia 2", "Proveedor PUQ"),
+                        ("asistencia wpu", "Asistencia 3", "Proveedor WPU"),
+                    ]
+
+                    proveedor_bool = True
+
+                    for idx, (asistencia_key, asistencia_column, proveedor_column) in enumerate(asistencias_ciudades):
+                        proveedor_valor = str(proveedores_lista[idx]).strip().lower() if not pd.isna(proveedores_lista[idx]) else ""
+                        # print(f"El valor de proveedor [{idx}] es {proveedor_valor}")
+
+                        if proveedor_valor == "no":
+                            proveedor_bool = False
+                            continue  # Si es 'no', se omite la validación de asistencia y proveedor
+
+                        if proveedor_valor in ["", "nan"]:
+                            y = get_excel_column_letter(file_path, state, proveedor_column)
+                            errors.append([i + 3, y])
+                            errors_message.append(f"Proveedor {asistencia_key.split()[-1].upper()} faltante [{i + 3},{y}]")
+                            proveedor_bool = False
+                            continue  # No tiene sentido revisar asistencia si no hay proveedor
+
+                        # Ahora valida la asistencia solo si el proveedor está OK
+                        if asistencia_key not in asistencias_lista:
+                            print(f"[ERROR ASISTENCIA] Asistencia {asistencia_key.split()[-1].upper()} faltante")
+                            y = get_excel_column_letter(file_path, state, asistencia_column)
+                            errors.append([i + 3, y])
+                            errors_message.append(f"Asistencia inexistente en {asistencia_column} [{i + 3},{y}]")
+                            proveedor_bool = False
+
+                    if proveedor_bool == False:
+                        continue
 
                     if not existing_asistencia:
                         tripulante_asistencia = TripulanteAsistencia(
@@ -90,7 +133,6 @@ class Asistencias:
                             proveedor_wpu=proveedores_lista[2] if 'asistencia wpu' in asistencias_lista else None
                         )
                         self.db_session.add(tripulante_asistencia)
-                        print(f"Asistencia creada para tripulante ID {tripulante.tripulante_id}.")
                     else:
                         existing_asistencia.necesita_asistencia_scl = 'asistencia scl' in asistencias_lista
                         existing_asistencia.necesita_asistencia_puq = 'asistencia puq' in asistencias_lista
@@ -98,7 +140,6 @@ class Asistencias:
                         existing_asistencia.proveedor_scl = proveedores_lista[0] if 'asistencia scl' in asistencias_lista else None
                         existing_asistencia.proveedor_puq = proveedores_lista[1] if 'asistencia puq' in asistencias_lista else None
                         existing_asistencia.proveedor_wpu = proveedores_lista[2] if 'asistencia wpu' in asistencias_lista else None
-                        # print(f"Asistencia actualizada para tripulante ID {tripulante.tripulante_id}.")
 
                     self.db_session.commit()
 
@@ -109,6 +150,8 @@ class Asistencias:
         except Exception as e:
             print(f"Error general al crear asistencias: {e}")
             self.db_session.rollback()
+
+        return errors, errors_message
 
     def _extract_assist(self, data, start_row, column_range, column_names):
         try:
@@ -144,3 +187,26 @@ class Asistencias:
         for col in ['Asistencia 1', 'Asistencia 2', 'Asistencia 3']:
             df[col] = df[col].apply(self._normalize_assistance_text)
         return df
+    
+def get_excel_column_letter(file_path, sheet_name, column_name):
+        # Cargar el archivo y la hoja
+        workbook = load_workbook(file_path)
+        sheet = workbook[sheet_name]
+        
+        # Buscar la columna por nombre (suponiendo que los nombres están en la primera fila)
+        for col in sheet.iter_cols(1, sheet.max_column, 1, 1):  # Iterar solo en la primera fila
+            if col[0].value == column_name:
+                # Devolver la letra de la columna
+                return get_column_letter(col[0].column)
+        
+        raise ValueError(f"Columna con nombre '{column_name}' no encontrada en el archivo.")
+
+def get_cell_value(file_path, sheet_name, row, column):
+    # Cargar el archivo de Excel
+    workbook = load_workbook(file_path, data_only=True)  # `data_only=True` para obtener el valor calculado en celdas con fórmulas
+    sheet = workbook[sheet_name]
+
+    # Obtener el valor de la celda
+    cell_value = sheet.cell(row=row, column=column).value
+
+    return cell_value
