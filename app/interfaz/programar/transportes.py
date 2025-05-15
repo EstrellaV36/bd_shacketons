@@ -252,7 +252,7 @@ class TransportesScreen(QWidget):
 
             for transporte in transportes:
                 date_pickup = transporte.Fecha_Pickup
-                tramo = f"{transporte.Lugar_Transporte_in}-{transporte.Lugar_Transporte_end}"
+                tramo = f"{str(transporte.Lugar_Transporte_in).strip()}-{str(transporte.Lugar_Transporte_end).strip()}"
                 city_select = CITY_AIRPORT_CODES.get(self.combo_ciudades.currentText(), "").lower()
 
                 # Caso 'ATO-HOTEL'
@@ -272,7 +272,7 @@ class TransportesScreen(QWidget):
                             "codigo_vuelo": codigo,
                             "fecha_vuelo": vuelo.Fecha.date(),
                             "hora_salida": None,
-                            "hora_llegada": vuelo.Hora_Llegada.time(),
+                            "hora_llegada": vuelo.Hora_Llegada.time() if vuelo.Hora_Llegada else None,
                             "owner": owner,
                             "buque": buque,
                             "eta": eta,
@@ -287,7 +287,10 @@ class TransportesScreen(QWidget):
                     for vuelo in vuelos_salida:
                         codigo = f"{str(vuelo.Codigo)} {CITY_TO_AIRPORT_CODES.get(vuelo.Aeropuerto_Salida)}-{CITY_TO_AIRPORT_CODES.get(vuelo.Aeropuerto_Llegada)}"
                         tiempo_a_restar = timedelta(hours=2, minutes=30) if city_select == 'puq' else timedelta(hours=3, minutes=30)
-                        hora_pick_up = (vuelo.Hora_Salida - tiempo_a_restar).time()
+                        if vuelo.Hora_Salida is not None:
+                            hora_pick_up = (vuelo.Hora_Salida - tiempo_a_restar).time()
+                        else:
+                            hora_pick_up = None  # O define un valor por defecto, por ejemplo time(0, 0)
                         data_rows.append({
                             "estado": transporte.Estado,
                             "fecha_pickup": date_pickup,
@@ -299,7 +302,7 @@ class TransportesScreen(QWidget):
                             "lugar_transporte_end": transporte.Lugar_Transporte_end,
                             "codigo_vuelo": codigo,
                             "fecha_vuelo": vuelo.Fecha.date(),
-                            "hora_salida": vuelo.Hora_Salida.time(),
+                            "hora_salida": vuelo.Hora_Salida.time() if vuelo.Hora_Salida else None,
                             "hora_llegada": None,
                             "owner": owner,
                             "buque": buque,
@@ -325,7 +328,7 @@ class TransportesScreen(QWidget):
                             "codigo_vuelo": codigo,
                             "fecha_vuelo": vuelo.Fecha.date(),
                             "hora_salida": None,
-                            "hora_llegada": vuelo.Hora_Llegada.time(),
+                            "hora_llegada": vuelo.Hora_Llegada.time() if vuelo.Hora_Llegada else None,
                             "owner": owner,
                             "buque": buque,
                             "eta": eta,

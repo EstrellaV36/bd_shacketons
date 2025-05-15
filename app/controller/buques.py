@@ -159,17 +159,21 @@ class Buques:
                         errors_message.append(f"Formato de fecha incorrecto [{x},{y}]")
 
         def get_excel_column_letter(file_path, sheet_name, column_name):
-            # Cargar el archivo y la hoja
-            workbook = load_workbook(file_path)
+            workbook = load_workbook(file_path, data_only=True)
             sheet = workbook[sheet_name]
 
-            # Buscar la columna por nombre (suponiendo que los nombres están en la primera fila)
-            for col in sheet.iter_cols(1, sheet.max_column, 1, 1):  # Iterar solo en la primera fila
-                if col[0].value == column_name:
-                    # Devolver la letra de la columna
-                    return get_column_letter(col[0].column)
+            if sheet.max_column == 0:
+                print(f"[WARNING] La hoja '{sheet_name}' no tiene columnas.")
+                return "?"
 
-            raise ValueError(f"Columna con nombre '{column_name}' no encontrada en el archivo.")
+            # Accede directamente a las celdas de la primera fila sin usar iter_cols
+            for col_idx in range(1, sheet.max_column + 1):
+                cell_value = sheet.cell(row=1, column=col_idx).value
+                if isinstance(cell_value, str) and cell_value.strip() == column_name:
+                    return get_column_letter(col_idx)
+
+            print(f"[WARNING] Columna '{column_name}' no encontrada en la hoja '{sheet_name}'.")
+            return "?"
 
         # Limpiar valores de las columnas relevantes
         buques_df["ETA Vessel"] = buques_df["ETA Vessel"].apply(clean_value)

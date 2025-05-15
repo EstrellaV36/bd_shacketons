@@ -304,7 +304,7 @@ class HotelScreen(QWidget):
             ws.cell(row=1, column=2, value=buque_seleccionado if buque_seleccionado else "N/A")
 
             ws.cell(row=2, column=1, value="CIUDAD").font = Font(bold=True)
-            ws.cell(row=2, column=2, value=hotel_seleccionado if hotel_seleccionado else "N/A")
+            ws.cell(row=2, column=2, value=ciudad_seleccionada if ciudad_seleccionada else "N/A")
 
             # Solo mostrar las fechas si están seleccionadas
             if fecha_inicio and fecha_fin:

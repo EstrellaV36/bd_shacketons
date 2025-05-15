@@ -61,6 +61,15 @@ class Asistencias:
                 print("No hay datos de tripulantes o asistencias para procesar.")
                 return errors, errors_message
 
+            # Abrir el archivo Excel una vez y crear un diccionario columna → letra
+            workbook = load_workbook(file_path)
+            sheet = workbook[state]
+            column_letter_map = {
+                col[0].value.strip(): get_column_letter(col[0].column)
+                for col in sheet.iter_cols(1, sheet.max_column, 1, 1)
+                if col[0].value
+            }
+
             for (i, tripulante_row), (_, asistencia_row) in zip(tripulantes_df.iterrows(), asistencias_df.iterrows()):
                 try:
                     if pd.isna(tripulante_row['Pasaporte']) or not tripulante_row['Pasaporte']:
@@ -98,28 +107,26 @@ class Asistencias:
 
                     for idx, (asistencia_key, asistencia_column, proveedor_column) in enumerate(asistencias_ciudades):
                         proveedor_valor = str(proveedores_lista[idx]).strip().lower() if not pd.isna(proveedores_lista[idx]) else ""
-                        # print(f"El valor de proveedor [{idx}] es {proveedor_valor}")
 
                         if proveedor_valor == "no":
                             proveedor_bool = False
-                            continue  # Si es 'no', se omite la validación de asistencia y proveedor
+                            continue
 
                         if proveedor_valor in ["", "nan"]:
-                            y = get_excel_column_letter(file_path, state, proveedor_column)
+                            y = column_letter_map.get(proveedor_column, "?")
                             errors.append([i + 3, y])
                             errors_message.append(f"Proveedor {asistencia_key.split()[-1].upper()} faltante [{i + 3},{y}]")
                             proveedor_bool = False
-                            continue  # No tiene sentido revisar asistencia si no hay proveedor
+                            continue
 
-                        # Ahora valida la asistencia solo si el proveedor está OK
                         if asistencia_key not in asistencias_lista:
                             print(f"[ERROR ASISTENCIA] Asistencia {asistencia_key.split()[-1].upper()} faltante")
-                            y = get_excel_column_letter(file_path, state, asistencia_column)
+                            y = column_letter_map.get(asistencia_column, "?")
                             errors.append([i + 3, y])
                             errors_message.append(f"Asistencia inexistente en {asistencia_column} [{i + 3},{y}]")
                             proveedor_bool = False
 
-                    if proveedor_bool == False:
+                    if not proveedor_bool:
                         continue
 
                     if not existing_asistencia:

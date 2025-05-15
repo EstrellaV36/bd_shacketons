@@ -138,7 +138,9 @@ class DataWorker(QObject):
         })
 
         # Opcional: Crear un DataFrame
+        resultados = [row for row in resultados if row.get("Hotel") != "NO"]
         df = pd.DataFrame(resultados)
+        
 
         # Emitir los datos procesados
         self.update_table.emit(df)
@@ -304,7 +306,14 @@ class HotelesLiquidarScreen(QWidget):
         self.table_widget.clear()
 
         if df.empty:
-            print("No data to display.")
+            # Mostrar mensaje de "No existen datos para la consulta"
+            self.table_widget.setRowCount(1)
+            self.table_widget.setColumnCount(1)
+            self.table_widget.setHorizontalHeaderLabels(["Mensaje"])
+            no_data_item = QTableWidgetItem("No existen datos para la consulta")
+            no_data_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.table_widget.setItem(0, 0, no_data_item)
+            self.table_widget.resizeColumnsToContents()
             return
 
         # Eliminar la columna 'ID' del DataFrame si existe
@@ -323,6 +332,8 @@ class HotelesLiquidarScreen(QWidget):
         for row_idx, row in df.iterrows():
             for col_idx, value in enumerate(row):
                 self.table_widget.setItem(row_idx, col_idx, QTableWidgetItem(str(value)))
+
+        self.table_widget.resizeColumnsToContents()
 
     def cargar_datos(self, ciudad_seleccionada, proveedor_seleccionado, tipo, owner, vessel):
         if hasattr(self, "is_running") and self.is_running:

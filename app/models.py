@@ -58,7 +58,8 @@ class Vuelo(Base):
     aerolinea: Mapped[str] = mapped_column(String, nullable=True)
     codigo: Mapped[str] = mapped_column(String, nullable=False)
     fecha: Mapped[datetime] = mapped_column(nullable=False)
-    tipo: Mapped[str] = mapped_column(String, nullable=False)
+    tipo: Mapped[str] = mapped_column(String, nullable=False)  # Mantenemos este como está
+    tipo_transporte: Mapped[str] = mapped_column(String, nullable=False)  # NUEVO CAMPO
     hora_salida: Mapped[datetime] = mapped_column(nullable=True)
     hora_llegada: Mapped[datetime] = mapped_column(nullable=False)
     aeropuerto_salida: Mapped[str] = mapped_column(String, nullable=False)
@@ -70,6 +71,7 @@ class Vuelo(Base):
 
     def __repr__(self):
         return f"Vuelo(id={self.vuelo_id}, codigo={self.codigo})"
+
     
 class Hotel(Base):
     __tablename__ = "hoteles"

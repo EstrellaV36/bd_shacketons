@@ -35,142 +35,115 @@ class Transportes:
             raise Exception(f"[Transportes] Error al procesar el archivo: {e}")
 
     def _create_transporte(self, file_path, transportes_df, tripulantes_df, state):
-        transportes = []  # Lista para almacenar los transportes creados
+        transportes = []
         errors, errors_message, errors_to_check = check_and_clean(file_path, transportes_df, state)
-        #print(errors_to_check)
 
         try:
-            # Verificar que ambos DataFrames no estén vacíos
             if transportes_df.empty or tripulantes_df.empty:
                 print("No hay transportes o tripulantes para procesar.")
                 return []
 
-            # Iterar sobre cada fila del DataFrame de transportes
             for i, row in transportes_df.iterrows():
                 try:
-                    # Verificar que la fila de tripulantes tenga un índice válido
                     if i >= len(tripulantes_df):
-                        print(f"No hay datos de tripulante para la fila {i}. Omitiendo...")
                         continue
 
-                    # Obtener el tripulante correspondiente a la fila actual
                     tripulante_data = tripulantes_df.iloc[i]
                     if pd.isna(tripulante_data['Pasaporte']):
-                        #print(f"Pasaporte vacío para el tripulante en la fila {i}. Omitiendo...")
                         continue
 
-                    tripulante = self.db_session.query(Tripulante).filter_by(pasaporte=tripulante_data['Pasaporte']).first()
+                    tripulante = self.db_session.query(Tripulante).filter_by(
+                        pasaporte=tripulante_data['Pasaporte']
+                    ).first()
 
                     if not tripulante:
-                        print(f"No se encontró tripulante con pasaporte {tripulante_data['Pasaporte']} en la fila {i}. Omitiendo...")
                         continue
 
-                    # Iterar sobre las claves que representan los transportes
                     for transporte_key in row.index:
-                        transporte_info = row[transporte_key]  # Obtener el diccionario del transporte
+                        transporte_info = row[transporte_key]
 
                         if [i, transporte_key] in errors_to_check:
-                            #print(f"Omitiendo creación para fila {i}, transporte {transporte_key} debido a errores.")
                             continue
 
-                        # Verificar que haya información para el transporte
-                        if pd.notna(transporte_info) and isinstance(transporte_info, dict):                        
+                        if pd.notna(transporte_info) and isinstance(transporte_info, dict):
                             transporte_info = self._extraer_transportes(transporte_info)
 
                             for _transporte in transporte_info:
                                 try:
-                                    # print(f"El valor de city in es {_transporte['City In']} | {state}")
-
-                                    # Verificar que el valor de 'City In' no sea 'Desconocido'
-                                    if _transporte['City In'] == 'Desconocido' or _transporte['City In'].lower() == 'no':
-                                        #print(f"Omitiendo transporte con 'City In' desconocido en la fila {i}: {_transporte}")
+                                    if _transporte['City In'] in ['Desconocido', 'NO']:
                                         continue
 
-                                    # Verificar datos faltantes
-                                    if not all(key in _transporte for key in ['City In', 'Place In', 'City End', 'Place End']):
-                                        print(f"Datos faltantes en transporte en la fila {i}: {_transporte}")
+                                    if not all(k in _transporte for k in ['City In', 'Place In', 'City End', 'Place End']):
                                         continue
 
-                                    #print(f"Buscando transporte con: City In: {_transporte['City In']}, Place In: {_transporte['Place In']}, City End: {_transporte['City End']}, Place End: {_transporte['Place End']}")
-                                    # Buscar el transporte en la base de datos
-                                    transporte = (
-                                        self.db_session.query(Transporte)
-                                        .filter(
-                                            and_(
-                                                Transporte.city_in == _transporte['City In'],
-                                                Transporte.place_in == _transporte['Place In'],
-                                                Transporte.city_end == _transporte['City End'],
-                                                Transporte.place_end == _transporte['Place End']
-                                            )
-                                        )
-                                        .first()
-                                    )
+                                    transporte = self.db_session.query(Transporte).filter_by(
+                                        city_in=_transporte['City In'],
+                                        place_in=_transporte['Place In'],
+                                        city_end=_transporte['City End'],
+                                        place_end=_transporte['Place End']
+                                    ).first()
 
                                     if not transporte:
-                                        print(f"Creando nuevo transporte: {_transporte}")
                                         transporte = Transporte(
                                             city_in=_transporte['City In'],
                                             place_in=_transporte['Place In'],
                                             city_end=_transporte['City End'],
-                                            place_end=_transporte['Place End'],
+                                            place_end=_transporte['Place End']
                                         )
                                         self.db_session.add(transporte)
-                                        self.db_session.flush()  # Asegurar que el transporte esté disponible en la base de datos
-                                        transportes.append(transporte)
+                                        self.db_session.flush()
                                         self.db_session.commit()
+                                        transportes.append(transporte)
 
-                                    # Verificar si ya existe la relación entre tripulante y transporte
                                     tripulante_transporte_existente = self.db_session.query(TripulanteTransporte).filter_by(
                                         tripulante_id=tripulante.tripulante_id,
-                                        transporte_id=transporte.transporte_id,
-                                    ).first()                                        
+                                        transporte_id=transporte.transporte_id
+                                    ).first()
 
-                                    #print(f"HOLA {type(hours_pickup)}")
-                                    
-                                    if not tripulante_transporte_existente: #and transporte.transporte_id != None:
-                                        # print(f"No existe la relación entre {tripulante.tripulante_id} y {transporte.transporte_id}")
-                                        # print(f"{_transporte['Date Pickup']} | {_transporte['Hours Pickup']}")
+                                    if not tripulante_transporte_existente:
+                                        # ✅ Conversión segura de hours_pickup
+                                        hours_pickup_raw = _transporte.get('Hours Pickup')
+                                        if isinstance(hours_pickup_raw, str):
+                                            try:
+                                                hours_pickup_obj = datetime.strptime(hours_pickup_raw.strip(), "%H:%M").time()
+                                            except ValueError:
+                                                print(f"[ERROR] Hora inválida en fila {i}: {hours_pickup_raw}. Se asigna None.")
+                                                hours_pickup_obj = None
+                                        elif isinstance(hours_pickup_raw, time):
+                                            hours_pickup_obj = hours_pickup_raw
+                                        else:
+                                            hours_pickup_obj = None
+
                                         tripulante_transporte = TripulanteTransporte(
                                             tripulante_id=tripulante.tripulante_id,
                                             transporte_id=transporte.transporte_id,
-                                            #date_pickup=_transporte['Date Pickup'] if 'Date Pickup' in _transporte else None,
                                             date_pickup=_transporte['Date Pickup'],
-                                            hours_pickup=_transporte['Hours Pickup']
+                                            hours_pickup=hours_pickup_obj
                                         )
 
                                         self.db_session.add(tripulante_transporte)
                                         self.db_session.flush()
                                         self.db_session.commit()
-                                        print(f"Relación de transporte guardado correctamente: {tripulante_transporte}")
+                                        # print(f"[OK] Relación creada: Tripulante {tripulante.tripulante_id} - Transporte {transporte.transporte_id}")
 
-                                    elif tripulante_transporte_existente:
-                                        #print(f"Ya existe relación para Tripulante ID {tripulante.tripulante_id} y Transporte ID {transporte.transporte_id}.")
-                                        continue
-                                    
-                                except Exception as transporte_error:
-                                    #print(f"Error procesando transporte en fila {i}, transporte: {_transporte} {tripulante.nombre}")
-                                    ###traceback.print_exc()
+                                except Exception as e:
                                     self.db_session.rollback()
+                                    print(f"[ERROR transporte interno] Fila {i}, error: {e}")
                                     continue
-                            
 
                 except Exception as fila_error:
-                    #print(f"[Transporte] Error procesando fila {i}: {fila_error}")
-                    #print(f"Datos del tripulante en la fila: {tripulante_data.to_dict()}")
-                    ###traceback.print_exc()
                     self.db_session.rollback()
+                    print(f"[ERROR fila] Fila {i}, error: {fila_error}")
                     continue
 
-            # Confirmar los cambios en la base de datos
             self.db_session.commit()
             print("Procesamiento de transportes completado.")
 
         except Exception as e:
-            print(f"Error general al crear transportes: {e}")
-            ###traceback.print_exc()
             self.db_session.rollback()
+            print(f"[ERROR general] {e}")
 
-        return errors, errors_message  # Retornar la lista de transportes creados
+        return errors, errors_message
 
     def _extraer_transportes(self, transporte_info):        
         transportes_info = []
@@ -180,10 +153,10 @@ class Transportes:
             return None
         
         if transporte_info['City In'] != 'Desconocido':
-            city_in = transporte_info['City In']
-            place_in = transporte_info['Place In']
-            city_end = transporte_info['City End']
-            place_end = transporte_info['Place End']
+            city_in = str(transporte_info['City In']).strip()
+            place_in = str(transporte_info['Place In']).strip()
+            city_end = str(transporte_info['City End']).strip()
+            place_end = str(transporte_info['Place End']).strip()
             date_pickup = transporte_info['Date Pickup']
             hours_pickup = transporte_info['Hours Pickup']
 
@@ -330,147 +303,125 @@ def check_and_clean(file_path, transportes_df, state):
     errors = []
     errors_message = []
 
+    workbook = load_workbook(file_path, data_only=True)
+    sheet = workbook[state]
+
+    column_letter_cache = {
+        col[0].value.strip(): get_column_letter(col[0].column)
+        for col in sheet.iter_cols(1, sheet.max_column, 1, 1)
+        if col[0].value
+    }
+
     def clean_value(value):
-        if isinstance(value, str):  # Verificar si es una cadena
-            return value.strip().replace('/', '-')  # Eliminar espacios en blanco
-        return value  # Dejar el valor tal como está si no es cadena
-    
-    def is_valid_date(date_str):
-        formats = ['%d-%m-%y', '%d-%m-%Y']  # Lista de formatos posibles
+        return value.strip().replace('/', '-') if isinstance(value, str) else value
+
+    def is_valid_date(date_value):
+        if isinstance(date_value, (datetime, date)):
+            return True  # Es un objeto de fecha válido, no hace falta más validación
+
+        # Si es string, intenta convertirlo
+        formats = ['%d-%m-%y', '%d-%m-%Y']
         for date_format in formats:
             try:
-                date = pd.to_datetime(date_str, format=date_format, errors='raise')
-                day, month, year = date.day, date.month, date.year
-                last_day_of_month = calendar.monthrange(year, month)[1]
-                if day <= last_day_of_month:
-                    return True
+                date_parsed = pd.to_datetime(date_value, format=date_format, errors='raise')
+                return date_parsed.day <= calendar.monthrange(date_parsed.year, date_parsed.month)[1]
             except Exception:
-                continue  # Intentar con el siguiente formato
-        #print(f"Fecha no válida: {date_str}")
+                continue
         return False
-    
+
+    def is_valid_time(time_str):
+        return bool(re.match(r'^\d{2}:\d{2}(:\d{2})?$', str(time_str).strip()))
+
+    def clean_time_format(time_str):
+        if not time_str:
+            return None
+        parts = str(time_str).strip().split(':')
+        if len(parts) >= 2:
+            return f"{parts[0].zfill(2)}:{parts[1].zfill(2)}"
+        return None
+
     def looks_like_date(value):
-        if isinstance(value, str):
-            # Usa una expresión regular para filtrar fechas con el formato esperado
-            return re.match(r'^\d{2}-\d{2}-\d{2,4}$', value) is not None
-        return False
-    
-    def get_column(df, transporte_actual, columna_objetivo):
-        """
-        df: DataFrame que contiene los transportes.
-        transporte_actual: Ejemplo -> 'Transporte 1', 'Transporte 2', etc.
-        columna_objetivo: Ejemplo -> 'City In', 'Date Pickup'.
-        """
-        sheet_name = state
-        # Construir el nombre exacto de la columna como está en el Excel/DF
-        columna_completa = f"{columna_objetivo}_{transporte_actual.split()[-1]}"
-        
-        indices = {key: idx for idx, key in enumerate(df.keys())}
-        if transporte_actual not in indices:
-            raise ValueError(f"La columna '{columna_completa}' no existe en el DataFrame. Columnas disponibles: {list(df.keys())}")
-        
-        x = indices[transporte_actual]
-        y = get_excel_column_letter(file_path, sheet_name, columna_completa)
-        return y
-    
-    def get_cell_value(file_path, sheet_name, row, column):
-        # Cargar el archivo de Excel
-        workbook = load_workbook(file_path, data_only=True)  # `data_only=True` para obtener el valor calculado en celdas con fórmulas
-        sheet = workbook[sheet_name]
+        return isinstance(value, str) and re.match(r'^\d{2}-\d{2}-\d{2,4}$', value) is not None
 
-        # Obtener el valor de la celda
-        cell_value = sheet.cell(row=row, column=column).value
+    def get_column_letter_for_field(transporte_actual, field):
+        transporte_number = transporte_actual.split()[-1]
+        col_name = f"{field}_{transporte_number}"
+        return column_letter_cache.get(col_name, "?")
 
-        return cell_value
+    df = pd.DataFrame(transportes_df)
 
-    def check_date():        
-        df = pd.DataFrame(transportes_df)
-        for columna in transportes_df:
-            #print(f"Columna: {columna} | {state}")
-            transporte = df[columna].tolist()  # Convertir la columna en una lista
-            for idx, registro in enumerate(transporte):
-                # Verificar si 'City In' está vacío o NaN
-                city_in = registro.get('City In')
-                if pd.isna(city_in) or city_in == "":
-                    sheet_name = state
-                    column_key = f"City_in_{columna.split()[-1]}"  # Ajuste según el número de transporte actual
-                    try:
-                        column_letter = get_column(df, columna, 'City_in')
-                    except KeyError:
-                        column_letter = "UNKNOWN"  # O alguna lógica por defecto
-                    
-                    column_number = column_index_from_string(column_letter)
-                    cell_value = get_cell_value(file_path, sheet_name, 1, column_number)
+    for columna in transportes_df:
+        transporte_data = df[columna].tolist()
+        for idx, registro in enumerate(transporte_data):
+            if not isinstance(registro, dict):
+                continue
 
-                    errors_to_check.append([idx, column_key])
-                    errors.append([idx + 3, column_letter])
-                    errors_message.append(f"City In faltante en {cell_value} [{idx + 3},{column_letter}]")
-                    continue  # Omitir y pasar al siguiente registro
+            city_in = registro.get('City In')
+            if pd.isna(city_in) or str(city_in).strip() == "":
+                column_letter = get_column_letter_for_field(columna, 'City_in')
+                errors_to_check.append([idx, columna])
+                errors.append([idx + 3, column_letter])
+                errors_message.append(f"City In faltante [{idx + 3},{column_letter}]")
+                continue
 
-                if str(registro.get('City In').lower()) != 'no':
+            if str(city_in).lower().strip() == 'no':
+                continue
 
-                    # print(f"Registro City In es = {registro.get('City In').lower()}")
-                    
-                    if isinstance(registro.get('Date Pickup'), str):
-                        if looks_like_date(registro.get('Date Pickup')):
-                            value = registro.get('Date Pickup')
-                            value = clean_value(value)
+            # --- Date Pickup ---
+            date_pickup = registro.get('Date Pickup')
+            column_letter_date = get_column_letter_for_field(columna, 'Date_pickup')
 
-                            if not is_valid_date(value):
-                                print(f"NE | Registro {idx+3} en '{columna}': Fecha es {value}")
-                                sheet_name = state
-                                column_letter = get_column(df, columna, "Date_pickup")
-                                column_number = column_index_from_string(column_letter)
-                                cell_value = get_cell_value(file_path, sheet_name, 1, column_number)
-                                errors_to_check.append([idx, columna])
-                                errors.append([idx+3, column_letter])
-                                errors_message.append(f"Fecha inexistente en {cell_value} [{idx+3},{column_letter}]")
-                    else:
-                        #print(f"{idx} | {registro.get('Date Pickup')}")
-                        value = registro.get('Date Pickup')
-                        value = clean_value(value)
-                        
-                        if registro.get('Date Pickup') == None:
-                            print(f"ER | Registro {idx+3} en '{columna}': Fecha está vacía")
-                            sheet_name = state
-                            column_letter = get_column(df, columna, "Date_pickup")
-                            column_number = column_index_from_string(column_letter)
-                            cell_value = get_cell_value(file_path, sheet_name, 1, column_number)
-                            errors_to_check.append([idx, columna])
-                            errors.append([idx+3, column_letter])
-                            errors_message.append(f"Fecha faltante en {cell_value} [{idx+3},{column_letter}]")
-                        else:
-                            if not is_valid_date(value):
-                                print(f"NE | Registro {idx+3} en '{columna}': Fecha es {registro.get('Date Pickup')}")
-                                sheet_name = state
-                                column_letter = get_column(df, columna, "Date_pickup")
-                                column_number = column_index_from_string(column_letter)
-                                cell_value = get_cell_value(file_path, sheet_name, 1, column_number)
-                                errors_to_check.append([idx, columna])
-                                errors.append([idx+3, column_letter])
-                                errors_message.append(f"Fecha inexistente en {columna} [{idx+3},{column_letter}]")
+            # 📌 Si es fórmula o referencia, obtener el valor calculado desde openpyxl
+            if isinstance(date_pickup, str) and date_pickup.startswith('='):
+                cell_address = f"{column_letter_date}{idx + 3}"
+                cell = sheet[cell_address]
+                date_pickup = cell.value  # Obtener el valor real
+                registro['Date Pickup'] = date_pickup
+
+            if pd.isna(date_pickup) or str(date_pickup).strip() == "":
+                errors_to_check.append([idx, columna])
+                errors.append([idx + 3, column_letter_date])
+                errors_message.append(f"Fecha faltante [{idx + 3},{column_letter_date}]")
+            elif isinstance(date_pickup, str):
+                cleaned_date = clean_value(date_pickup)
+                if looks_like_date(cleaned_date) and not is_valid_date(cleaned_date):
+                    # print(f"[ERROR DATE PICK UP] = {date_pickup} | {idx+3} 1")
+
+                    errors_to_check.append([idx, columna])
+                    errors.append([idx + 3, column_letter_date])
+                    errors_message.append(f"Fecha inexistente [{idx + 3},{column_letter_date}]")
+            elif not isinstance(date_pickup, (datetime, date)) and not is_valid_date(str(date_pickup)):
+                # print(f"[ERROR DATE PICK UP] = {date_pickup} | {idx+3},{column_letter_date}| 2")
+
+                errors_to_check.append([idx, columna])
+                errors.append([idx + 3, column_letter_date])
+                errors_message.append(f"Fecha inexistente [{idx + 3},{column_letter_date}]")
+
+            # --- Hours Pickup ---
+            hours_pickup = registro.get('Hours Pickup')
+            column_letter_hour = get_column_letter_for_field(columna, 'Hours_pickup')
+
+            if isinstance(hours_pickup, str) and hours_pickup.startswith('='):
+                cell_address = f"{column_letter_hour}{idx + 3}"
+                cell = sheet[cell_address]
+                hours_pickup = cell.value
+                registro['Hours Pickup'] = hours_pickup
+
+            if pd.isna(hours_pickup) or str(hours_pickup).strip() == "":
+                errors_to_check.append([idx, columna])
+                errors.append([idx + 3, column_letter_hour])
+                errors_message.append(f"Hora faltante [{idx + 3},{column_letter_hour}]")
+            else:
+                cleaned_time = clean_time_format(hours_pickup)
+                if not is_valid_time(cleaned_time):
+                    errors_to_check.append([idx, columna])
+                    errors.append([idx + 3, column_letter_hour])
+                    errors_message.append(f"Hora inválida [{idx + 3},{column_letter_hour}]")
                 else:
-                    if registro.get('City In').lower() == 'no':
-                        continue
-                    else:
-                        print(f"Registro {idx+3} en '{columna}': City In está vacío")
-
-    check_date()
+                    registro['Hours Pickup'] = cleaned_time  # Guarda limpio en formato HH:MM
 
     return errors, errors_message, errors_to_check
 
-def get_excel_column_letter(file_path, sheet_name, column_name):
-    # Cargar el archivo y la hoja
-    workbook = load_workbook(file_path)
-    sheet = workbook[sheet_name]
-
-    # Buscar la columna por nombre (suponiendo que los nombres están en la primera fila)
-    for col in sheet.iter_cols(1, sheet.max_column, 1, 1):  # Iterar solo en la primera fila
-        if col[0].value == column_name:
-            # Devolver la letra de la columna
-            return get_column_letter(col[0].column)
-    
-    raise ValueError(f"Columna con nombre '{column_name}' no encontrada en el archivo.")
 
 # def process_time(value, field_name, state, tripulante, transporte_key, row, i, indice_a_letra_columna):
 #     errors = []

@@ -342,9 +342,6 @@ class VisualizacionDatosScreen(QWidget):
 
     def load_existing_data(self):
         """Carga los datos de buques ON y OFF y los muestra en diferentes pestañas."""
-        # print("[VisualizacionDatosScreen] load_existing_data() llamado")
-        # print("Buque seleccionado:", self.buque_combo_box.currentText())
-
         selected_buque = self.buque_combo_box.currentText()
         if not selected_buque or selected_buque == "No hay buques disponibles":
             return
@@ -353,7 +350,6 @@ class VisualizacionDatosScreen(QWidget):
             session = get_db_session()
             selected_city = self.city_combo_box.currentText()
 
-            # Consulta para obtener todos los datos del buque seleccionado
             buque_data = session.query(
                 Buque.nombre.label("Vessel"),
                 Viaje.estado.label("Estado"),
@@ -365,7 +361,7 @@ class VisualizacionDatosScreen(QWidget):
                 ).label("Fecha_relevante"),
                 EtaCiudad.eta.label("ETA Vessel"),
                 EtaCiudad.etd.label("ETD Vessel"),
-                EtaCiudad.puerto.label("Puerto"),  
+                EtaCiudad.puerto.label("Puerto"),
                 Tripulante.tripulante_id.label("tripulante_id"),
                 Tripulante.nombre.label("First name"),
                 Tripulante.apellido.label("Last name"),
@@ -383,170 +379,123 @@ class VisualizacionDatosScreen(QWidget):
             if selected_city != "Ciudad":
                 buque_data = buque_data.filter(func.lower(EtaCiudad.puerto) == func.lower(selected_city.strip()))
 
-            # Ejecutar la consulta y obtener los resultados como una lista
             buque_data = buque_data.all()
 
-            # Dividir los datos en ON y OFF
+            # --- ON Data ---
             on_data = [row for row in buque_data if row.Estado == "ON"]
-            off_data = [row for row in buque_data if row.Estado == "OFF"]
-            
-            # Obtener los tripulantes ON para vuelos internacionales
             tripulantes_on_ids = [row.tripulante_id for row in on_data]
+
             vuelos_on = self.get_international_flights(session, tripulantes_on_ids)
-            # Obtener los tripulantes ON para vuelos domésticos
             vuelos_domesticos = self.get_domestic_flights(session, tripulantes_on_ids)
-            # Obtener los tripulantes ON para vuelos regionales
             vuelos_regionales = self.get_regional_flights(session, tripulantes_on_ids)
-            # Obtener los tripulantes ON para asistencia
             asistencia_data = self.get_asistencia_tripulantes(session, tripulantes_on_ids)
-            # Obtener los tripulantes ON para hoteles
             hoteles_data = self.get_hoteles_tripulantes(session, tripulantes_on_ids)
-            # Obtener los tripulantes ON para transporte
             transport_data = self.get_transport_data(session, tripulantes_on_ids)
             restaurant_data = self.get_restaurant_data(session, tripulantes_on_ids)
             extra_data = self.get_extra_data(session, tripulantes_on_ids)
 
-            formatted_on_data = []  
+            formatted_on_data = []
             for row in on_data:
-                vuelos = vuelos_on.get(row.tripulante_id, {})
-                vuelos_domestico = vuelos_domesticos.get(row.tripulante_id, {})
-                vuelos_regional = vuelos_regionales.get(row.tripulante_id, {})
-                asistencia = asistencia_data.get(row.tripulante_id, {})
-                hoteles = hoteles_data.get(row.tripulante_id, {})
-                transportes = transport_data.get(row.tripulante_id, {})
-                restaurantes = restaurant_data.get(row.tripulante_id, {})
-                extras = extra_data.get(row.tripulante_id, {})
-                
                 row_dict = row._asdict()
 
-                for key, value in vuelos.items():
-                    row_dict[key] = value
-                for key, value in vuelos_domestico.items():
-                    row_dict[key] = value
-                for key, value in vuelos_regional.items():
-                    row_dict[key] = value
-                for key, value in asistencia.items():
-                    row_dict[key] = value
-                for key, value in hoteles.items():
-                    row_dict[key] = value
-                for key, value in transportes.items():
-                    row_dict[key] = value
-                for key, value in restaurantes.items():  
-                    row_dict[key] = value
-                for key, value in extras.items():  
-                    row_dict[key] = value
+                for source in [vuelos_on, vuelos_domesticos, vuelos_regionales, asistencia_data,
+                            hoteles_data, transport_data, restaurant_data, extra_data]:
+                    data = source.get(row.tripulante_id, {})
+                    row_dict.update(data)
 
                 formatted_on_data.append(row_dict)
 
-            # Reemplaza `on_data` con la lista formateada
             on_data = formatted_on_data
-            
+
+            # --- OFF Data ---
+            off_data = [row for row in buque_data if row.Estado == "OFF"]
             tripulantes_off_ids = [row.tripulante_id for row in off_data]
+
             vuelos_off = self.get_international_flights(session, tripulantes_off_ids)
-            # Obtener los tripulantes ON para vuelos domésticos
             vuelos_domesticos_off = self.get_domestic_flights(session, tripulantes_off_ids)
-            # Obtener los tripulantes ON para vuelos regionales
             vuelos_regionales_off = self.get_regional_flights(session, tripulantes_off_ids)
-            # Obtener los tripulantes ON para asistencia
             asistencia_data_off = self.get_asistencia_tripulantes(session, tripulantes_off_ids)
-            # Obtener los tripulantes ON para hoteles
             hoteles_data_off = self.get_hoteles_tripulantes(session, tripulantes_off_ids)
-            # print(hoteles_data_off)
-            # Obtener los tripulantes ON para transporte
             transport_data_off = self.get_transport_data(session, tripulantes_off_ids)
             restaurant_data_off = self.get_restaurant_data(session, tripulantes_off_ids)
             extra_data_off = self.get_extra_data(session, tripulantes_off_ids)
 
-            formatted_off_data = []  
+            formatted_off_data = []
             for row in off_data:
-                vuelos_off = vuelos_off.get(row.tripulante_id, {})
-                vuelos_domestico_off = vuelos_domesticos_off.get(row.tripulante_id, {})
-                vuelos_regional_off = vuelos_regionales_off.get(row.tripulante_id, {})
-                asistencia_off = asistencia_data_off.get(row.tripulante_id, {})
-                hoteles_off = hoteles_data_off.get(row.tripulante_id, {})
-                transportes_off = transport_data_off.get(row.tripulante_id, {})
-                restaurantes_off = restaurant_data_off.get(row.tripulante_id, {})
-                extras_off = extra_data_off.get(row.tripulante_id, {})
-                
                 row_dict = row._asdict()
 
-                for key, value in vuelos.items():
-                    row_dict[key] = value
-                for key, value in vuelos_domestico_off.items():
-                    row_dict[key] = value
-                for key, value in vuelos_regional_off.items():
-                    row_dict[key] = value
-                for key, value in asistencia_off.items():
-                    row_dict[key] = value
-                for key, value in hoteles_off.items():
-                    row_dict[key] = value
-                for key, value in transportes_off.items():
-                    row_dict[key] = value
-                for key, value in restaurantes_off.items():  
-                    row_dict[key] = value
-                for key, value in extras_off.items():  
-                    row_dict[key] = value
+                for source in [vuelos_off, vuelos_domesticos_off, vuelos_regionales_off, asistencia_data_off,
+                            hoteles_data_off, transport_data_off, restaurant_data_off, extra_data_off]:
+                    data = source.get(row.tripulante_id, {})
+                    row_dict.update(data)
+
                 formatted_off_data.append(row_dict)
 
-            # Reemplaza `on_data` con la lista formateada
             off_data = formatted_off_data
 
-            self.show_data_in_tab(on_data, self.on_table_view, [
-                "Activo", "Owner", "Vessel", "Date arrive CL", "ETA Vessel", "ETD Vessel",
-                "Puerto", "Condition", "OKTB", "Mail PDI", "First name", "Last name", "Gender", "Nacionalidad", "Position",
-                "Pasaporte", "DOB",
-                "Aerolinea 1", "Aerolinea 2", "Aerolinea 3", "Aerolinea 4",
-                "Vuelo Int 1", "Fecha Vuelo Int 1", "Hora Vuelo Int 1",
-                "Vuelo Int 2", "Fecha Vuelo Int 2", "Hora Vuelo Int 2",
-                "Vuelo Int 3", "Fecha Vuelo Int 3", "Hora Vuelo Int 3",
-                "Vuelo Int 4", "Fecha Vuelo Int 4", "Hora Vuelo Int 4",
-                "Nro International Flight", "Date International Flight", "Hora International Flight",
-                "Nro Domestic Flight", "Date Domestic Flight", "Hora Domestic Flight",
-                "Nro Regional Flight", "Date Regional Flight", "Hora Regional Flight",
-                "Proveedor SCL", "Asistencia 1", "Proveedor PUQ", "Asistencia 2", "Proveedor WPU", "Asistencia 3",
-                "Category", "Hotel 1", "Check in 1", "Check out 1", "Rooms 1", "Nombre Hotel 1",
-                "Hotel 2", "Check in 2", "Check out 2", "Rooms 2", "Nombre Hotel 2",
-                "Hotel 3", "Check in 3", "Check out 3", "Rooms 3", "Nombre Hotel 3",
-                # Columnas de transporte
-                "City_in_1", "Place_in_1", "City_end_1", "Place_end_1", "Date_pickup_1", "Hours_pickup_1",
-                "City_in_2", "Place_in_2", "City_end_2", "Place_end_2", "Date_pickup_2", "Hours_pickup_2",
-                "City_in_3", "Place_in_3", "City_end_3", "Place_end_3", "Date_pickup_3", "Hours_pickup_3",
-                "City_in_4", "Place_in_4", "City_end_4", "Place_end_4", "Date_pickup_4", "Hours_pickup_4",
-                # Columnas de restaurante
-                "Prefer. Aliment", "Servicio Comida 1", "Fecha Desde 1", "Fecha Hasta 1", "Restaurant 1",
-                "Servicio Comida 2", "Fecha Desde 2", "Fecha Hasta 2", "Restaurant 2",
-                "Servicio Comida 3", "Fecha Desde 3", "Fecha Hasta 3", "Restaurant 3",
-                "Maleta perdida", "Transporte", "Atencion Medica", "Fecha", "Ciudad"
-            ], "Puerto a embarcar", "ON")
-
-            self.show_data_in_tab(off_data, self.off_table_view, [
-                "Activo", "Owner", "Vessel", "Date First Flight", "ETA Vessel", "ETD Vessel",
-                "Puerto", "Condition", "Carta Desembarco", "Mail PDI", "First name", "Last name", "Gender", "Nacionalidad", "Position",
-                "Pasaporte", "DOB",
-                "Aerolinea 1", "Aerolinea 2", "Aerolinea 3", "Aerolinea 4", "Nro Regional Flight", "Date Regional Flight", "Hora Regional Flight",
-                "Nro Domestic Flight", "Date Domestic Flight", "Hora Domestic Flight",
-                "Nro International Flight", "Date International Flight", "Hora International Flight",
-                "Proveedor SCL", "Asistencia 1", "Proveedor PUQ", "Asistencia 2", "Proveedor WPU", "Asistencia 3",
-                "Category", "Hotel 1", "Check in 1", "Check out 1", "Rooms 1", "Nombre Hotel 1",
-                "Hotel 2", "Check in 2", "Check out 2", "Rooms 2", "Nombre Hotel 2",
-                "Hotel 3", "Check in 3", "Check out 3", "Rooms 3", "Nombre Hotel 3",
-                # Columnas de transporte
-                "City_in_1", "Place_in_1", "City_end_1", "Place_end_1", "Date_pickup_1", "Hours_pickup_1",
-                "City_in_2", "Place_in_2", "City_end_2", "Place_end_2", "Date_pickup_2", "Hours_pickup_2",
-                "City_in_3", "Place_in_3", "City_end_3", "Place_end_3", "Date_pickup_3", "Hours_pickup_3",
-                "City_in_4", "Place_in_4", "City_end_4", "Place_end_4", "Date_pickup_4", "Hours_pickup_4",
-                # Columnas de restaurante
-                "Prefer. Aliment", "Servicio Comida 1", "Fecha Desde 1", "Fecha Hasta 1", "Restaurant 1",
-                "Servicio Comida 2", "Fecha Desde 2", "Fecha Hasta 2", "Restaurant 2",
-                "Servicio Comida 3", "Fecha Desde 3", "Fecha Hasta 3", "Restaurant 3",
-                "Maleta perdida", "Transporte", "Atencion Medica", "Fecha", "Ciudad"
-            ], "Puerto a desembarcar", "OFF")
-
+            # Mostrar en pestañas
+            self.show_data_in_tab(
+                on_data, self.on_table_view, self.get_on_columns(), "Puerto a embarcar", "ON"
+            )
+            self.show_data_in_tab(
+                off_data, self.off_table_view, self.get_off_columns(), "Puerto a desembarcar", "OFF"
+            )
 
         except SQLAlchemyError as e:
-            print(f"Error al cargar datos: {e}")
+            print(f"[ERROR] Error al cargar datos: {e}")
         finally:
             session.close()
+
+    def get_on_columns(self):
+        return [
+            "Activo", "Owner", "Vessel", "Date arrive CL", "ETA Vessel", "ETD Vessel",
+            "Puerto", "Condition", "OKTB", "Mail PDI", "First name", "Last name", "Gender", "Nacionalidad", "Position",
+            "Pasaporte", "DOB",
+            "Aerolinea 1", "Aerolinea 2", "Aerolinea 3", "Aerolinea 4",
+            "Vuelo Int 1", "Fecha Vuelo Int 1", "Hora Vuelo Int 1",
+            "Vuelo Int 2", "Fecha Vuelo Int 2", "Hora Vuelo Int 2",
+            "Vuelo Int 3", "Fecha Vuelo Int 3", "Hora Vuelo Int 3",
+            "Vuelo Int 4", "Fecha Vuelo Int 4", "Hora Vuelo Int 4",
+            "Nro International Flight", "Date International Flight", "Hora International Flight",
+            "Nro Domestic Flight", "Date Domestic Flight", "Hora Domestic Flight",
+            "Nro Regional Flight", "Date Regional Flight", "Hora Regional Flight",
+            "Proveedor SCL", "Asistencia 1", "Proveedor PUQ", "Asistencia 2", "Proveedor WPU", "Asistencia 3",
+            "Category", "Hotel 1", "Check in 1", "Check out 1", "Rooms 1", "Nombre Hotel 1",
+            "Hotel 2", "Check in 2", "Check out 2", "Rooms 2", "Nombre Hotel 2",
+            "Hotel 3", "Check in 3", "Check out 3", "Rooms 3", "Nombre Hotel 3",
+            "City_in_1", "Place_in_1", "City_end_1", "Place_end_1", "Date_pickup_1", "Hours_pickup_1",
+            "City_in_2", "Place_in_2", "City_end_2", "Place_end_2", "Date_pickup_2", "Hours_pickup_2",
+            "City_in_3", "Place_in_3", "City_end_3", "Place_end_3", "Date_pickup_3", "Hours_pickup_3",
+            "City_in_4", "Place_in_4", "City_end_4", "Place_end_4", "Date_pickup_4", "Hours_pickup_4",
+            "Prefer. Aliment", "Servicio Comida 1", "Fecha Desde 1", "Fecha Hasta 1", "Restaurant 1",
+            "Servicio Comida 2", "Fecha Desde 2", "Fecha Hasta 2", "Restaurant 2",
+            "Servicio Comida 3", "Fecha Desde 3", "Fecha Hasta 3", "Restaurant 3",
+            "Maleta perdida", "Transporte", "Atencion Medica", "Fecha", "Ciudad"
+        ]
+
+    def get_off_columns(self):
+        return [
+            "Activo", "Owner", "Vessel", "Date First Flight", "ETA Vessel", "ETD Vessel",
+            "Puerto", "Condition", "Carta Desembarco", "Mail PDI", "First name", "Last name", "Gender", "Nacionalidad", "Position",
+            "Pasaporte", "DOB",
+            "Aerolinea 1", "Aerolinea 2", "Aerolinea 3", "Aerolinea 4",
+            "Nro Regional Flight", "Date Regional Flight", "Hora Regional Flight",
+            "Nro Domestic Flight", "Date Domestic Flight", "Hora Domestic Flight",
+            "Nro International Flight", "Date International Flight", "Hora International Flight",
+            "Proveedor SCL", "Asistencia 1", "Proveedor PUQ", "Asistencia 2", "Proveedor WPU", "Asistencia 3",
+            "Category", "Hotel 1", "Check in 1", "Check out 1", "Rooms 1", "Nombre Hotel 1",
+            "Hotel 2", "Check in 2", "Check out 2", "Rooms 2", "Nombre Hotel 2",
+            "Hotel 3", "Check in 3", "Check out 3", "Rooms 3", "Nombre Hotel 3",
+            "City_in_1", "Place_in_1", "City_end_1", "Place_end_1", "Date_pickup_1", "Hours_pickup_1",
+            "City_in_2", "Place_in_2", "City_end_2", "Place_end_2", "Date_pickup_2", "Hours_pickup_2",
+            "City_in_3", "Place_in_3", "City_end_3", "Place_end_3", "Date_pickup_3", "Hours_pickup_3",
+            "City_in_4", "Place_in_4", "City_end_4", "Place_end_4", "Date_pickup_4", "Hours_pickup_4",
+            "Prefer. Aliment", "Servicio Comida 1", "Fecha Desde 1", "Fecha Hasta 1", "Restaurant 1",
+            "Servicio Comida 2", "Fecha Desde 2", "Fecha Hasta 2", "Restaurant 2",
+            "Servicio Comida 3", "Fecha Desde 3", "Fecha Hasta 3", "Restaurant 3",
+            "Maleta perdida", "Transporte", "Atencion Medica", "Fecha", "Ciudad"
+        ]
+
 
     def show_data_in_tab(self, data, table_view, columns, puerto_label, estado):
         """Convierte los datos a un DataFrame y los muestra en el QTableView."""
@@ -615,11 +564,6 @@ class VisualizacionDatosScreen(QWidget):
             print(f"Error al mostrar los datos en la pestaña {puerto_label}: {e}")
 
     def get_international_flights(self, session, tripulantes):
-        """
-        Recupera vuelos internacionales y los estructura por tripulante,
-        incluyendo el último vuelo internacional (que llega a Chile)"""
-        # print(f"Tripulantes recibidos para búsqueda de vuelos: {tripulantes}")  # Depuración inicial
-        
         vuelos_data = session.query(
             Tripulante.tripulante_id,
             Vuelo.aerolinea,
@@ -630,25 +574,16 @@ class VisualizacionDatosScreen(QWidget):
             Vuelo.aeropuerto_salida.label("origen"),
             Vuelo.aeropuerto_llegada.label("destino"),
         ).join(TripulanteVuelo, Tripulante.tripulante_id == TripulanteVuelo.tripulante_id) \
-            .join(Vuelo, TripulanteVuelo.vuelo_id == Vuelo.vuelo_id) \
-            .filter(Vuelo.tipo == "INTERNACIONAL", Tripulante.tripulante_id.in_(tripulantes)) \
-            .order_by(Tripulante.tripulante_id, Vuelo.fecha).all()
+        .join(Vuelo, TripulanteVuelo.vuelo_id == Vuelo.vuelo_id) \
+        .filter(Vuelo.tipo == "INTERNACIONAL", Tripulante.tripulante_id.in_(tripulantes)) \
+        .order_by(Tripulante.tripulante_id, Vuelo.fecha).all()
 
-        # Inicializar el diccionario que contendrá los vuelos formateados
-        vuelos_formateados = {tripulante_id: {
-            f"Aerolinea {i + 1}": None for i in range(4)  # Aerolíneas 1-4 primero
-        } for tripulante_id in tripulantes}
+        vuelos_formateados = {tripulante_id: {f"Aerolinea {i + 1}": None for i in range(4)} for tripulante_id in tripulantes}
 
         for tripulante_id in vuelos_formateados:
-            vuelos_formateados[tripulante_id].update({
-                f"Vuelo Int {i + 1}": "NO" for i in range(4)
-            })
-            vuelos_formateados[tripulante_id].update({
-                f"Fecha Vuelo Int {i + 1}": None for i in range(4)
-            })
-            vuelos_formateados[tripulante_id].update({
-                f"Hora Vuelo Int {i + 1}": None for i in range(4)
-            })
+            vuelos_formateados[tripulante_id].update({f"Vuelo Int {i + 1}": "NO" for i in range(4)})
+            vuelos_formateados[tripulante_id].update({f"Fecha Vuelo Int {i + 1}": None for i in range(4)})
+            vuelos_formateados[tripulante_id].update({f"Hora Vuelo Int {i + 1}": None for i in range(4)})
             vuelos_formateados[tripulante_id].update({
                 "Nro International Flight": None,
                 "Date International Flight": None,
@@ -661,33 +596,29 @@ class VisualizacionDatosScreen(QWidget):
             tripulante_id = vuelo.tripulante_id
             index = tripulante_indices[tripulante_id]
 
-            # Mapear los códigos de origen y destino
             origen_code = CITY_TO_AIRPORT_CODES.get(vuelo.origen.upper(), vuelo.origen)
             destino_code = CITY_TO_AIRPORT_CODES.get(vuelo.destino.upper(), vuelo.destino)
 
-            if index < 4:  # Asignar hasta 4 vuelos
+            hora_salida = vuelo.hora_salida.strftime('%H:%M') if vuelo.hora_salida else ""
+            hora_llegada = vuelo.hora_llegada.strftime('%H:%M') if vuelo.hora_llegada else ""
+            horas = f"{hora_salida} {hora_llegada}".strip()
+
+            if index < 4:
                 vuelos_formateados[tripulante_id][f"Aerolinea {index + 1}"] = vuelo.aerolinea
                 vuelos_formateados[tripulante_id][f"Vuelo Int {index + 1}"] = f"{vuelo.codigo} {origen_code}-{destino_code}"
-                vuelos_formateados[tripulante_id][f"Fecha Vuelo Int {index + 1}"] = vuelo.fecha.strftime("%d/%m/%y")
-                vuelos_formateados[tripulante_id][f"Hora Vuelo Int {index + 1}"] = f"{vuelo.hora_salida.strftime('%H:%M')} {vuelo.hora_llegada.strftime('%H:%M')}"
+                vuelos_formateados[tripulante_id][f"Fecha Vuelo Int {index + 1}"] = vuelo.fecha.strftime("%d/%m/%y") if vuelo.fecha else None
+                vuelos_formateados[tripulante_id][f"Hora Vuelo Int {index + 1}"] = horas
                 tripulante_indices[tripulante_id] += 1
 
-            # Siempre actualizar el último vuelo internacional (máxima fecha)
+            # Siempre actualizar el último vuelo internacional
             vuelos_formateados[tripulante_id]["Nro International Flight"] = f"{vuelo.codigo} {origen_code}-{destino_code}"
-            vuelos_formateados[tripulante_id]["Date International Flight"] = vuelo.fecha.strftime("%d/%m/%y")
-            vuelos_formateados[tripulante_id]["Hora International Flight"] = f"{vuelo.hora_salida.strftime('%H:%M')} {vuelo.hora_llegada.strftime('%H:%M')}"
-
-        # # Depuración final
-        # print("Vuelos internacionales formateados finalizados:")
-        # for tripulante_id, vuelos in vuelos_formateados.items():
-        #     print(f"Tripulante {tripulante_id}: {vuelos}")
+            vuelos_formateados[tripulante_id]["Date International Flight"] = vuelo.fecha.strftime("%d/%m/%y") if vuelo.fecha else None
+            vuelos_formateados[tripulante_id]["Hora International Flight"] = horas
 
         return vuelos_formateados
 
+
     def get_domestic_flights(self, session, tripulantes):
-        """
-        Recupera el último vuelo doméstico para cada tripulante,
-        """        
         vuelos_data = session.query(
             Tripulante.tripulante_id,
             Vuelo.aerolinea,
@@ -698,33 +629,29 @@ class VisualizacionDatosScreen(QWidget):
             Vuelo.aeropuerto_salida.label("origen"),
             Vuelo.aeropuerto_llegada.label("destino"),
         ).join(TripulanteVuelo, Tripulante.tripulante_id == TripulanteVuelo.tripulante_id) \
-            .join(Vuelo, TripulanteVuelo.vuelo_id == Vuelo.vuelo_id) \
-            .filter(Vuelo.tipo == "DOMESTICO", Tripulante.tripulante_id.in_(tripulantes)) \
-            .order_by(Tripulante.tripulante_id, Vuelo.fecha).all()
+        .join(Vuelo, TripulanteVuelo.vuelo_id == Vuelo.vuelo_id) \
+        .filter(Vuelo.tipo == "DOMESTICO", Tripulante.tripulante_id.in_(tripulantes)) \
+        .order_by(Tripulante.tripulante_id, Vuelo.fecha).all()
 
-        # Inicializar el diccionario para almacenar el último vuelo doméstico por tripulante
         vuelos_formateados = {tripulante_id: {
             "Nro Domestic Flight": None,
             "Date Domestic Flight": None,
             "Hora Domestic Flight": None
         } for tripulante_id in tripulantes}
 
-        # Asignar el último vuelo doméstico para cada tripulante
         for vuelo in vuelos_data:
             tripulante_id = vuelo.tripulante_id
-            
-            # Obtener los códigos de los aeropuertos (origen y destino)
+
             origen_code = CITY_TO_AIRPORT_CODES.get(vuelo.origen.upper(), vuelo.origen)
             destino_code = CITY_TO_AIRPORT_CODES.get(vuelo.destino.upper(), vuelo.destino)
 
-            vuelos_formateados[tripulante_id]["Nro Domestic Flight"] = f"{vuelo.codigo} {origen_code}-{destino_code}"
-            vuelos_formateados[tripulante_id]["Date Domestic Flight"] = vuelo.fecha.strftime("%d/%m/%y")
-            vuelos_formateados[tripulante_id]["Hora Domestic Flight"] = f"{vuelo.hora_salida.strftime('%H:%M')} {vuelo.hora_llegada.strftime('%H:%M')}"
+            hora_salida = vuelo.hora_salida.strftime('%H:%M') if vuelo.hora_salida else ""
+            hora_llegada = vuelo.hora_llegada.strftime('%H:%M') if vuelo.hora_llegada else ""
+            horas = f"{hora_salida} {hora_llegada}".strip()
 
-        # # Depuración final
-        # print("Vuelos domésticos formateados finalizados:")
-        # for tripulante_id, vuelos in vuelos_formateados.items():
-        #     print(f"Tripulante {tripulante_id}: {vuelos}")
+            vuelos_formateados[tripulante_id]["Nro Domestic Flight"] = f"{vuelo.codigo} {origen_code}-{destino_code}"
+            vuelos_formateados[tripulante_id]["Date Domestic Flight"] = vuelo.fecha.strftime("%d/%m/%y") if vuelo.fecha else None
+            vuelos_formateados[tripulante_id]["Hora Domestic Flight"] = horas
 
         return vuelos_formateados
 
@@ -761,7 +688,10 @@ class VisualizacionDatosScreen(QWidget):
 
             vuelos_formateados[tripulante_id]["Nro Regional Flight"] = f"{vuelo.codigo} {origen_code}-{destino_code}"
             vuelos_formateados[tripulante_id]["Date Regional Flight"] = vuelo.fecha.strftime("%d/%m/%y")
-            vuelos_formateados[tripulante_id]["Hora Regional Flight"] = f"{vuelo.hora_salida.strftime('%H:%M')} {vuelo.hora_llegada.strftime('%H:%M')}"
+            vuelos_formateados[tripulante_id]["Hora Regional Flight"] = (
+            f"{vuelo.hora_salida.strftime('%H:%M') if vuelo.hora_salida else ''} "
+            f"{vuelo.hora_llegada.strftime('%H:%M') if vuelo.hora_llegada else ''}"
+        ).strip()
 
         # # Depuración final
         # print("Vuelos regionales formateados finalizados:")

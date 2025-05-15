@@ -5,6 +5,7 @@ from sqlalchemy import and_
 from app.models import Buque, Tripulante, Vuelo, EtaCiudad, Viaje
 from openpyxl import load_workbook
 from openpyxl.utils import get_column_letter, column_index_from_string
+from datetime import datetime
 
 class Tripulantes:
     def __init__(self, db_session: Session):
@@ -34,6 +35,7 @@ class Tripulantes:
         vuelos_tripulante = []  # Lista para almacenar los vuelos asociados a cada tripulante
         errors = []
         errors_message = []
+        count_skiped = 0
 
         errors, errors_message = self.check_and_clean(tripulantes_df, file_path, estado)
 
@@ -44,10 +46,15 @@ class Tripulantes:
 
             # Iterar simultáneamente sobre tripulantes_df y buque_df
             for (i, tripulante_row), (_, buque_row) in zip(tripulantes_df.iterrows(), buque_df.iterrows()):
-                if i in errors:
-                    print(f"Skipie el {i}")
-                    continue
+                
                 try:
+                    tripulante_existente_pasaporte = self.db_session.query(Tripulante).filter(
+                        Tripulante.pasaporte == tripulante_row['Pasaporte']
+                    ).first()
+
+                    if tripulante_existente_pasaporte:
+                        continue
+
                     # Normalizar los nombres y apellidos para evitar problemas de mayúsculas/minúsculas
                     nombre_normalizado = tripulante_row['First name'].strip().title()
                     apellido_normalizado = tripulante_row['Last name'].strip().title()
@@ -67,7 +74,7 @@ class Tripulantes:
                         tripulante = Tripulante(
                             nombre=nombre_normalizado,
                             apellido=apellido_normalizado,
-                            sexo=tripulante_row['Gender'],
+                            sexo=str(tripulante_row['Gender']).strip(),
                             nacionalidad=tripulante_row['Nacionalidad'],
                             posicion=tripulante_row['Position'],
                             pasaporte=tripulante_row['Pasaporte'] if tripulante_row['Pasaporte'] else None,
@@ -127,6 +134,7 @@ class Tripulantes:
                     self.db_session.rollback()  # Revertir cambios en caso de error en la fila
                     continue  # Continuar con la siguiente fila
 
+            print(f"Total de tripulantes creados: {len(tripulantes)}")
             return errors, errors_message
 
         except Exception as e:
@@ -204,55 +212,90 @@ class Tripulantes:
             return value  # Dejar el valor tal como está si no es cadena
 
         def is_valid_date(date_str):
-            formats = ['%d-%m-%y', '%d-%m-%Y']  # Lista de formatos posibles
+            if pd.isna(date_str):
+                return False
+
+            # Caso 1: Ya es datetime
+            if isinstance(date_str, (pd.Timestamp, datetime)):
+                return True
+
+            # Caso 2: Viene como número (formato de fecha de Excel en número de días)
+            if isinstance(date_str, (int, float)):
+                try:
+                    date = pd.to_datetime('1899-12-30') + pd.to_timedelta(float(date_str), unit='D')
+                    return True
+                except Exception:
+                    return False
+
+            # Caso 3: Es un string, intentar con varios formatos
+            try:
+                pd.to_datetime(date_str, errors='raise', dayfirst=True)
+                return True
+            except Exception:
+                pass  # Si falla, seguimos probando formatos específicos
+
+            # Intentar con formatos definidos manualmente
+            formats = ['%d-%m-%y', '%d-%m-%Y', '%d %b %Y']
             for date_format in formats:
                 try:
-                    date = pd.to_datetime(date_str, format=date_format, errors='raise')
-                    day, month, year = date.day, date.month, date.year
-                    last_day_of_month = calendar.monthrange(year, month)[1]
-                    if day <= last_day_of_month:
-                        return True
+                    pd.to_datetime(date_str, format=date_format, errors='raise')
+                    return True
                 except Exception:
-                    continue  # Intentar con el siguiente formato
-            #print(f"[Tripulante] Fecha no válida: {date_str}")
+                    continue
+
             return False
 
         def validate_dates(tripulantes_df, column_name, file_path, state):
+            # Carga única del archivo y la hoja
+            workbook = load_workbook(file_path, data_only=True)
+            sheet = workbook[state]
+
+            # Mapeo de nombre de columna a letra de Excel (solo una vez)
+            column_map = {col[0].value: get_column_letter(col[0].column) for col in sheet.iter_cols(1, sheet.max_column, 1, 1)}
+
+            y = column_map.get(column_name, '?')
+            column_number = column_index_from_string(y) if y != '?' else None
+            cell_value = sheet.cell(row=1, column=column_number).value if column_number else '?'
+
             for i, value in tripulantes_df[column_name].items():
-                # Determinar si la fecha es válida
                 if not is_valid_date(value):
-                    error = tripulantes_df.loc[i][column_name]
-                    sheet_name = state
-                    x = i + 2  # Ajustar el índice a la fila de Excel (inicia en 1)
-                    y = get_excel_column_letter(file_path, sheet_name, column_name)
-                    column_number = column_index_from_string(y)
-                    cell_value = get_cell_value(file_path, sheet_name, 1, column_number)
+                    error = tripulantes_df.loc[i, column_name]
+                    x = i + 2  # Ajuste de índice
 
                     if isinstance(value, str) and '-' in value and len(value.split('-')) == 3:
-                        print(f"Error [Tripulante]: Fecha inexistente en la fila {x+3}, columna '{column_name} ({y})'. Valor: '{error}'")
-                        errors.append([i+3, y])
-                        errors_message.append(f"Fecha inexistente en {cell_value} [{x+3},{y}]")
+                        print(f"Error [Tripulante]: Fecha inexistente en la fila {x}, columna '{column_name} ({y})'. Valor: '{error}'")
+                        errors.append([i + 3, y])
+                        errors_message.append(f"Fecha inexistente en {cell_value} [{x},{y}]")
                     elif not pd.isna(value):
-                        print(f"Error [Tripulante]: Formato de fecha incorrecto en la fila {x+3}, columna '{y}'. Valor: '{error}'")
-                        errors.append([i+3, y])
-                        errors_message.append(f"Formato de fecha incorrecto en {cell_value} [{x+3},{y}]")
+                        print(f"Error [Tripulante]: Formato de fecha incorrecto en la fila {x}, columna '{y}'. Valor: '{error}'")
+                        errors.append([i + 3, y])
+                        errors_message.append(f"Formato de fecha incorrecto en {cell_value} [{x},{y}]")
+
 
         def validate_genders(tripulantes_df, column_name, file_path, state):
-            for i, value in tripulantes_df[column_name].items():
-                # Determinar si la fecha es válida
-                # print(f"Genero: {tripulantes_df.loc[i][column_name]}")
-                if pd.isna(tripulantes_df.loc[i][column_name]) or tripulantes_df.loc[i][column_name] not in ['F', 'M']:
-                    print(f"[ERROR TRIPULANTES] Género no existente: {tripulantes_df.loc[i][column_name]}")
-                    error = tripulantes_df.loc[i][column_name]
-                    sheet_name = state
-                    x = i + 3  # Ajustar el índice a la fila de Excel (inicia en 1)
-                    y = get_excel_column_letter(file_path, sheet_name, column_name)
-                    column_number = column_index_from_string(y)
-                    cell_value = get_cell_value(file_path, sheet_name, 1, column_number)
+            # Carga única del archivo y hoja
+            workbook = load_workbook(file_path, data_only=True)
+            sheet = workbook[state]
 
-                    print(f"Error [Tripulante]: Género inexistente en la fila {x+3}, columna '{column_name} ({y})'. Valor: '{error}'")
+            # Obtener el mapeo de nombres de columna a letras de Excel solo una vez
+            column_map = {col[0].value: get_column_letter(col[0].column) for col in sheet.iter_cols(1, sheet.max_column, 1, 1)}
+
+            y = column_map.get(column_name, None)
+            if y:
+                column_number = column_index_from_string(y)
+                cell_value = sheet.cell(row=1, column=column_number).value
+            else:
+                y = '?'
+                cell_value = '?'
+
+            for i, value in tripulantes_df[column_name].items():
+                gender_value = str(value).strip() if not pd.isna(value) else ''
+                if gender_value not in ['F', 'M']:
+                    print(f"[ERROR TRIPULANTES] Género no existente: {value}")
+                    x = i + 3  # Ajustar índice a la fila de Excel (asumiendo empieza en 1)
+                    print(f"Error [Tripulante]: Género inexistente en la fila {x}, columna '{column_name} ({y})'. Valor: '{value}'")
                     errors.append([i+3, y])
-                    errors_message.append(f"Género inexistente en {cell_value} [{x+3},{y}]")
+                    errors_message.append(f"Género inexistente en {cell_value} [{x},{y}]")
 
         def get_excel_column_letter(file_path, sheet_name, column_name):
             # Cargar el archivo y la hoja
@@ -277,15 +320,19 @@ class Tripulantes:
 
             return cell_value
 
-        # Limpiar los valores en la columna "DOB"
         tripulantes_df["DOB"] = tripulantes_df["DOB"].apply(clean_value)
 
         # Validar y notificar errores antes de convertir las fechas
         validate_dates(tripulantes_df, "DOB", file_path, state)
 
-        # Convertir finalmente a datetime, asignando NaT para los valores inválidos
-        tripulantes_df["DOB"] = pd.to_datetime(tripulantes_df["DOB"], format='%d/%m/%y', errors='coerce')
+        # Conversión final de DOB permitiendo distintos formatos de fecha
+        tripulantes_df["DOB"] = pd.to_datetime(
+            tripulantes_df["DOB"], 
+            errors='coerce', 
+            dayfirst=True
+        )
 
+        # Validar géneros después de las fechas
         validate_genders(tripulantes_df, "Gender", file_path, state)
 
         return errors, errors_message

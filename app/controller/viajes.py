@@ -100,7 +100,12 @@ class Viajes:
                 # Convertir el valor de 'Activo' a booleano
                 activo = True if str(activo_valor).strip().upper() == "SI" else False
 
-                pasaporte = tripulantes_df.loc[index]["Pasaporte"].strip()
+                pasaporte_value = tripulantes_df.loc[index]["Pasaporte"]
+                if pd.isna(pasaporte_value) or str(pasaporte_value).strip() == "":
+                    print(f"[NO PASAPORTE] Tripulante en fila {index + 3} no tiene pasaporte.")
+                    continue
+
+                pasaporte = str(pasaporte_value).strip()
                 tripulante = self.db_session.query(Tripulante).filter_by(pasaporte=pasaporte).first()
 
                 if tripulante:

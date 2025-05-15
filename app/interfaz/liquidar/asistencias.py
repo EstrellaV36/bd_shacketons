@@ -1,5 +1,5 @@
 import pandas as pd
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QComboBox, QTableWidget, QTableWidgetItem, QFileDialog, QCheckBox, QHBoxLayout, QDateEdit
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QComboBox, QTableWidget, QTableWidgetItem, QFileDialog, QCheckBox, QHBoxLayout, QDateEdit, QHeaderView
 from PyQt6.QtCore import Qt, QDate
 from app.database import get_db_session
 from app.models import Buque, EtaCiudad, Tripulante, Vuelo, TripulanteVuelo, Transporte, TripulanteTransporte, TripulanteAsistencia, Restaurante, TripulanteRestaurante, Hotel, TripulanteHotel, Viaje
@@ -382,7 +382,19 @@ class AsistenciasLiquidarScreen(QWidget):
         self.table_widget.clear()
 
         if df.empty:
-            print("No data to display.")
+            self.table_widget.setRowCount(1)
+            self.table_widget.setColumnCount(1)
+            self.table_widget.setHorizontalHeaderLabels(["Mensaje"])
+
+            no_data_item = QTableWidgetItem("No existen datos para la consulta")
+            no_data_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            no_data_item.setFlags(no_data_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+            self.table_widget.setItem(0, 0, no_data_item)
+
+            header = self.table_widget.horizontalHeader()
+            header.setStretchLastSection(True)
+            header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+
             return
 
         # Eliminar la columna 'ID' del DataFrame si existe

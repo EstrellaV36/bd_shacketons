@@ -18,12 +18,12 @@ class Aerolineas:
         try:
             excel_data_on = pd.read_excel(file_path, sheet_name='ON', header=None)
 
-            aerolineas_on = self.read_all_rows(excel_data_on, start_row=2, column_range=slice(17,21), column_names=aerolineas_columns)
+            aerolineas_on = self.read_all_rows(excel_data_on, start_row=2, column_range=slice(18,22), column_names=aerolineas_columns)
             aerolineas_on.reset_index(drop=True, inplace=True)
 
             excel_data_off = pd.read_excel(file_path, sheet_name='OFF', header=None)
 
-            aerolineas_off = self.read_all_rows(excel_data_off, start_row=2, column_range=slice(17,21), column_names=aerolineas_columns)
+            aerolineas_off = self.read_all_rows(excel_data_off, start_row=2, column_range=slice(18,22), column_names=aerolineas_columns)
             aerolineas_off.reset_index(drop=True, inplace=True)
 
             return aerolineas_on, aerolineas_off

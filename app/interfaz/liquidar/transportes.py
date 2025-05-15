@@ -1,6 +1,6 @@
 import pandas as pd
 
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QTableWidget, QTableWidgetItem, QComboBox, QFileDialog, QDateEdit, QCheckBox
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QTableWidget, QTableWidgetItem, QComboBox, QFileDialog, QDateEdit, QCheckBox, QHeaderView
 from PyQt6.QtCore import Qt, QDate
 from PyQt6.QtGui import QFont
 from app.database import get_db_session
@@ -20,6 +20,9 @@ class TransportesLiquidarScreen(QWidget):
         super().__init__()
         self.main_window = main_window
         self.setup_ui()
+        self.table_widget.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        self.table_widget.horizontalHeader().setSectionsMovable(True)
+        self.table_widget.horizontalHeader().setStretchLastSection(False)
 
     def setup_ui(self):
         session = get_db_session()
@@ -60,7 +63,7 @@ class TransportesLiquidarScreen(QWidget):
         layout.addWidget(self.combo_ciudades)
 
         self.combo_estados = QComboBox()
-        estados = ["Tipo tripulante", "ON", "OFF"]
+        estados = ["Tipo tripulante", "AMBOS", "ON", "OFF"]
         self.combo_estados.addItems(estados)  # Agregar un valor por defecto
         layout.addWidget(self.combo_estados)
 
@@ -90,7 +93,7 @@ class TransportesLiquidarScreen(QWidget):
         unique_places.update([place[0] for place in place_end if place[0] != "Desconocido"])
 
         # Convertir el conjunto a una lista ordenada (opcional)
-        all_tramos = [f"{origen} - {destino}" for origen, destino in product(unique_places, repeat=2) if origen != destino]
+        all_tramos = [f"{str(origen).strip()} - {str(destino).strip()}" for origen, destino in product(unique_places, repeat=2) if origen != destino]
 
         # Agregar los elementos únicos al QComboBox
         self.combo_tramos.clear()  # Limpia cualquier elemento previo
@@ -125,6 +128,10 @@ class TransportesLiquidarScreen(QWidget):
         # Tabla para mostrar datos
         self.table_widget = QTableWidget()
         layout.addWidget(self.table_widget)
+
+        self.table_widget.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        self.table_widget.horizontalHeader().setSectionsMovable(True)
+        self.table_widget.horizontalHeader().setStretchLastSection(False)
 
         # Botón para generar el Excel
         button_generar_excel = QPushButton("Generar Excel")
@@ -188,7 +195,7 @@ class TransportesLiquidarScreen(QWidget):
             tramo1 = "tramo1"
             tramo2 = "tramo2"
 
-        #print(f"{ciudad_seleccionada} | {tramo1} - {tramo2}")
+        # print(f"{ciudad_seleccionada} | {tramo1} - {tramo2}")
 
         estado_seleccionado = str(self.combo_estados.currentText()).lower()
         owner_seleccionado = str(self.combo_owners.currentText()).lower()
@@ -226,10 +233,13 @@ class TransportesLiquidarScreen(QWidget):
                     (Transporte.transporte_id == TripulanteTransporte.transporte_id))
             .filter(and_(func.lower(Transporte.place_in) == tramo1),
                     (func.lower(Transporte.place_end) == tramo2))
-            .filter(func.lower(Viaje.estado) == estado_seleccionado)
             .filter(func.lower(Buque.empresa) == owner_seleccionado)
             .filter(func.lower(Buque.nombre) == vessel_seleccionado)
         )
+
+        if estado_seleccionado not in ["ambos", "tipo tripulante"]:
+            transporte_necesario = transporte_necesario.filter(func.lower(Viaje.estado) == estado_seleccionado)
+
 
         if self.check_fecha.isChecked():
             transporte_necesario = transporte_necesario.filter(
@@ -313,7 +323,6 @@ class TransportesLiquidarScreen(QWidget):
         self.table_widget.setHorizontalHeaderLabels(headers)
         self.table_widget.setRowCount(0)
 
-        self.table_widget.resizeColumnsToContents()
         data_rows = []
 
         # Construir filas para cada tripulante con vuelos y transportes
@@ -331,179 +340,148 @@ class TransportesLiquidarScreen(QWidget):
 
                 # Caso 'ATO-HOTEL'
                 if 'ATO-HOTEL' == tramo:
-                    vuelos_llegada = [v for v in vuelos if v.Aeropuerto_Llegada.lower() == city_select]
-                    for vuelo in vuelos_llegada:
-                        codigo = f"{str(vuelo.Codigo)} {CITY_TO_AIRPORT_CODES.get(vuelo.Aeropuerto_Salida)}-{CITY_TO_AIRPORT_CODES.get(vuelo.Aeropuerto_Llegada)}"
-                        data_rows.append({
-                            "fecha_pickup": date_pickup,
-                            "hora_pick_up": transporte.Hora_Pickup if pd.isna(transporte.Hora_Pickup) else "",
-                            "first_name": transporte.First_Name,
-                            "last_name": transporte.Last_Name,
-                            "lugar_transporte_in": transporte.Lugar_Transporte_in,
-                            "nombre_hotel": hotel.Nombre_Hotel if hotel else "Sin hotel",
-                            "estado": transporte.Estado,
-                            # "estado": transporte.Estado,
-                            # "fecha_pickup": date_pickup,
-                            # "hora_pick_up": transporte.Hora_Pickup,
-                            # "nombre_hotel": hotel.Nombre_Hotel if hotel else "Sin hotel",
-                            # "ciudad_transporte_in": transporte.Ciudad_Transporte_in,
-                            # "lugar_transporte_in": transporte.Lugar_Transporte_in,
-                            # "ciudad_transporte_end": transporte.Ciudad_Transporte_end,
-                            # "lugar_transporte_end": transporte.Lugar_Transporte_end,
-                            # "codigo_vuelo": codigo,
-                            # "fecha_vuelo": vuelo.Fecha.date(),
-                            # "hora_salida": None,
-                            # "hora_llegada": vuelo.Hora_Llegada.time(),
-                            # "owner": owner,
-                            # "buque": buque,
-                            # "eta": eta,
-                            # "first_name": transporte.First_Name,
-                            # "last_name": transporte.Last_Name,
-                            # "nacionalidad": transporte.Nacionalidad
-                        })
+                    data_rows.append({
+                        "fecha_pickup": date_pickup,
+                        "hora_pick_up": transporte.Hora_Pickup if not pd.isna(transporte.Hora_Pickup) else "",
+                        "first_name": transporte.First_Name,
+                        "last_name": transporte.Last_Name,
+                        "lugar_transporte_in": transporte.Lugar_Transporte_in,
+                        "nombre_hotel": hotel.Nombre_Hotel if hotel else "Sin hotel",
+                        "estado": transporte.Estado,
+                    })
 
                 # Caso 'HOTEL-ATO'
                 elif 'HOTEL-ATO' == tramo:
-                    vuelos_salida = [v for v in vuelos if v.Aeropuerto_Salida.lower() == city_select]
-                    for vuelo in vuelos_salida:
-                        codigo = f"{str(vuelo.Codigo)} {CITY_TO_AIRPORT_CODES.get(vuelo.Aeropuerto_Salida)}-{CITY_TO_AIRPORT_CODES.get(vuelo.Aeropuerto_Llegada)}"
-                        tiempo_a_restar = timedelta(hours=2, minutes=30) if city_select == 'puq' else timedelta(hours=3, minutes=30)
-                        hora_pick_up = (vuelo.Hora_Salida - tiempo_a_restar).time()
-                        data_rows.append({
-                            "fecha_pickup": date_pickup,
-                            "hora_pick_up": transporte.Hora_Pickup if pd.isna(transporte.Hora_Pickup) else "",
-                            "first_name": transporte.First_Name,
-                            "last_name": transporte.Last_Name,
-                            "lugar_transporte_in": transporte.Lugar_Transporte_in,
-                            "nombre_hotel": hotel.Nombre_Hotel if hotel else "Sin hotel",
-                            "estado": transporte.Estado,
-                            # "estado": transporte.Estado,
-                            # "fecha_pickup": date_pickup,
-                            # "hora_pick_up": transporte.Hora_Pickup,
-                            # "nombre_hotel": hotel.Nombre_Hotel if hotel else "Sin hotel",
-                            # "ciudad_transporte_in": transporte.Ciudad_Transporte_in,
-                            # "lugar_transporte_in": transporte.Lugar_Transporte_in,
-                            # "ciudad_transporte_end": transporte.Ciudad_Transporte_end,
-                            # "lugar_transporte_end": transporte.Lugar_Transporte_end,
-                            # "codigo_vuelo": codigo,
-                            # "fecha_vuelo": vuelo.Fecha.date(),
-                            # "hora_salida": None,
-                            # "hora_llegada": vuelo.Hora_Llegada.time(),
-                            # "owner": owner,
-                            # "buque": buque,
-                            # "eta": eta,
-                            # "first_name": transporte.First_Name,
-                            # "last_name": transporte.Last_Name,
-                            # "nacionalidad": transporte.Nacionalidad
-                        })
+                    codigo = f"{str(vuelo.Codigo)} {CITY_TO_AIRPORT_CODES.get(vuelo.Aeropuerto_Salida)}-{CITY_TO_AIRPORT_CODES.get(vuelo.Aeropuerto_Llegada)}"
+                    tiempo_a_restar = timedelta(hours=2, minutes=30) if city_select == 'puq' else timedelta(hours=3, minutes=30)
+                    hora_pick_up = (vuelo.Hora_Salida - tiempo_a_restar).time()
+                    data_rows.append({
+                        "fecha_pickup": date_pickup,
+                        "hora_pick_up": transporte.Hora_Pickup if not pd.isna(transporte.Hora_Pickup) else "",
+                        "first_name": transporte.First_Name,
+                        "last_name": transporte.Last_Name,
+                        "lugar_transporte_in": transporte.Lugar_Transporte_in,
+                        "nombre_hotel": hotel.Nombre_Hotel if hotel else "Sin hotel",
+                        "estado": transporte.Estado,
+                        # "estado": transporte.Estado,
+                        # "fecha_pickup": date_pickup,
+                        # "hora_pick_up": transporte.Hora_Pickup,
+                        # "nombre_hotel": hotel.Nombre_Hotel if hotel else "Sin hotel",
+                        # "ciudad_transporte_in": transporte.Ciudad_Transporte_in,
+                        # "lugar_transporte_in": transporte.Lugar_Transporte_in,
+                        # "ciudad_transporte_end": transporte.Ciudad_Transporte_end,
+                        # "lugar_transporte_end": transporte.Lugar_Transporte_end,
+                        # "codigo_vuelo": codigo,
+                        # "fecha_vuelo": vuelo.Fecha.date(),
+                        # "hora_salida": None,
+                        # "hora_llegada": vuelo.Hora_Llegada.time(),
+                        # "owner": owner,
+                        # "buque": buque,
+                        # "eta": eta,
+                        # "first_name": transporte.First_Name,
+                        # "last_name": transporte.Last_Name,
+                        # "nacionalidad": transporte.Nacionalidad
+                    })
 
                 # Caso 'HOTEL-VESSEL'
                 elif 'HOTEL-VESSEL' == tramo:
-                    vuelos_salida = [v for v in vuelos if v.Aeropuerto_Salida.lower() == city_select]
-                    for vuelo in vuelos_salida:
-                        codigo = f"{str(vuelo.Codigo)} {CITY_TO_AIRPORT_CODES.get(vuelo.Aeropuerto_Salida)}-{CITY_TO_AIRPORT_CODES.get(vuelo.Aeropuerto_Llegada)}"
-                        tiempo_a_restar = timedelta(hours=3) if city_select == 'scl' else timedelta(hours=2)
-                        hora_pick_up = (vuelo.Hora_Salida - tiempo_a_restar).time()
-                        data_rows.append({
-                            "fecha_pickup": date_pickup,
-                            "hora_pick_up": transporte.Hora_Pickup if pd.isna(transporte.Hora_Pickup) else "",
-                            "first_name": transporte.First_Name,
-                            "last_name": transporte.Last_Name,
-                            "lugar_transporte_in": transporte.Lugar_Transporte_in,
-                            "nombre_hotel": hotel.Nombre_Hotel if hotel else "Sin hotel",
-                            "estado": transporte.Estado,
-                            # "estado": transporte.Estado,
-                            # "fecha_pickup": date_pickup,
-                            # "hora_pick_up": transporte.Hora_Pickup,
-                            # "nombre_hotel": hotel.Nombre_Hotel if hotel else "Sin hotel",
-                            # "ciudad_transporte_in": transporte.Ciudad_Transporte_in,
-                            # "lugar_transporte_in": transporte.Lugar_Transporte_in,
-                            # "ciudad_transporte_end": transporte.Ciudad_Transporte_end,
-                            # "lugar_transporte_end": transporte.Lugar_Transporte_end,
-                            # "codigo_vuelo": codigo,
-                            # "fecha_vuelo": vuelo.Fecha.date(),
-                            # "hora_salida": None,
-                            # "hora_llegada": vuelo.Hora_Llegada.time(),
-                            # "owner": owner,
-                            # "buque": buque,
-                            # "eta": eta,
-                            # "first_name": transporte.First_Name,
-                            # "last_name": transporte.Last_Name,
-                            # "nacionalidad": transporte.Nacionalidad
-                        })
+                    codigo = f"{str(vuelo.Codigo)} {CITY_TO_AIRPORT_CODES.get(vuelo.Aeropuerto_Salida)}-{CITY_TO_AIRPORT_CODES.get(vuelo.Aeropuerto_Llegada)}"
+                    tiempo_a_restar = timedelta(hours=3) if city_select == 'scl' else timedelta(hours=2)
+                    hora_pick_up = (vuelo.Hora_Salida - tiempo_a_restar).time()
+                    data_rows.append({
+                        "fecha_pickup": date_pickup,
+                        "hora_pick_up": transporte.Hora_Pickup if not pd.isna(transporte.Hora_Pickup) else "",
+                        "first_name": transporte.First_Name,
+                        "last_name": transporte.Last_Name,
+                        "lugar_transporte_in": transporte.Lugar_Transporte_in,
+                        "nombre_hotel": hotel.Nombre_Hotel if hotel else "Sin hotel",
+                        "estado": transporte.Estado,
+                        # "estado": transporte.Estado,
+                        # "fecha_pickup": date_pickup,
+                        # "hora_pick_up": transporte.Hora_Pickup,
+                        # "nombre_hotel": hotel.Nombre_Hotel if hotel else "Sin hotel",
+                        # "ciudad_transporte_in": transporte.Ciudad_Transporte_in,
+                        # "lugar_transporte_in": transporte.Lugar_Transporte_in,
+                        # "ciudad_transporte_end": transporte.Ciudad_Transporte_end,
+                        # "lugar_transporte_end": transporte.Lugar_Transporte_end,
+                        # "codigo_vuelo": codigo,
+                        # "fecha_vuelo": vuelo.Fecha.date(),
+                        # "hora_salida": None,
+                        # "hora_llegada": vuelo.Hora_Llegada.time(),
+                        # "owner": owner,
+                        # "buque": buque,
+                        # "eta": eta,
+                        # "first_name": transporte.First_Name,
+                        # "last_name": transporte.Last_Name,
+                        # "nacionalidad": transporte.Nacionalidad
+                    })
 
                 # Caso 'VESSEL-HOTEL'
                 elif 'VESSEL-HOTEL' == tramo:
-                    vuelos_bus = [v for v in vuelos if v.Codigo.lower() == 'bus']
-                    for vuelo in vuelos_bus:
-                        codigo = f"{str(vuelo.Codigo)} {CITY_TO_AIRPORT_CODES.get(vuelo.Aeropuerto_Salida)}-{CITY_TO_AIRPORT_CODES.get(vuelo.Aeropuerto_Llegada)}"
-                        data_rows.append({
-                            "fecha_pickup": date_pickup,
-                            "hora_pick_up": transporte.Hora_Pickup if pd.isna(transporte.Hora_Pickup) else "",
-                            "first_name": transporte.First_Name,
-                            "last_name": transporte.Last_Name,
-                            "lugar_transporte_in": transporte.Lugar_Transporte_in,
-                            "nombre_hotel": hotel.Nombre_Hotel if hotel else "Sin hotel",
-                            "estado": transporte.Estado,
-                            # "estado": transporte.Estado,
-                            # "fecha_pickup": date_pickup,
-                            # "hora_pick_up": transporte.Hora_Pickup,
-                            # "nombre_hotel": hotel.Nombre_Hotel if hotel else "Sin hotel",
-                            # "ciudad_transporte_in": transporte.Ciudad_Transporte_in,
-                            # "lugar_transporte_in": transporte.Lugar_Transporte_in,
-                            # "ciudad_transporte_end": transporte.Ciudad_Transporte_end,
-                            # "lugar_transporte_end": transporte.Lugar_Transporte_end,
-                            # "codigo_vuelo": codigo,
-                            # "fecha_vuelo": vuelo.Fecha.date(),
-                            # "hora_salida": None,
-                            # "hora_llegada": vuelo.Hora_Llegada.time(),
-                            # "owner": owner,
-                            # "buque": buque,
-                            # "eta": eta,
-                            # "first_name": transporte.First_Name,
-                            # "last_name": transporte.Last_Name,
-                            # "nacionalidad": transporte.Nacionalidad
-                        })
-
-                elif 'ATO-NAVE' == tramo or 'NAVE-ATO' == tramo:
-                    vuelos_llegada = [v for v in vuelos if v.Aeropuerto_Llegada.lower() == city_select]
-                    for vuelo in vuelos_llegada:
-                        codigo = f"{str(vuelo.Codigo)} {CITY_TO_AIRPORT_CODES.get(vuelo.Aeropuerto_Salida)}-{CITY_TO_AIRPORT_CODES.get(vuelo.Aeropuerto_Llegada)}"
-                        data_rows.append({
-                            "fecha_pickup": date_pickup,
-                            "hora_pick_up": transporte.Hora_Pickup if pd.isna(transporte.Hora_Pickup) else "",
-                            "first_name": transporte.First_Name,
-                            "last_name": transporte.Last_Name,
-                            "lugar_transporte_in": transporte.Lugar_Transporte_in,
-                            "nombre_hotel": hotel.Nombre_Hotel if hotel else "Sin hotel",
-                            "estado": transporte.Estado,
-                            # "estado": transporte.Estado,
-                            # "fecha_pickup": date_pickup,
-                            # "hora_pick_up": transporte.Hora_Pickup,
-                            # "nombre_hotel": hotel.Nombre_Hotel if hotel else "Sin hotel",
-                            # "ciudad_transporte_in": transporte.Ciudad_Transporte_in,
-                            # "lugar_transporte_in": transporte.Lugar_Transporte_in,
-                            # "ciudad_transporte_end": transporte.Ciudad_Transporte_end,
-                            # "lugar_transporte_end": transporte.Lugar_Transporte_end,
-                            # "codigo_vuelo": codigo,
-                            # "fecha_vuelo": vuelo.Fecha.date(),
-                            # "hora_salida": None,
-                            # "hora_llegada": vuelo.Hora_Llegada.time(),
-                            # "owner": owner,
-                            # "buque": buque,
-                            # "eta": eta,
-                            # "first_name": transporte.First_Name,
-                            # "last_name": transporte.Last_Name,
-                            # "nacionalidad": transporte.Nacionalidad
-                        })
-
-                elif 'NAVE-HOTEL' == tramo:
-                    print("Entre al if")
-                
                     codigo = f"{str(vuelo.Codigo)} {CITY_TO_AIRPORT_CODES.get(vuelo.Aeropuerto_Salida)}-{CITY_TO_AIRPORT_CODES.get(vuelo.Aeropuerto_Llegada)}"
                     data_rows.append({
                         "fecha_pickup": date_pickup,
-                            "hora_pick_up": transporte.Hora_Pickup if pd.isna(transporte.Hora_Pickup) else "",
+                        "hora_pick_up": transporte.Hora_Pickup if not pd.isna(transporte.Hora_Pickup) else "",
+                        "first_name": transporte.First_Name,
+                        "last_name": transporte.Last_Name,
+                        "lugar_transporte_in": transporte.Lugar_Transporte_in,
+                        "nombre_hotel": hotel.Nombre_Hotel if hotel else "Sin hotel",
+                        "estado": transporte.Estado,
+                        # "estado": transporte.Estado,
+                        # "fecha_pickup": date_pickup,
+                        # "hora_pick_up": transporte.Hora_Pickup,
+                        # "nombre_hotel": hotel.Nombre_Hotel if hotel else "Sin hotel",
+                        # "ciudad_transporte_in": transporte.Ciudad_Transporte_in,
+                        # "lugar_transporte_in": transporte.Lugar_Transporte_in,
+                        # "ciudad_transporte_end": transporte.Ciudad_Transporte_end,
+                        # "lugar_transporte_end": transporte.Lugar_Transporte_end,
+                        # "codigo_vuelo": codigo,
+                        # "fecha_vuelo": vuelo.Fecha.date(),
+                        # "hora_salida": None,
+                        # "hora_llegada": vuelo.Hora_Llegada.time(),
+                        # "owner": owner,
+                        # "buque": buque,
+                        # "eta": eta,
+                        # "first_name": transporte.First_Name,
+                        # "last_name": transporte.Last_Name,
+                        # "nacionalidad": transporte.Nacionalidad
+                    })
+
+                elif 'ATO-NAVE' == tramo or 'NAVE-ATO' == tramo:
+                    codigo = f"{str(vuelo.Codigo)} {CITY_TO_AIRPORT_CODES.get(vuelo.Aeropuerto_Salida)}-{CITY_TO_AIRPORT_CODES.get(vuelo.Aeropuerto_Llegada)}"
+                    data_rows.append({
+                        "fecha_pickup": date_pickup,
+                        "hora_pick_up": transporte.Hora_Pickup if not pd.isna(transporte.Hora_Pickup) else "",
+                        "first_name": transporte.First_Name,
+                        "last_name": transporte.Last_Name,
+                        "lugar_transporte_in": transporte.Lugar_Transporte_in,
+                        "nombre_hotel": hotel.Nombre_Hotel if hotel else "Sin hotel",
+                        "estado": transporte.Estado,
+                        # "estado": transporte.Estado,
+                        # "fecha_pickup": date_pickup,
+                        # "hora_pick_up": transporte.Hora_Pickup,
+                        # "nombre_hotel": hotel.Nombre_Hotel if hotel else "Sin hotel",
+                        # "ciudad_transporte_in": transporte.Ciudad_Transporte_in,
+                        # "lugar_transporte_in": transporte.Lugar_Transporte_in,
+                        # "ciudad_transporte_end": transporte.Ciudad_Transporte_end,
+                        # "lugar_transporte_end": transporte.Lugar_Transporte_end,
+                        # "codigo_vuelo": codigo,
+                        # "fecha_vuelo": vuelo.Fecha.date(),
+                        # "hora_salida": None,
+                        # "hora_llegada": vuelo.Hora_Llegada.time(),
+                        # "owner": owner,
+                        # "buque": buque,
+                        # "eta": eta,
+                        # "first_name": transporte.First_Name,
+                        # "last_name": transporte.Last_Name,
+                        # "nacionalidad": transporte.Nacionalidad
+                    })
+
+                elif 'NAVE-HOTEL' == tramo:                
+                    codigo = f"{str(vuelo.Codigo)} {CITY_TO_AIRPORT_CODES.get(vuelo.Aeropuerto_Salida)}-{CITY_TO_AIRPORT_CODES.get(vuelo.Aeropuerto_Llegada)}"
+                    data_rows.append({
+                        "fecha_pickup": date_pickup,
+                            "hora_pick_up": transporte.Hora_Pickup if not pd.isna(transporte.Hora_Pickup) else "",
                             "first_name": transporte.First_Name,
                             "last_name": transporte.Last_Name,
                             "lugar_transporte_in": transporte.Lugar_Transporte_in,
@@ -529,16 +507,56 @@ class TransportesLiquidarScreen(QWidget):
                             # "nacionalidad": transporte.Nacionalidad
                     })
         
+        self.table_widget.resizeColumnsToContents()
+        self.table_widget.viewport().update()
+        
         data_rows = [row for row in data_rows if row["fecha_pickup"] is not None]
                 
         # Ordenar la lista de filas por `fecha_pickup`
         data_rows = sorted(data_rows, key=lambda x: x["fecha_pickup"])
 
+        if not data_rows:
+            self.table_widget.setRowCount(1)
+            self.table_widget.setColumnCount(1)
+            self.table_widget.setHorizontalHeaderLabels(["Mensaje"])
+
+            no_data_item = QTableWidgetItem("No existen datos para la consulta")
+            no_data_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            no_data_item.setFlags(no_data_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+            self.table_widget.setItem(0, 0, no_data_item)
+
+            header = self.table_widget.horizontalHeader()
+            header.setStretchLastSection(True)
+            header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)  # Esto expande siempre
+
+            return
+
         # Insertar filas ordenadas en la tabla
         self.table_widget.setRowCount(len(data_rows))
         for row, row_data in enumerate(data_rows):
             self.table_widget.setItem(row, 0, QTableWidgetItem(str(row_data["fecha_pickup"])))
-            self.table_widget.setItem(row, 1, QTableWidgetItem(str(row_data["hora_pick_up"])))
+
+            hora = row_data["hora_pick_up"]
+            hora_formateada = ""
+
+            if isinstance(hora, time):
+                hora_formateada = hora.strftime("%H:%M")
+            elif isinstance(hora, str):
+                try:
+                    hora_obj = datetime.strptime(hora.strip(), "%H:%M:%S.%f").time()
+                    hora_formateada = hora_obj.strftime("%H:%M")
+                except ValueError:
+                    try:
+                        hora_obj = datetime.strptime(hora.strip(), "%H:%M:%S").time()
+                        hora_formateada = hora_obj.strftime("%H:%M")
+                    except ValueError:
+                        hora_formateada = hora.strip()  # Mostrar como string crudo
+            else:
+                hora_formateada = str(hora) if hora else ""
+                print(f"[DEBUG] Hora no es time ni str. Resultado: {hora_formateada}")
+
+            self.table_widget.setItem(row, 1, QTableWidgetItem(hora_formateada))
+
             self.table_widget.setItem(row, 2, QTableWidgetItem(str(row_data["first_name"])))
             self.table_widget.setItem(row, 3, QTableWidgetItem(str(row_data["last_name"])))
             if(row_data["lugar_transporte_in"] == "ATO"):
@@ -572,6 +590,11 @@ class TransportesLiquidarScreen(QWidget):
             # self.table_widget.setItem(row, 18, QTableWidgetItem(row_data["last_name"]))
             # self.table_widget.setItem(row, 19, QTableWidgetItem(row_data["nacionalidad"]))
  
+        self.table_widget.resizeColumnsToContents()
+
+        # Permitir que el usuario siga ajustando manualmente
+        self.table_widget.horizontalHeader().setSectionsMovable(True)
+        self.table_widget.horizontalHeader().setStretchLastSection(False)
 
     def generar_excel(self, ciudad_seleccionada):
     # Crear un DataFrame con los datos de la tabla

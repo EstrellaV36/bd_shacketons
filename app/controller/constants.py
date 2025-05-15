@@ -8,6 +8,7 @@ CITY_AIRPORT_CODES = {
     'NAT': "PUERTO NATALES",
     'USH': "USHUAIA",
     'CAL': "CALAFATE",
+    'KGI': "KING GEORGE ISLAND",
     'CDG': 'PARIS',  # París, Francia
     'NY': 'NUEVA YORK',  # Nueva York, EE. UU.
     'SPU': 'SPLIT',  # Split, Croacia

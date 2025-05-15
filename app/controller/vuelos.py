@@ -48,129 +48,103 @@ class Vuelos:
             return vuelos_internacionales_on, vuelos_internacionales_off, vuelos_domesticos_on, vuelos_domesticos_off, vuelos_regionales_on, vuelos_regionales_off
         except Exception as e:
             raise Exception(f"[Vuelos] Error al procesar el archivo: {e}")
+        
+    def _determinar_tipo_transporte(self, codigo_vuelo):
+        codigo = str(codigo_vuelo).upper()
+        if codigo.startswith("BUS"):
+            return "TERRESTRE"
+        elif codigo.startswith("FERRY"):
+            return "MARÍTIMO"
+        else:
+            return "AÉREO"
 
-    def _extraer_ciudades_y_horarios(self, vuelo_info, i, state, tipo):        
+    def _extraer_ciudades_y_horarios(self, vuelo_info, i, state, tipo):
         try:
-            vuelo = vuelo_info['vuelo']
+            vuelo = vuelo_info.get('vuelo')
 
-            # Verifica si el vuelo es NaN o None
             if vuelo is None or pd.isna(vuelo):
-                #print("Vuelo es NaN o None. Omitiendo...")
+                return None  # Vuelo no especificado
+
+            # Si el vuelo es "NO" o "TBC", omitirlo sin error
+            if str(vuelo).strip().upper() in ["NO", "TBC"]:
                 return None
 
-            # Utilizar una expresión regular para capturar el código de vuelo y los aeropuertos
-            expresion_vuelo = r'^(.+)\s([A-Z]{3})[-\s]([A-Z]{3})$'  # Acepta '-' o ' ' como separador
+            # Regex para código de vuelo y aeropuertos
+            expresion_vuelo = r'^(.+)\s([A-Z]{3})[-\s]([A-Z]{3})$'
             match = re.match(expresion_vuelo, vuelo)
 
-            if match:
-                codigo_vuelo = match.group(1).strip()  # Código de vuelo (puede ser solo letras o con número)
-                aeropuerto_salida = match.group(2)     # Ciudad de origen
-                aeropuerto_llegada = match.group(3)    # Ciudad de destino
-            else:
+            if not match:
+                return None  # No cumple el formato esperado
+
+            codigo_vuelo = match.group(1).strip()
+            aeropuerto_salida = match.group(2)
+            aeropuerto_llegada = match.group(3)
+
+            fecha_vuelo = vuelo_info.get('fecha')
+            if isinstance(fecha_vuelo, str):
+                fecha_vuelo = pd.to_datetime(fecha_vuelo, errors='coerce', dayfirst=True)
+
+            if pd.isna(fecha_vuelo):
+                print(f"[ERROR] Fecha de vuelo inválida: {fecha_vuelo} | {codigo_vuelo} | {i}")
                 return None
-            
-            # print(f"Vuelo = {codigo_vuelo} | {aeropuerto_salida} | {aeropuerto_llegada} ({tipo, state})")
 
-            # Obtener la fecha del vuelo
-            fecha_vuelo = vuelo_info['fecha']  # Se espera que sea un objeto Timestamp
-
-            # Verificar si 'hora' es una cadena o un objeto datetime.time
             hora = vuelo_info.get('hora', '')
-            #print(f"la fecha es 1: {fecha_vuelo} ({type(fecha_vuelo)})")
-            #print(f"la hora es 1: {hora} ({type(hora)})")
+            dia_siguiente = None  # Asegurar que siempre esté definido
+
             if isinstance(hora, str):
-                # Reemplazar caracteres no estándar y limpiar espacios
-                hora = hora.strip()
-                hora = hora.replace("–", "-").replace(" ", "-").strip()
+                hora = hora.strip().replace("–", "-").replace(" ", "-")
 
-                # Detectar y corregir si los horarios están concatenados sin espacio
-                match_horas_concatenadas = re.match(r'^(\d{1,2}:\d{2})(\d{1,2}:\d{2})(\+1)?$', hora)
-                if match_horas_concatenadas:
-                    hora = f"{match_horas_concatenadas.group(1)} {match_horas_concatenadas.group(2)}"
-                    if match_horas_concatenadas.group(3):
-                        hora += "+1"
-                    #print(f"Hora reparada automáticamente: '{hora}'")
-
+                # Formato de dos horas con opcional +1
                 match_horas = re.match(r'^(\d{1,2}:\d{2})[-\s](\d{1,2}:\d{2})(\+\d+)?$', hora)
-                #if not match_horas:
-                    #if isinstance(hora, str) and hora != "TBC":
-                        #print(hora)
-                        #hora_llegada, hora_salida = match_horas.split('-')
-                    #else:
-                        #print(f"Formato de hora inválido: '{hora}'")
-                        #return None
 
-                hora_salida = match_horas.group(1)
-                hora_llegada = match_horas.group(2)
-                dia_siguiente = match_horas.group(3)  # Detectar si hay '+1'
+                if match_horas:
+                    hora_salida_str = match_horas.group(1)
+                    hora_llegada_str = match_horas.group(2)
+                    dia_siguiente = match_horas.group(3)
 
-                if isinstance(fecha_vuelo, str):
-                    fecha_vuelo = pd.to_datetime(fecha_vuelo, errors='coerce')
+                    hora_salida = datetime.combine(fecha_vuelo.date(), datetime.strptime(hora_salida_str, "%H:%M").time())
+                    hora_llegada = datetime.combine(fecha_vuelo.date(), datetime.strptime(hora_llegada_str, "%H:%M").time())
 
-                if pd.isna(fecha_vuelo):
-                    print(f"[ERROR] Fecha de vuelo inválida: {fecha_vuelo} | {codigo_vuelo}")
-                    return None
+                else:
+                    # Caso de una sola hora (ej. 12:00:00), asumir solo hora de llegada
+                    match_hora_unica = re.match(r'^(\d{1,2}:\d{2})$', hora)
+                    if match_hora_unica:
+                        hora_llegada_str = match_hora_unica.group(1)
+                        hora_salida = None
+                        hora_llegada = datetime.combine(fecha_vuelo.date(), datetime.strptime(hora_llegada_str, "%H:%M").time())
+                    else:
+                        if str(hora).strip().upper() not in ["NO", "TBC"]:
+                            print(f"Error en la fila {i+3} | {state} | {tipo} | Hora inválida: {hora}")
+                        return None  # No es un formato de hora válido
 
-                hora_salida = datetime.combine(fecha_vuelo.date(), datetime.strptime(hora_salida, "%H:%M").time())
-                hora_llegada = datetime.combine(fecha_vuelo.date(), datetime.strptime(hora_llegada, "%H:%M").time())
-            # elif isinstance(hora, datetime.time):
-            #     print(f"Hora ya es un objeto datetime.time: {hora}")
-            #     hora_salida = hora
-            #     hora_llegada = None
             elif isinstance(hora, time):
-                #print(f"la hora es 2: {hora}")
                 hora_salida = None
-                hora_llegada = hora
                 hora_llegada = datetime.combine(fecha_vuelo.date(), hora)
             else:
-                if codigo_vuelo not in ["NO", "TBC"]:
-                    # print("Error en esta parte")
-                    hora_salida = None
-                    hora_llegada = None
-                    dia_siguiente = None
+                return None
 
-                    # print(codigo_vuelo)
-                    print(f"Error en la fila {i+3} | {state} | {tipo} | {hora_salida},{hora_llegada}")
-                    
-
-            # Convertir horas a objetos datetime
-            # print("Intentando convertir hora de salida y llegada a datetime...")
-            #print(f"{hora_llegada} | {hora_salida}")
-
-            # Ajustar fecha de llegada si contiene '+1'
-
-            # print(dia_siguiente)
+            # Ajuste si hay día siguiente (+1)
             if dia_siguiente:
-                numero_de_dias = int(dia_siguiente.lstrip("+"))  # convertir a int
+                numero_de_dias = int(dia_siguiente.lstrip("+"))
                 hora_llegada += timedelta(days=numero_de_dias)
-                print(hora_llegada)
-                # print(f"Hora llegada ajustada por día siguiente: {hora_llegada}")
 
-            # Buscar las ciudades en el diccionario de aeropuertos
             ciudad_salida = CITY_AIRPORT_CODES.get(aeropuerto_salida, "Desconocido")
             ciudad_llegada = CITY_AIRPORT_CODES.get(aeropuerto_llegada, "Desconocido")
-            # print(f"Ciudad salida: {ciudad_salida}, Ciudad llegada: {ciudad_llegada}")
 
             if hora_llegada is None:
                 raise ValueError("Hora de llegada no puede ser nula.")
 
-            #print("Retornando")
-
-            # Retornar el resultado
             return {
                 'codigo_vuelo': codigo_vuelo,
                 'ciudad_salida': ciudad_salida,
                 'ciudad_llegada': ciudad_llegada,
-                'fecha': fecha_vuelo, 
-                'hora_salida': hora_salida, 
-                'hora_llegada': hora_llegada  
+                'fecha': fecha_vuelo,
+                'hora_salida': hora_salida,
+                'hora_llegada': hora_llegada
             }
 
         except Exception as e:
-            print(f"Error al procesar el vuelo: {e} | HORA : {vuelo_info.get('hora')}")
-            ###traceback.print_exc()  # Imprime el seguimiento completo del error
-            # print("=== Depuración final ===")
-            # print(f"Datos actuales de vuelo_info: {vuelo_info}")
+            print(f"Error al procesar el vuelo: {e} | HORA: {vuelo_info.get('hora')}")
             return None
 
     def _create_vuelos(self, file_path, vuelos_df, tripulantes_df, state, tipo):
@@ -183,33 +157,27 @@ class Vuelos:
                 return [], []
 
             for i, (vuelo_row, tripulante_data) in enumerate(zip(vuelos_df.iterrows(), tripulantes_df.iterrows())):
-                vuelo_row = vuelo_row[1]  # Acceder a la serie de la fila
-                tripulante_data = tripulante_data[1]  # Acceder a la serie de la fila
+                vuelo_row = vuelo_row[1]
+                tripulante_data = tripulante_data[1]
 
                 if pd.isna(tripulante_data['Pasaporte']):
                     continue
 
                 tripulante = self.db_session.query(Tripulante).filter_by(pasaporte=tripulante_data['Pasaporte']).first()
-
                 if not tripulante:
-                    #print(f"No se encontró tripulante con pasaporte {tripulante_data['Pasaporte']} en la fila {i}.")
                     continue
 
-                # Iterar sobre los vuelos correspondientes a este tripulante (en la misma fila)
                 for vuelo_key in vuelo_row.index:
-                    vuelo_info = vuelo_row[vuelo_key]  # Obtener la información del vuelo de la fila de vuelos
-                    # Verificar que haya información válida sobre el vuelo
+                    vuelo_info = vuelo_row[vuelo_key]
                     if pd.notna(vuelo_info) and isinstance(vuelo_info, dict) and vuelo_info.get('vuelo') != 'No disponible':
-                        #print(i)
                         vuelo_info = self._extraer_ciudades_y_horarios(vuelo_info, i, state, tipo)
-
-                        # print(f"Vuelo info es: {vuelo_info}")
-
                         if vuelo_info is None or 'codigo_vuelo' not in vuelo_info:
-                            #print(f"Omitiendo vuelo {vuelo_key} en la fila {i} debido a datos faltantes. {vuelo_info}")
                             continue
 
-                        # Buscar el vuelo por código y fecha
+                        # Determinar tipo de transporte
+                        tipo_transporte = self._determinar_tipo_transporte(vuelo_info['codigo_vuelo'])
+
+                        # Buscar vuelo existente
                         vuelo = self.db_session.query(Vuelo).filter_by(
                             codigo=vuelo_info['codigo_vuelo'],
                             aeropuerto_salida=vuelo_info['ciudad_salida'],
@@ -218,11 +186,7 @@ class Vuelos:
                             hora_salida=vuelo_info['hora_salida']
                         ).first()
 
-                        #print(f"HORA LLEGADA: {vuelo_info['hora_llegada']}")
-                        # print(f"El vuelo es {vuelo}")
-
                         if not vuelo:
-                            # Crear el vuelo si no existe
                             vuelo = Vuelo(
                                 codigo=vuelo_info['codigo_vuelo'],
                                 aeropuerto_salida=vuelo_info['ciudad_salida'],
@@ -230,36 +194,37 @@ class Vuelos:
                                 fecha=vuelo_info['fecha'],
                                 hora_salida=vuelo_info['hora_salida'],
                                 hora_llegada=vuelo_info['hora_llegada'],
-                                tipo=tipo
+                                tipo=tipo,
+                                tipo_transporte=tipo_transporte  # Nuevo campo agregado
                             )
                             self.db_session.add(vuelo)
-                            self.db_session.flush()  # Asegurar que el vuelo esté disponible en la base de datos
-                            vuelos.append(vuelo)  # Agregar el vuelo a la lista de vuelos
-                            print(f"Vuelo creado {vuelo}")
+                            self.db_session.flush()
+                            self.db_session.commit()
+                            vuelos.append(vuelo)
+                            # print(f"Vuelo creado {vuelo}")
 
-                        # Verificar si ya existe una asociación entre el tripulante y el vuelo
+                        # Asociar tripulante si no existe la relación
                         tripulante_vuelo_existente = self.db_session.query(TripulanteVuelo).filter_by(
                             tripulante_id=tripulante.tripulante_id, vuelo_id=vuelo.vuelo_id
                         ).first()
 
                         if not tripulante_vuelo_existente:
-                            # Asociar el tripulante al vuelo si no existe la asociación
                             tripulante_vuelo = TripulanteVuelo(
                                 tripulante_id=tripulante.tripulante_id,
                                 vuelo_id=vuelo.vuelo_id
                             )
                             self.db_session.add(tripulante_vuelo)
-                            self.db_session.flush()  # Confirmar la asociación sin hacer commit completo
+                            self.db_session.flush()
+                            self.db_session.commit()
+
 
                     else:
-                        # No hay información válida para este vuelo en la fila
                         continue
 
-            # Confirmar todos los cambios al final
             self.db_session.commit()
         except Exception as e:
-            #print(f"Error al crear vuelos o asignar tripulantes: {e}")
             self.db_session.rollback()
+            print(f"[ERROR] Error al crear vuelos o asignar tripulantes: {e}")
 
         return errors, errors_message
 
@@ -335,24 +300,20 @@ class Vuelos:
                     else:
                         break  # Detener la búsqueda si no se encuentra una de las columnas
                 elif state=="off":
-                    print("Debug 1")
                     nro_regional_flight  = 'nro regional flight'
                     date_reg_flight = 'date reg flight'
                     hora_reg_flight = 'hora reg flight'
-                    print("Debug 2")
 
                     if nro_regional_flight in flight_columns and date_reg_flight in flight_columns and hora_reg_flight in flight_columns: 
                         col_idx_nro = flight_columns.index(nro_regional_flight)
                         col_idx_date = flight_columns.index(date_reg_flight)
                         col_idx_hora = flight_columns.index(hora_reg_flight)
-                        print("Debug 3")
 
                         nro = excel_data.iloc[i, col_idx_nro]
                         date = excel_data.iloc[i, col_idx_date]
                         hora = excel_data.iloc[i, col_idx_hora]
-                        print("Debug 4")
 
-                        print(f"{nro} | {state}")
+                        # print(f"{nro} | {state}")
 
                         if pd.notna(nro) and pd.notna(date) and pd.notna(hora):
                             tripulante_vuelos[f'Vuelo {vuelo_num}'] = {
@@ -427,7 +388,7 @@ class Vuelos:
             date_flight_value = excel_data.iloc[i, col_idx_date_flight] if col_idx_date_flight is not None else None
             hora_flight_value = excel_data.iloc[i, col_idx_hora_flight] if col_idx_hora_flight is not None else None
 
-            print(f"{state} | {nro_flight_value} | {date_flight_value} | {hora_flight_value}")
+            # print(f"{state} | {nro_flight_value} | {date_flight_value} | {hora_flight_value}")
 
             # Incluso si los valores son nulos, agregar los vuelos con 'NaN' o entradas vacías
             if nro_flight_value not in ["NO", "TBC"] and not pd.isna(nro_flight_value):
@@ -450,7 +411,7 @@ class Vuelos:
                     print(f"[ERROR] Vuelo faltante")
                 elif nro_flight_value in ["NO", "TBC"]:
                     # print(f"Vuelo {vuelo} omitido")
-                    print(f"El vuelo es {nro_flight_value}")
+                    # print(f"El vuelo es {nro_flight_value}")
                     tripulante_vuelos[f'Vuelo {vuelos_num}'] = {
                         "vuelo": "NO",
                         #"fecha": pd.to_datetime(date_flight_value, errors='coerce') if pd.notna(date_flight_value) else 'No disponible',

@@ -455,13 +455,19 @@ class Controller:
         # Determinar la posición donde insertar las columnas de hoteles
         insertion_index = df.columns.get_loc("Asistencia 3") + 1 if "Asistencia 3" in df.columns else len(df.columns)
 
+        def safe_date(value):
+            try:
+                date_val = pd.to_datetime(value, errors='coerce')
+                return date_val.date() if pd.notna(date_val) else None
+            except Exception:
+                return None
+
         for hotel_col in sorted(hotel_columns):  # Asegurar el orden de Hotel 1, Hotel 2, Hotel 3
             try:
-                # Almacenar temporalmente la columna del diccionario
                 if hotel_col not in df.columns:
                     print(f"La columna '{hotel_col}' no existe en el DataFrame.")
                     continue
-                
+
                 # Guardar la columna en memoria
                 hotel_data = df[hotel_col].copy()
 
@@ -472,21 +478,24 @@ class Controller:
                 hotel_df = hotel_data.apply(
                     lambda x: pd.Series({
                         "hotel": x.get("hotel") if isinstance(x, dict) else None,
-                        "check_in": pd.to_datetime(x.get("check_in"), errors='coerce').date() if isinstance(x, dict) else None,
-                        "check_out": pd.to_datetime(x.get("check_out"), errors='coerce').date() if isinstance(x, dict) else None,
+                        "check_in": safe_date(x.get("check_in")) if isinstance(x, dict) else None,
+                        "check_out": safe_date(x.get("check_out")) if isinstance(x, dict) else None,
                         "habitacion": x.get("habitacion") if isinstance(x, dict) else None,
                         "nombre_hotel": x.get("nombre_hotel") if isinstance(x, dict) else None,
                     })
-                    if isinstance(x, dict) else pd.Series({"hotel": None, "check_in": None, "check_out": None, "habitacion": None, "nombre_hotel": None})
+                    if isinstance(x, dict) else pd.Series({
+                        "hotel": None, "check_in": None, "check_out": None, 
+                        "habitacion": None, "nombre_hotel": None
+                    })
                 )
 
                 # Extraer y almacenar la categoría una vez
                 if category is None and not hotel_data.isna().all():
                     category = hotel_data.apply(lambda x: x.get("categoria") if isinstance(x, dict) else None)
                     if "Category" in df.columns:
-                        df.drop(columns=["Category"], inplace=True)  # Eliminar columna previa si existe
-                    df.insert(insertion_index, "Category", category)  # Insertar la categoría
-                    insertion_index += 1  # Mover el índice de inserción
+                        df.drop(columns=["Category"], inplace=True)
+                    df.insert(insertion_index, "Category", category)
+                    insertion_index += 1
 
                 # Renombrar las subcolumnas
                 hotel_number = hotel_columns.index(hotel_col) + 1
@@ -502,7 +511,7 @@ class Controller:
                 for i, new_col in enumerate(hotel_df.columns):
                     df.insert(insertion_index + i, new_col, hotel_df[new_col])
 
-                insertion_index += len(hotel_df.columns)  # Actualizar el índice de inserción
+                insertion_index += len(hotel_df.columns)
 
             except Exception as e:
                 print(f"Error al procesar la columna '{hotel_col}': {e}")
