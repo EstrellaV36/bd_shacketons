@@ -126,6 +126,14 @@ CITY_AIRPORT_CODES = {
     'PMO': "PALERMO",  # Palermo, Italia
     'VFA': "VICTORIA FALLS",  # Victoria Falls, Zimbabue
     'BRE': "BREMEN",  # Bremen, Alemania
+    'BNX': "BANJA LUKA",  # Bosnia y Herzegovina
+    'BEG': "BELGRADO",  # Serbia
+    'SLC': "SALT LAKE CITY",  # EE. UU.
+    'ADL': "ADELAIDA",  # Australia
+    'YOW': "OTTAWA",  # Canadá
+    'TUN': "TÚNEZ",  # Túnez
+    'NSI': "YAUNDÉ",  # Camerún
+    'ZYR': "BRUSELAS MIDI/ZUID"
 }
 
 CITY_TO_AIRPORT_CODES = {city: code for code, city in CITY_AIRPORT_CODES.items()}

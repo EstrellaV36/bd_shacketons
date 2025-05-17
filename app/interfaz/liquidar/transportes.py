@@ -238,6 +238,7 @@ class TransportesLiquidarScreen(QWidget):
         )
 
         if estado_seleccionado not in ["ambos", "tipo tripulante"]:
+            print("Entré al if de estado seleccionado")
             transporte_necesario = transporte_necesario.filter(func.lower(Viaje.estado) == estado_seleccionado)
 
 
@@ -352,12 +353,19 @@ class TransportesLiquidarScreen(QWidget):
 
                 # Caso 'HOTEL-ATO'
                 elif 'HOTEL-ATO' == tramo:
-                    codigo = f"{str(vuelo.Codigo)} {CITY_TO_AIRPORT_CODES.get(vuelo.Aeropuerto_Salida)}-{CITY_TO_AIRPORT_CODES.get(vuelo.Aeropuerto_Llegada)}"
+                    # codigo = f"{str(vuelo.Codigo)} {CITY_TO_AIRPORT_CODES.get(vuelo.Aeropuerto_Salida)}-{CITY_TO_AIRPORT_CODES.get(vuelo.Aeropuerto_Llegada)}"
                     tiempo_a_restar = timedelta(hours=2, minutes=30) if city_select == 'puq' else timedelta(hours=3, minutes=30)
-                    hora_pick_up = (vuelo.Hora_Salida - tiempo_a_restar).time()
+                    vuelos = vuelo_dict.get(tripulante_id, [])
+                    vuelo = next((v for v in vuelos if CITY_TO_AIRPORT_CODES.get(v.Aeropuerto_Salida) == transporte.Ciudad_Transporte_in), None)
+
+                    if vuelo is not None and vuelo.Hora_Salida is not None:
+                        tiempo_a_restar = timedelta(hours=2, minutes=30) if city_select == 'puq' else timedelta(hours=3, minutes=30)
+                        hora_pick_up = (vuelo.Hora_Salida - tiempo_a_restar).time()
+                    else:
+                        hora_pick_up = ""
                     data_rows.append({
                         "fecha_pickup": date_pickup,
-                        "hora_pick_up": transporte.Hora_Pickup if not pd.isna(transporte.Hora_Pickup) else "",
+                        "hora_pick_up": hora_pick_up,
                         "first_name": transporte.First_Name,
                         "last_name": transporte.Last_Name,
                         "lugar_transporte_in": transporte.Lugar_Transporte_in,

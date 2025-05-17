@@ -101,7 +101,15 @@ class Tripulantes:
                     # Datos de ETA
                     eta_vessel = pd.to_datetime(buque_row['ETA Vessel'], errors='coerce', format="%Y-%m-%d %H:%M:%S")
                     etd_vessel = pd.to_datetime(buque_row['ETD Vessel'], errors='coerce', format="%Y-%m-%d %H:%M:%S")
-                    date_arrive_cl = pd.to_datetime(buque_row['Date arrive CL'], errors='coerce', format="%Y-%m-%d %H:%M:%S") if estado == 'ON' else None
+                    if estado == 'ON':
+                        date_arrive_cl = pd.to_datetime(buque_row['Date arrive CL'], errors='coerce', format="%Y-%m-%d %H:%M:%S")
+                        
+                        # Si la fecha es NaT o None, saltar esta fila
+                        if pd.isna(date_arrive_cl):
+                            date_arrive_cl = None
+                            pass
+                    else:
+                        date_arrive_cl = None
 
                     # Normalización de otros campos, como el puerto
                     puerto_name = self.normalize_text(buque_row['Puerto'])

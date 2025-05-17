@@ -115,7 +115,7 @@ class Viajes:
                 else:
                     print(f"[ERROR] Tripulante con pasaporte {pasaporte} no encontrado.")
                     # Aquí puedes registrar el error en errors y errors_message si corresponde
-                    pass
+                    continue
 
                 eta_ciudad = self.db_session.query(EtaCiudad).filter_by(tripulante_id=tripulante_id, buque_id=buque_id).first()
                 if not eta_ciudad:

@@ -236,7 +236,7 @@ class TransportesScreen(QWidget):
         hotel_dict = {hotel.tripulante_id: hotel for hotel in hotel_necesario}
         buque_dict = {buque.tripulante_id: (buque.Owner, buque.Nombre_Buque, buque.Eta) for buque in buque_necesario}
 
-        headers = ["Estado", "Fecha Pickup", "Hora Pickup", "Nombre hotel", "Desde Ciudad", "Desde Lugar", "Hasta Ciudad", "Hasta Lugar", "Código Vuelo Llegada", "Date Llegada", "Hora Llegada", "Código Vuelo Salida", "Date Salida", "Fecha Salida", "Owner", "Nave", "ETA", "First Name", "Last Name", "Nacionalidad"]
+        headers = ["Estado", "Fecha Pickup", "Hora Pickup", "Nombre hotel", "Desde Ciudad", "Desde Lugar", "Hasta Ciudad", "Hasta Lugar", "Código Vuelo Llegada", "Date Llegada", "Hora Llegada", "Código Vuelo Salida", "Date Salida", "Hora Salida", "Owner", "Nave", "ETA", "First Name", "Last Name", "Nacionalidad"]
         self.table_widget.setColumnCount(len(headers))
         self.table_widget.setHorizontalHeaderLabels(headers)
         self.table_widget.setRowCount(0)
@@ -380,7 +380,7 @@ class TransportesScreen(QWidget):
             data.append(row_data)
 
         # Definir los nombres de las columnas
-        headers = ["Estado", "Fecha Pickup", "Hora Pickup", "Nombre hotel", "Desde Ciudad", "Desde Lugar", "Hasta Ciudad", "Hasta Lugar", "Código Vuelo Llegada", "Date Llegada", "Hora Llegada", "Código Vuelo Salida", "Date Salida", "Fecha Salida", "Owner", "Nave", "ETA", "First Name", "Last Name", "Nacionalidad", "Transportista", "Anfitrión", "Vehículo", "Vehículo apoyo"]
+        headers = ["Estado", "Fecha Pickup", "Hora Pickup", "Nombre hotel", "Desde Ciudad", "Desde Lugar", "Hasta Ciudad", "Hasta Lugar", "Código Vuelo Llegada", "Date Llegada", "Hora Llegada", "Código Vuelo Salida", "Date Salida", "Hora Salida", "Owner", "Nave", "ETA", "First Name", "Last Name", "Nacionalidad", "Transportista", "Anfitrión", "Vehículo", "Vehículo apoyo"]
         for row in data:
             while len(row) < len(headers):
                 row.append("")  # Add empty strings to fill up to 24 columns
