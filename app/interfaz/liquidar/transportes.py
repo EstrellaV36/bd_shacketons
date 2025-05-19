@@ -524,6 +524,7 @@ class TransportesLiquidarScreen(QWidget):
         data_rows = sorted(data_rows, key=lambda x: x["fecha_pickup"])
 
         if not data_rows:
+            print("Datos vacíos")
             self.table_widget.setRowCount(1)
             self.table_widget.setColumnCount(1)
             self.table_widget.setHorizontalHeaderLabels(["Mensaje"])

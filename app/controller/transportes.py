@@ -114,10 +114,28 @@ class Transportes:
                                         else:
                                             hours_pickup_obj = None
 
+                                        # ✅ Conversión segura de date_pickup
+                                        date_pickup_raw = _transporte.get('Date Pickup')
+                                        if isinstance(date_pickup_raw, str):
+                                            try:
+                                                date_pickup_obj = datetime.strptime(date_pickup_raw.strip(), "%d-%m-%Y").date()
+                                            except ValueError:
+                                                try:
+                                                    date_pickup_obj = datetime.strptime(date_pickup_raw.strip(), "%d-%m-%y").date()
+                                                except ValueError:
+                                                    print(f"[ERROR] Fecha inválida en fila {i}: {date_pickup_raw}. Se asigna None.")
+                                                    date_pickup_obj = None
+                                        elif isinstance(date_pickup_raw, datetime):
+                                            date_pickup_obj = date_pickup_raw.date()
+                                        elif isinstance(date_pickup_raw, date):
+                                            date_pickup_obj = date_pickup_raw
+                                        else:
+                                            date_pickup_obj = None
+
                                         tripulante_transporte = TripulanteTransporte(
                                             tripulante_id=tripulante.tripulante_id,
                                             transporte_id=transporte.transporte_id,
-                                            date_pickup=_transporte['Date Pickup'],
+                                            date_pickup=date_pickup_obj,
                                             hours_pickup=hours_pickup_obj
                                         )
 

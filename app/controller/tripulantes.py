@@ -279,7 +279,6 @@ class Tripulantes:
                         errors.append([i + 3, y])
                         errors_message.append(f"Formato de fecha incorrecto en {cell_value} [{x},{y}]")
 
-
         def validate_genders(tripulantes_df, column_name, file_path, state):
             # Carga única del archivo y hoja
             workbook = load_workbook(file_path, data_only=True)

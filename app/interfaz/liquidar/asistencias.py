@@ -66,11 +66,11 @@ class DataWorker(QObject):
             EtaCiudad.puerto.label("Puerto"), 
             Tripulante.nombre.label("First_Name"),
             Tripulante.apellido.label("Last_Name"),
-            Vuelo.codigo.label("Domestic_flight"),
-            Vuelo.aeropuerto_salida.label("Aeropuerto_Salida"),
-            Vuelo.aeropuerto_llegada.label("Aeropuerto_Llegada"),
-            Vuelo.fecha.label("Date"),
-            Vuelo.hora_llegada.label("Arrival"),
+            func.min(Vuelo.codigo).label("Domestic_flight"),  # Ejemplo: tomar el primer vuelo
+            func.min(Vuelo.aeropuerto_salida).label("Aeropuerto_Salida"),
+            func.min(Vuelo.aeropuerto_llegada).label("Aeropuerto_Llegada"),
+            func.min(Vuelo.fecha).label("Date"),
+            func.min(Vuelo.hora_llegada).label("Arrival"),
             Viaje.estado.label("Estado"),
         ).select_from(EtaCiudad)\
             .join(Viaje, Tripulante.tripulante_id == Viaje.tripulante_id)\
@@ -84,7 +84,8 @@ class DataWorker(QObject):
                     Vuelo.aeropuerto_salida.in_(aeropuertos_filtrados)
                 )
             )\
-            .distinct()
+            .group_by(Tripulante.tripulante_id, Buque.nombre, EtaCiudad.eta, EtaCiudad.puerto, 
+                    Tripulante.nombre, Tripulante.apellido, Viaje.estado)
 
         # resultados_sin_filtros = query.all()
         # print(f"Resultados sin filtros: {resultados_sin_filtros}")
