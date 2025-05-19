@@ -8,7 +8,7 @@ from openpyxl import Workbook
 from openpyxl.styles import PatternFill, Alignment, Font, Border, Side
 from openpyxl.utils import get_column_letter
 from datetime import datetime, time, timedelta
-from sqlalchemy import func, exists, case, and_
+from sqlalchemy import func, exists, case, and_, or_
 from collections import defaultdict
 from datetime import datetime
 from openpyxl.styles import Alignment, Font
@@ -57,6 +57,8 @@ class DataWorker(QObject):
         else:
             asistencia_enabled = True
 
+        print(f"Aeropuerto filtrado = {aeropuertos_filtrados} | Necesita asistencia = {asistencia_field} | asist enable = {asistencia_enabled}")
+
         query = session.query(
             Tripulante.tripulante_id.label("ID"),
             Buque.nombre.label("Vessel"),
@@ -77,12 +79,17 @@ class DataWorker(QObject):
             .join(TripulanteVuelo, Tripulante.tripulante_id == TripulanteVuelo.tripulante_id)\
             .join(Vuelo, Vuelo.vuelo_id == TripulanteVuelo.vuelo_id)\
             .filter(
-                Vuelo.aeropuerto_llegada.in_(aeropuertos_filtrados)
+                or_(
+                    Vuelo.aeropuerto_llegada.in_(aeropuertos_filtrados),
+                    Vuelo.aeropuerto_salida.in_(aeropuertos_filtrados)
+                )
             )\
             .distinct()
 
-        #resultados_sin_filtros = query.all()
-        #print(f"Resultados sin filtros: {resultados_sin_filtros}")
+        # resultados_sin_filtros = query.all()
+        # print(f"Resultados sin filtros: {resultados_sin_filtros}")
+
+        print(f"El tipo es {self.tipo}")
 
         # Filtros adicionales
         if self.owner and self.owner != "Owner":
@@ -95,6 +102,8 @@ class DataWorker(QObject):
             query = query.filter(func.trim(Viaje.estado) == self.tipo)
     
         results = query.all()
+
+        print(f"Results = {results}")
         # Modificar la columna "Domestic flight" para incluir el tramo con códigos de aeropuerto
         results_modificados = []
         for row in results:
@@ -124,6 +133,8 @@ class DataWorker(QObject):
             "Date": row["Date"].date() if row["Date"] else None,  # Extraer solo la fecha
             "Arrival": row["Arrival"].strftime("%H:%M") if row["Arrival"] else None,  # Extraer solo la hora
         } for row in results_modificados])
+
+        print(f"Main data = {main_data}")
 
         if asistencia_enabled and not main_data.empty:
             tripulante_ids = main_data["ID"].tolist()

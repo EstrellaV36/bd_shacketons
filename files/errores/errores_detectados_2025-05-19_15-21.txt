@@ -1,0 +1,6 @@
+Errores detectados en OFF:
+Debe comenzar con 'single' o 'doble' [4,AO]
+Debe comenzar con 'single' o 'doble' [16,AO]
+Debe comenzar con 'single' o 'doble' [17,AO]
+Debe comenzar con 'single' o 'doble' [18,AO]
+

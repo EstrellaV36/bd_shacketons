@@ -35,7 +35,7 @@ class DataWorker(QObject):
 
         session = get_db_session()
 
-        # Paso 1: Obtener los tripulantes con filtros aplicados
+        # Obtener tripulantes con filtros aplicados
         tripulantes_query = session.query(
             Tripulante.tripulante_id.label("ID"),
             Buque.nombre.label("Vessel"),
@@ -50,7 +50,6 @@ class DataWorker(QObject):
             .join(Tripulante, Tripulante.buque_id == Buque.buque_id)\
             .distinct()
 
-        # Aplicar filtros adicionales
         if self.owner and self.owner != "Owner":
             tripulantes_query = tripulantes_query.filter(func.trim(func.lower(Buque.empresa)) == self.owner.strip().lower())
         if self.vessel and self.vessel != "Vessel":
@@ -61,11 +60,10 @@ class DataWorker(QObject):
             tripulantes_query = tripulantes_query.filter(func.trim(Viaje.estado) == self.tipo)
 
         tripulantes = tripulantes_query.all()
-
-        # Extraer los IDs de los tripulantes para usarlos en la consulta de hoteles
         tripulante_ids = [t.ID for t in tripulantes]
 
-        #Obtener los hoteles con filtros aplicados
+        # Obtener hoteles
+        hoteles = []
         if tripulante_ids:
             hoteles_query = session.query(
                 TripulanteHotel.tripulante_id.label("Tripulante_ID"),
@@ -78,44 +76,41 @@ class DataWorker(QObject):
             ).join(Hotel, TripulanteHotel.hotel_id == Hotel.hotel_id)\
                 .filter(TripulanteHotel.tripulante_id.in_(tripulante_ids))
 
-            # Aplicar filtro adicional para la ciudad del hotel
             if self.ciudad and self.ciudad != "Ciudad":
                 hoteles_query = hoteles_query.filter(func.trim(Hotel.ciudad) == self.ciudad.strip())
 
             hoteles = hoteles_query.all()
-        else:
-            hoteles = []
 
-        #Relacionar tripulantes con hoteles por separado
-        tripulantes_hoteles = {t.ID: None for t in tripulantes}
-
+        # Relacionar tripulantes con lista de hoteles
+        tripulantes_hoteles = defaultdict(list)
         for hotel in hoteles:
-            tripulantes_hoteles[hotel.Tripulante_ID] = {
+            tripulantes_hoteles[hotel.Tripulante_ID].append({
                 "Hotel": hotel.Hotel,
                 "Ciudad_Hotel": hotel.Ciudad_Hotel,
                 "Room": hotel.Room,
                 "Check_In": hotel.Check_In,
                 "Check_Out": hotel.Check_Out,
                 "Nights": hotel.Nights,
-            }
+            })
 
-        #Unir los datos con las columnas de hotel por separado
+        # Unir los datos (una fila por hotel)
         resultados = []
         for tripulante in tripulantes:
-            hotel_data = tripulantes_hoteles.get(tripulante.ID, None)
-            if hotel_data:
-                resultados.append({
-                    "Vessel": tripulante.Vessel,
-                    "Name": tripulante.First_Name,
-                    "Last Name": tripulante.Last_Name,
-                    "Hotel": hotel_data["Hotel"],
-                    "Room": hotel_data["Room"],
-                    "Check in": hotel_data["Check_In"].date() if hotel_data["Check_In"] else None,  # Mostrar solo la fecha
-                    "Check out": hotel_data["Check_Out"].date() if hotel_data["Check_Out"] else None,  # Mostrar solo la fecha
-                    "Nights": hotel_data["Nights"],
-                    "Cost": "",
-                    "Invoice": "",
-                })
+            hoteles_data = tripulantes_hoteles.get(tripulante.ID, [])
+            if hoteles_data:
+                for hotel_data in hoteles_data:
+                    resultados.append({
+                        "Vessel": tripulante.Vessel,
+                        "Name": tripulante.First_Name,
+                        "Last Name": tripulante.Last_Name,
+                        "Hotel": hotel_data["Hotel"],
+                        "Room": hotel_data["Room"],
+                        "Check in": hotel_data["Check_In"].date() if hotel_data["Check_In"] else None,
+                        "Check out": hotel_data["Check_Out"].date() if hotel_data["Check_Out"] else None,
+                        "Nights": hotel_data["Nights"],
+                        "Cost": "",
+                        "Invoice": "",
+                    })
             else:
                 resultados.append({
                     "Vessel": tripulante.Vessel,
@@ -130,19 +125,12 @@ class DataWorker(QObject):
                     "Invoice": "",
                 })
 
-        # Extraer datos adicionales para excel
         puerto = tripulantes[0].Puerto if tripulantes else "N/A"
-        # Emitir los datos adicionales a través de una señal
-        self.additional_data.emit({
-            "Puerto": puerto,
-        })
+        self.additional_data.emit({"Puerto": puerto})
 
-        # Opcional: Crear un DataFrame
         resultados = [row for row in resultados if row.get("Hotel") != "NO"]
         df = pd.DataFrame(resultados)
-        
 
-        # Emitir los datos procesados
         self.update_table.emit(df)
         self.finished.emit()
 
