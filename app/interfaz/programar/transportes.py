@@ -350,9 +350,11 @@ class TransportesScreen(QWidget):
             self.table_widget.setItem(row, 2, QTableWidgetItem(str(row_data["hora_pick_up"])))
             self.table_widget.setItem(row, 3, QTableWidgetItem(row_data["nombre_hotel"]))
             self.table_widget.setItem(row, 4, QTableWidgetItem(row_data["ciudad_transporte_in"]))
-            self.table_widget.setItem(row, 5, QTableWidgetItem(row_data["lugar_transporte_in"]))
+            lugar_in = "AEROPUERTO" if row_data["lugar_transporte_in"] == "ATO" else row_data["lugar_transporte_in"]
+            self.table_widget.setItem(row, 5, QTableWidgetItem(lugar_in))            
             self.table_widget.setItem(row, 6, QTableWidgetItem(row_data["ciudad_transporte_end"]))
-            self.table_widget.setItem(row, 7, QTableWidgetItem(row_data["lugar_transporte_end"]))
+            lugar_end = "AEROPUERTO" if row_data["lugar_transporte_end"] == "ATO" else row_data["lugar_transporte_end"]
+            self.table_widget.setItem(row, 7, QTableWidgetItem(lugar_end))
             if row_data["lugar_transporte_end"] != 'ATO':
                 self.table_widget.setItem(row, 8, QTableWidgetItem(row_data["codigo_vuelo"]))
                 self.table_widget.setItem(row, 9, QTableWidgetItem(str(row_data["fecha_vuelo"])))

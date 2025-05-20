@@ -93,12 +93,22 @@ class TransportesLiquidarScreen(QWidget):
         unique_places.update([place[0] for place in place_end if place[0] != "Desconocido"])
 
         # Convertir el conjunto a una lista ordenada (opcional)
-        all_tramos = [f"{str(origen).strip()} - {str(destino).strip()}" for origen, destino in product(unique_places, repeat=2) if origen != destino]
+        all_tramos = []
+        for origen, destino in product(unique_places, repeat=2):
+            if origen != destino:
+                # Mostrar "AEROPUERTO" en vez de "ATO" para el usuario
+                visible_origen = "AEROPUERTO" if origen == "ATO" else origen
+                visible_destino = "AEROPUERTO" if destino == "ATO" else destino
+                label_visible = f"{visible_origen.strip()} - {visible_destino.strip()}"
+                valor_real = f"{origen.strip()} - {destino.strip()}"
+                all_tramos.append((label_visible, valor_real))
 
-        # Agregar los elementos únicos al QComboBox
-        self.combo_tramos.clear()  # Limpia cualquier elemento previo
+        # Limpiar y agregar ítems con texto y valor real
+        self.combo_tramos.clear()
         self.combo_tramos.addItem("Tramo")
-        self.combo_tramos.addItems(sorted(all_tramos))
+        for label_visible, valor_real in sorted(all_tramos):
+            self.combo_tramos.addItem(label_visible, valor_real)
+
         layout.addWidget(self.combo_tramos)
 
         self.check_fecha = QCheckBox("Habilitar filtro por fechas")
@@ -148,7 +158,7 @@ class TransportesLiquidarScreen(QWidget):
 
         # Conectar el cambio en el QComboBox a un método
         self.combo_ciudades.currentTextChanged.connect(self.actualizar_datos)
-        self.combo_tramos.currentTextChanged.connect(self.actualizar_datos)
+        self.combo_tramos.currentIndexChanged.connect(self.actualizar_datos)
         self.combo_estados.currentTextChanged.connect(self.actualizar_datos)
         self.combo_owners.currentTextChanged.connect(self.actualizar_datos)
         self.combo_vessels.currentTextChanged.connect(self.actualizar_datos)
@@ -169,7 +179,7 @@ class TransportesLiquidarScreen(QWidget):
         else:
             self.label.setText(f"REQUERIMIENTO TRANSPORTES")  # Actualiza el label
 
-        tramo_seleccionado = self.combo_tramos.currentText()
+        tramo_seleccionado = self.combo_tramos.currentData()
 
         # Cargar datos en la tabla
         self.cargar_datos(ciudad_seleccionada, tramo_seleccionado)
@@ -186,14 +196,18 @@ class TransportesLiquidarScreen(QWidget):
         session = get_db_session()
         ciudad_seleccionada = str(ciudad_seleccionada).lower()
         #print(ciudad_seleccionada)
-        if len(tramo_seleccionado.split(" - ")) == 2:
-            tramo_seleccionado = str(tramo_seleccionado).lower()
-            tramo1, tramo2 = tramo_seleccionado.split("-")
-            tramo1 = tramo1.replace(" ", "")
-            tramo2 = tramo2.replace(" ", "")
-        else:
+        if not tramo_seleccionado:
             tramo1 = "tramo1"
             tramo2 = "tramo2"
+        else:
+            if len(tramo_seleccionado.split(" - ")) == 2:
+                tramo_seleccionado = str(tramo_seleccionado).lower()
+                tramo1, tramo2 = tramo_seleccionado.split("-")
+                tramo1 = tramo1.replace(" ", "")
+                tramo2 = tramo2.replace(" ", "")
+            else:
+                tramo1 = "tramo1"
+                tramo2 = "tramo2"
 
         # print(f"{ciudad_seleccionada} | {tramo1} - {tramo2}")
 
@@ -203,6 +217,7 @@ class TransportesLiquidarScreen(QWidget):
         # print(estado_seleccionado)
         # print(owner_seleccionado)
         # print(vessel_seleccionado)
+        # print(tramo_seleccionado)
 
         fecha_inicio = self.date_start1.date().toPyDate()
         fecha_fin = datetime.combine(self.date_end1.date().toPyDate(), time.max)
@@ -363,32 +378,15 @@ class TransportesLiquidarScreen(QWidget):
                         hora_pick_up = (vuelo.Hora_Salida - tiempo_a_restar).time()
                     else:
                         hora_pick_up = ""
+                    
                     data_rows.append({
                         "fecha_pickup": date_pickup,
                         "hora_pick_up": hora_pick_up,
                         "first_name": transporte.First_Name,
                         "last_name": transporte.Last_Name,
-                        "lugar_transporte_in": transporte.Lugar_Transporte_in,
-                        "nombre_hotel": hotel.Nombre_Hotel if hotel else "Sin hotel",
+                        "lugar_transporte_in": hotel.Nombre_Hotel if hotel else "Sin hotel",  # From = hotel
+                        "nombre_hotel": "Aeropuerto",  # To = aeropuerto
                         "estado": transporte.Estado,
-                        # "estado": transporte.Estado,
-                        # "fecha_pickup": date_pickup,
-                        # "hora_pick_up": transporte.Hora_Pickup,
-                        # "nombre_hotel": hotel.Nombre_Hotel if hotel else "Sin hotel",
-                        # "ciudad_transporte_in": transporte.Ciudad_Transporte_in,
-                        # "lugar_transporte_in": transporte.Lugar_Transporte_in,
-                        # "ciudad_transporte_end": transporte.Ciudad_Transporte_end,
-                        # "lugar_transporte_end": transporte.Lugar_Transporte_end,
-                        # "codigo_vuelo": codigo,
-                        # "fecha_vuelo": vuelo.Fecha.date(),
-                        # "hora_salida": None,
-                        # "hora_llegada": vuelo.Hora_Llegada.time(),
-                        # "owner": owner,
-                        # "buque": buque,
-                        # "eta": eta,
-                        # "first_name": transporte.First_Name,
-                        # "last_name": transporte.Last_Name,
-                        # "nacionalidad": transporte.Nacionalidad
                     })
 
                 # Caso 'HOTEL-NAVE'
@@ -570,8 +568,8 @@ class TransportesLiquidarScreen(QWidget):
             self.table_widget.setItem(row, 3, QTableWidgetItem(str(row_data["last_name"])))
             if(row_data["lugar_transporte_in"] == "ATO"):
                 self.table_widget.setItem(row, 4, QTableWidgetItem("Aeropuerto"))
-            if(row_data["lugar_transporte_in"] == "HOTEL"):
-                self.table_widget.setItem(row, 4, QTableWidgetItem("Hotel"))
+            else:
+                self.table_widget.setItem(row, 4, QTableWidgetItem(row_data["lugar_transporte_in"]))
             self.table_widget.setItem(row, 5, QTableWidgetItem(row_data["nombre_hotel"]))
             self.table_widget.setItem(row, 6, QTableWidgetItem(row_data["estado"]))
             
@@ -622,14 +620,17 @@ class TransportesLiquidarScreen(QWidget):
                 row.append("")  # Add empty strings to fill up to 24 columns
         df = pd.DataFrame(data, columns=headers)
 
-        # Convertir "Hora Pick Up" a datetime para una ordenación correcta
-        df['Time'] = pd.to_datetime(df['Time'], format='%H:%M:%S', errors='coerce')
+        # Reemplazar cadenas vacías por NaT para evitar errores
+        df['Time'] = df['Time'].replace("", pd.NaT)
 
-        # Ordenar el DataFrame por "Hora Pick Up", "Lugar Pick Up" y "Nombre Hotel"
+        # Intentar convertir a hora en formato HH:MM
+        df['Time'] = pd.to_datetime(df['Time'], format='%H:%M', errors='coerce')
+
+        # Formatear a string "HH:MM", dejando vacío si no es válida
+        df['Time'] = df['Time'].dt.strftime('%H:%M')
+        df['Time'] = df['Time'].fillna("")
+
         df = df.sort_values(by=["Date", "Time", "From", "To"])
-
-        # Convertir "Hora Pick Up" de nuevo a solo hora para el Excel
-        df['Time'] = df['Time'].dt.strftime('%H:%M:%S')
 
         file_name_parts = ["liq_transporte"]
         if ciudad_seleccionada.lower() != "ciudad" and ciudad_seleccionada.lower() not in file_name_parts:
@@ -657,7 +658,7 @@ class TransportesLiquidarScreen(QWidget):
                 fecha_eta = self.date_start1.date()
                 fecha_formateada = fecha_eta.toString("dd-MM-yyyy")
 
-            tramo_seleccionado = self.combo_tramos.currentText()
+            tramo_seleccionado = self.combo_tramos.currentData()
             if len(tramo_seleccionado.split(" - ")) == 2:
                 tramo_seleccionado = str(tramo_seleccionado).lower()
                 tramo1, tramo2 = tramo_seleccionado.split("-")
