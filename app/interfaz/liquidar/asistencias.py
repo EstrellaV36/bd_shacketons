@@ -153,6 +153,8 @@ class DataWorker(QObject):
             } for row in asistencia_results])
 
             final_data = pd.merge(main_data, asistencia_data, on="ID", how="left")
+            final_data = final_data[final_data["Assistance"] == "1"]
+            
         else:
             final_data = main_data
             final_data["Assistance"] = "0"
@@ -389,9 +391,13 @@ class AsistenciasLiquidarScreen(QWidget):
 
     def update_table_data(self, df):
         print("Updating table data...")
-        print(df)
+        df = df[df["Assistance"].astype(str) == "1"]
+        df = df[~df.isnull().all(axis=1)]
 
-        self.table_widget.clear()
+        # Limpieza completa de la tabla
+        self.table_widget.clearContents()
+        self.table_widget.setRowCount(0)
+        self.table_widget.setColumnCount(0)
 
         if df.empty:
             self.table_widget.setRowCount(1)
@@ -417,14 +423,17 @@ class AsistenciasLiquidarScreen(QWidget):
         df.insert(0, '#', range(1, len(df) + 1))
 
         # Configurar encabezados
-        self.table_widget.setRowCount(len(df))
-        self.table_widget.setColumnCount(len(df.columns))
+        self.table_widget.setRowCount(df.shape[0])
+        self.table_widget.setColumnCount(df.shape[1])
         self.table_widget.setHorizontalHeaderLabels(df.columns)
 
         # Poblar la tabla
-        for row_idx, row in df.iterrows():
-            for col_idx, value in enumerate(row):
-                self.table_widget.setItem(row_idx, col_idx, QTableWidgetItem(str(value)))
+        for row_idx in range(df.shape[0]):
+            for col_idx in range(df.shape[1]):
+                value = str(df.iat[row_idx, col_idx])
+                item = QTableWidgetItem(value)
+                item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                self.table_widget.setItem(row_idx, col_idx, item)
 
     def generar_reporte_liquidar(self):
         if not self.puerto:
@@ -525,23 +534,24 @@ class AsistenciasLiquidarScreen(QWidget):
             print(f"Error al generar el archivo Excel: {e}")
 
     def get_current_dataframe(self):
-        """Obtiene los datos actuales del QTableWidget y los convierte en un DataFrame."""
         row_count = self.table_widget.rowCount()
         col_count = self.table_widget.columnCount()
 
-        # Obtener los nombres de las columnas
         headers = [self.table_widget.horizontalHeaderItem(col).text() for col in range(col_count)]
 
-        # Crear una lista de filas
         data = []
         for row in range(row_count):
             row_data = []
+            is_empty = True
             for col in range(col_count):
                 item = self.table_widget.item(row, col)
-                row_data.append(item.text() if item is not None else "")
-            data.append(row_data)
+                text = item.text() if item is not None else ""
+                if text.strip() != "":
+                    is_empty = False
+                row_data.append(text)
+            if not is_empty:
+                data.append(row_data)
 
-        # Convertir a DataFrame
         df = pd.DataFrame(data, columns=headers)
         return df
 

@@ -25,6 +25,10 @@ class Tripulantes:
             tripulantes_off = self.read_all_rows(excel_data_off, start_row=2, column_range=slice(10, 17), column_names=tripulante_columns) 
             tripulantes_off.reset_index(drop=True, inplace=True)
 
+            for df in [tripulantes_on, tripulantes_off]:
+                if 'Pasaporte' in df.columns:
+                    df['Pasaporte'] = df['Pasaporte'].apply(lambda x: str(x).strip() if pd.notna(x) else None)
+
             return tripulantes_on, tripulantes_off
         except Exception as e:
             #raise Exception(f"[Tripulantes] Error al procesar el archivo: {e}")

@@ -30,6 +30,12 @@ class Transportes:
             transportes_off = self._extract_transports(excel_data_off, start_row=0, state="off")
             transportes_off.reset_index(drop=True, inplace=True)
 
+            pd.set_option('display.max_rows', None)         # Muestra todas las filas
+            pd.set_option('display.max_columns', None)      # Muestra todas las columnas
+            pd.set_option('display.max_colwidth', None)     # Muestra contenido completo de cada celda
+            pd.set_option('display.expand_frame_repr', False)
+            print(f"Transportes OFF = {transportes_off["Transporte 1"]}")
+
             return transportes_on, transportes_off
         except Exception as e:
             raise Exception(f"[Transportes] Error al procesar el archivo: {e}")
@@ -231,7 +237,7 @@ class Transportes:
                     city_end_value = city_end_idx if pd.notna(city_end_idx) else None
                     place_end_value = place_end_idx if pd.notna(place_end_idx) else None
                     date_pickup_value = date_pickup_idx if pd.notna(date_pickup_idx) else None
-                    hours_pickup_value = hours_pickup_idx if pd.notna(hours_pickup_idx) else None
+                    hours_pickup_value = self.limpiar_hora(hours_pickup_idx)
 
                     # Agregar el transporte al diccionario del tripulante
                     if not pd.isna(city_in_value):
@@ -290,6 +296,18 @@ class Transportes:
 
         # Asegurar que la función retorne la lista de transportes
         return pd.DataFrame(transports)
+    
+    def limpiar_hora(self, valor):
+        if isinstance(valor, datetime):
+            return valor.time()
+        elif isinstance(valor, time):
+            return valor
+        elif isinstance(valor, str):
+            try:
+                return datetime.strptime(valor.strip(), "%H:%M").time()
+            except ValueError:
+                return None
+        return None
         
         # Leer todas las filas desde una fila específica hasta que no haya más datos,
         # incluso si las filas tienen valores nulos.
@@ -439,7 +457,6 @@ def check_and_clean(file_path, transportes_df, state):
                     registro['Hours Pickup'] = cleaned_time  # Guarda limpio en formato HH:MM
 
     return errors, errors_message, errors_to_check
-
 
 # def process_time(value, field_name, state, tripulante, transporte_key, row, i, indice_a_letra_columna):
 #     errors = []

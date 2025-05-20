@@ -393,7 +393,10 @@ class TransportesLiquidarScreen(QWidget):
                 elif 'HOTEL-NAVE' == tramo:
                     codigo = f"{str(vuelo.Codigo)} {CITY_TO_AIRPORT_CODES.get(vuelo.Aeropuerto_Salida)}-{CITY_TO_AIRPORT_CODES.get(vuelo.Aeropuerto_Llegada)}"
                     tiempo_a_restar = timedelta(hours=3) if city_select == 'scl' else timedelta(hours=2)
-                    hora_pick_up = (vuelo.Hora_Salida - tiempo_a_restar).time()
+                    if vuelo is not None and vuelo.Hora_Salida is not None:
+                        hora_pick_up = (vuelo.Hora_Salida - tiempo_a_restar).time()
+                    else:
+                        hora_pick_up = ""
                     data_rows.append({
                         "fecha_pickup": date_pickup,
                         "hora_pick_up": transporte.Hora_Pickup if not pd.isna(transporte.Hora_Pickup) else "",
