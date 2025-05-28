@@ -52,6 +52,8 @@ class Asistencias:
     #     except Exception as e:
     #         print(f"Error al procesar asistencias: {e}")
 
+        
+
     def _create_asistencias(self, file_path, tripulantes_df, asistencias_df, state):
         errors = []
         errors_message = []
@@ -82,15 +84,15 @@ class Asistencias:
                         continue
 
                     asistencias_lista = [
-                        str(asistencia_row.get('Asistencia 1', '')).strip().lower(),
-                        str(asistencia_row.get('Asistencia 2', '')).strip().lower(),
-                        str(asistencia_row.get('Asistencia 3', '')).strip().lower()
+                        normalize_text(asistencia_row.get('Asistencia 1')),
+                        normalize_text(asistencia_row.get('Asistencia 2')),
+                        normalize_text(asistencia_row.get('Asistencia 3'))
                     ]
 
                     proveedores_lista = [
-                        asistencia_row.get('Proveedor SCL', None),
-                        asistencia_row.get('Proveedor PUQ', None),
-                        asistencia_row.get('Proveedor WPU', None)
+                        normalize_text(asistencia_row.get('Proveedor SCL')),
+                        normalize_text(asistencia_row.get('Proveedor PUQ')),
+                        normalize_text(asistencia_row.get('Proveedor WPU')),
                     ]
 
                     existing_asistencia = self.db_session.query(TripulanteAsistencia).filter_by(
@@ -103,20 +105,18 @@ class Asistencias:
                         ("asistencia wpu", "Asistencia 3", "Proveedor WPU"),
                     ]
 
-                    proveedor_bool = True
+                    asistencias_validas = [False, False, False]
 
                     for idx, (asistencia_key, asistencia_column, proveedor_column) in enumerate(asistencias_ciudades):
-                        proveedor_valor = str(proveedores_lista[idx]).strip().lower() if not pd.isna(proveedores_lista[idx]) else ""
-
+                        proveedor_valor = normalize_text(proveedores_lista[idx])
+                        
                         if proveedor_valor == "no":
-                            proveedor_bool = False
-                            continue
+                            continue  # Esta ciudad se omite
 
                         if proveedor_valor in ["", "nan"]:
                             y = column_letter_map.get(proveedor_column, "?")
                             errors.append([i + 3, y])
                             errors_message.append(f"Proveedor {asistencia_key.split()[-1].upper()} faltante [{i + 3},{y}]")
-                            proveedor_bool = False
                             continue
 
                         if asistencia_key not in asistencias_lista:
@@ -124,9 +124,12 @@ class Asistencias:
                             y = column_letter_map.get(asistencia_column, "?")
                             errors.append([i + 3, y])
                             errors_message.append(f"Asistencia inexistente en {asistencia_column} [{i + 3},{y}]")
-                            proveedor_bool = False
+                            continue
 
-                    if not proveedor_bool:
+                        asistencias_validas[idx] = True
+
+                    if not any(asistencias_validas):
+                        print(f"[DEBUG] Fila {i + 3} omitida. Pasaporte={tripulante_row['Pasaporte']}, asistencias={asistencias_lista}, proveedores={proveedores_lista}")
                         continue
 
                     if not existing_asistencia:
@@ -135,18 +138,18 @@ class Asistencias:
                             necesita_asistencia_scl='asistencia scl' in asistencias_lista,
                             necesita_asistencia_puq='asistencia puq' in asistencias_lista,
                             necesita_asistencia_wpu='asistencia wpu' in asistencias_lista,
-                            proveedor_scl=proveedores_lista[0] if 'asistencia scl' in asistencias_lista else None,
-                            proveedor_puq=proveedores_lista[1] if 'asistencia puq' in asistencias_lista else None,
-                            proveedor_wpu=proveedores_lista[2] if 'asistencia wpu' in asistencias_lista else None
+                            proveedor_scl=proveedores_lista[0].capitalize() if 'asistencia scl' in asistencias_lista else None,
+                            proveedor_puq=proveedores_lista[1].capitalize() if 'asistencia puq' in asistencias_lista else None,
+                            proveedor_wpu=proveedores_lista[2].capitalize() if 'asistencia wpu' in asistencias_lista else None
                         )
                         self.db_session.add(tripulante_asistencia)
                     else:
                         existing_asistencia.necesita_asistencia_scl = 'asistencia scl' in asistencias_lista
                         existing_asistencia.necesita_asistencia_puq = 'asistencia puq' in asistencias_lista
                         existing_asistencia.necesita_asistencia_wpu = 'asistencia wpu' in asistencias_lista
-                        existing_asistencia.proveedor_scl = proveedores_lista[0] if 'asistencia scl' in asistencias_lista else None
-                        existing_asistencia.proveedor_puq = proveedores_lista[1] if 'asistencia puq' in asistencias_lista else None
-                        existing_asistencia.proveedor_wpu = proveedores_lista[2] if 'asistencia wpu' in asistencias_lista else None
+                        existing_asistencia.proveedor_scl = proveedores_lista[0].capitalize() if 'asistencia scl' in asistencias_lista else None
+                        existing_asistencia.proveedor_puq = proveedores_lista[1].capitalize() if 'asistencia puq' in asistencias_lista else None
+                        existing_asistencia.proveedor_wpu = proveedores_lista[2].capitalize() if 'asistencia wpu' in asistencias_lista else None
 
                     self.db_session.commit()
 
@@ -217,3 +220,9 @@ def get_cell_value(file_path, sheet_name, row, column):
     cell_value = sheet.cell(row=row, column=column).value
 
     return cell_value
+
+def normalize_text(text):
+            """Convierte a minúsculas, elimina espacios y ordena palabras si es string."""
+            if isinstance(text, str):
+                return ' '.join(sorted(text.strip().lower().split()))
+            return ''

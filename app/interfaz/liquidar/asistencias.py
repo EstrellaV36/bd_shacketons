@@ -176,8 +176,12 @@ class DataWorker(QObject):
                 "Assistance": "1" if row.Assistance else "0",
             } for row in asistencia_results])
 
-            final_data = pd.merge(main_data, asistencia_data, on="ID", how="left")
-            final_data = final_data[final_data["Assistance"] == "1"]
+            if not asistencia_data.empty and "ID" in asistencia_data.columns:
+                final_data = pd.merge(main_data, asistencia_data, on="ID", how="left")
+                final_data = final_data[final_data["Assistance"] == "1"]
+            else:
+                final_data = main_data
+                final_data["Assistance"] = "0"
             
         else:
             final_data = main_data
