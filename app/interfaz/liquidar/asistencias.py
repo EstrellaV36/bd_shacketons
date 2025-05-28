@@ -66,7 +66,7 @@ class DataWorker(QObject):
             EtaCiudad.puerto.label("Puerto"), 
             Tripulante.nombre.label("First_Name"),
             Tripulante.apellido.label("Last_Name"),
-            func.min(Vuelo.codigo).label("Domestic_flight"),  # Ejemplo: tomar el primer vuelo
+            func.min(Vuelo.codigo).label("Domestic_flight"),
             func.min(Vuelo.aeropuerto_salida).label("Aeropuerto_Salida"),
             func.min(Vuelo.aeropuerto_llegada).label("Aeropuerto_Llegada"),
             func.min(Vuelo.fecha).label("Date"),
@@ -76,16 +76,22 @@ class DataWorker(QObject):
             .join(Viaje, Tripulante.tripulante_id == Viaje.tripulante_id)\
             .join(Buque, EtaCiudad.buque_id == Buque.buque_id)\
             .join(Tripulante, Tripulante.buque_id == Buque.buque_id)\
-            .join(TripulanteVuelo, Tripulante.tripulante_id == TripulanteVuelo.tripulante_id)\
-            .join(Vuelo, Vuelo.vuelo_id == TripulanteVuelo.vuelo_id)\
-            .filter(
-                or_(
-                    Vuelo.aeropuerto_llegada.in_(aeropuertos_filtrados),
-                    Vuelo.aeropuerto_salida.in_(aeropuertos_filtrados)
+            .outerjoin(TripulanteVuelo, Tripulante.tripulante_id == TripulanteVuelo.tripulante_id)\
+            .outerjoin(
+                Vuelo,
+                and_(
+                    Vuelo.vuelo_id == TripulanteVuelo.vuelo_id,
+                    Vuelo.tipo == "DOMESTICO"
                 )
-            )\
-            .group_by(Tripulante.tripulante_id, Buque.nombre, EtaCiudad.eta, EtaCiudad.puerto, 
-                    Tripulante.nombre, Tripulante.apellido, Viaje.estado)
+            ).group_by(
+                Tripulante.tripulante_id,
+                Buque.nombre,
+                EtaCiudad.eta,
+                EtaCiudad.puerto, 
+                Tripulante.nombre,
+                Tripulante.apellido,
+                Viaje.estado
+            )
 
         # resultados_sin_filtros = query.all()
         # print(f"Resultados sin filtros: {resultados_sin_filtros}")
@@ -99,8 +105,15 @@ class DataWorker(QObject):
             query = query.filter(func.trim(func.lower(Buque.nombre)) == self.vessel.strip().lower())
         if self.fecha_eta:
             query = query.filter(func.date(EtaCiudad.eta) == self.fecha_eta)
-        if self.tipo and self.tipo != "Tipo tripulante":
-            query = query.filter(func.trim(Viaje.estado) == self.tipo)
+        if self.tipo == "ON":
+            query = query.filter(func.trim(Viaje.estado) == "ON")
+        elif self.tipo == "OFF":
+            query = query.filter(func.trim(Viaje.estado) == "OFF")
+        elif self.tipo == "Ambos":
+            pass  # No aplicar filtro
+        else:
+            # Si es "Tipo tripulante" u otro valor inesperado, que no retorne resultados
+            query = query.filter(False)
     
         results = query.all()
 
@@ -108,9 +121,19 @@ class DataWorker(QObject):
         # Modificar la columna "Domestic flight" para incluir el tramo con códigos de aeropuerto
         results_modificados = []
         for row in results:
-            aeropuerto_salida_codigo = CITY_TO_AIRPORT_CODES.get(row.Aeropuerto_Salida, row.Aeropuerto_Salida)
-            aeropuerto_llegada_codigo = CITY_TO_AIRPORT_CODES.get(row.Aeropuerto_Llegada, row.Aeropuerto_Llegada)
-            domestic_flight = f"{row.Domestic_flight} {aeropuerto_salida_codigo}-{aeropuerto_llegada_codigo}"
+            print(f"Resultado = {row}")
+            if (
+                row.Domestic_flight
+                and row.Aeropuerto_Salida
+                and row.Aeropuerto_Llegada
+                and row.Aeropuerto_Salida != row.Aeropuerto_Llegada
+            ):
+                aeropuerto_salida_codigo = CITY_TO_AIRPORT_CODES.get(row.Aeropuerto_Salida, row.Aeropuerto_Salida)
+                aeropuerto_llegada_codigo = CITY_TO_AIRPORT_CODES.get(row.Aeropuerto_Llegada, row.Aeropuerto_Llegada)
+                domestic_flight = f"{row.Domestic_flight} {aeropuerto_salida_codigo}-{aeropuerto_llegada_codigo}"
+            else:
+                domestic_flight = ""
+
             # Convertimos cada fila en un diccionario y actualizamos "Domestic flight"
             row_dict = row._asdict() if hasattr(row, '_asdict') else row.__dict__.copy()
             row_dict["Domestic_flight"] = domestic_flight
@@ -127,12 +150,13 @@ class DataWorker(QObject):
         main_data = pd.DataFrame([{
             "ID": row["ID"],
             "Vessel": row["Vessel"],
-            "ETA": row["ETA"].date() if row["ETA"] else None,  # Extraer solo la fecha
+            "ETA": row["ETA"].date() if row["ETA"] else "",  # Extraer solo la fecha
             "First Name": row["First_Name"],
             "Last Name": row["Last_Name"],
             "Domestic flight": row["Domestic_flight"],
-            "Date": row["Date"].date() if row["Date"] else None,  # Extraer solo la fecha
-            "Arrival": row["Arrival"].strftime("%H:%M") if row["Arrival"] else None,  # Extraer solo la hora
+            "Date": row["Date"].date() if row["Date"] else "",  # Extraer solo la fecha
+            "Arrival": row["Arrival"].strftime("%H:%M") if row["Arrival"] else "",  # Extraer solo la hora
+            "Estado": row["Estado"] or ""
         } for row in results_modificados])
 
         print(f"Main data = {main_data}")
@@ -173,8 +197,9 @@ class ComboboxWorker(QObject):
 
         # Consultas para rellenar los comboboxes
         data = {
-            "ciudades": [ciudad.ciudad for ciudad in session.query(Hotel.ciudad).distinct().all()],
-            "tipos_tripulante": ["ON", "OFF"],
+            # "ciudades": [ciudad.ciudad for ciudad in session.query(Hotel.ciudad).distinct().all()],
+            "ciudades": ["PUQ", "SCL", "WPU"],
+            "tipos_tripulante": ["Ambos", "ON", "OFF"],
             "owners": [owner.empresa for owner in session.query(Buque.empresa).distinct().all()],
             #"proveedores": set(),
             "all_vessels": [],  # Lista de todos los buques
@@ -421,6 +446,9 @@ class AsistenciasLiquidarScreen(QWidget):
 
         # Agregar una nueva columna '#' para numerar las filas
         df.insert(0, '#', range(1, len(df) + 1))
+        cols = list(df.columns)
+        cols.insert(1, cols.pop(cols.index("Estado")))
+        df = df[cols]
 
         # Configurar encabezados
         self.table_widget.setRowCount(df.shape[0])

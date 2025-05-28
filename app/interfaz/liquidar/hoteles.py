@@ -56,8 +56,15 @@ class DataWorker(QObject):
             tripulantes_query = tripulantes_query.filter(func.trim(func.lower(Buque.nombre)) == self.vessel.strip().lower())
         if self.fecha_eta:
             tripulantes_query = tripulantes_query.filter(func.date(EtaCiudad.eta) == self.fecha_eta)
-        if self.tipo and self.tipo != "Tipo tripulante":
-            tripulantes_query = tripulantes_query.filter(func.trim(Viaje.estado) == self.tipo)
+        if self.tipo == "ON":
+            tripulantes_query = tripulantes_query.filter(func.trim(Viaje.estado) == "ON")
+        elif self.tipo == "OFF":
+            tripulantes_query = tripulantes_query.filter(func.trim(Viaje.estado) == "OFF")
+        elif self.tipo == "Ambos":
+            pass  # Mostrar todos
+        else:
+            # Tipo inválido o "Tipo tripulante"
+            tripulantes_query = tripulantes_query.filter(False)  # No retorna resultados
 
         tripulantes = tripulantes_query.all()
         tripulante_ids = [t.ID for t in tripulantes]
@@ -110,6 +117,7 @@ class DataWorker(QObject):
                         "Nights": hotel_data["Nights"],
                         "Cost": "",
                         "Invoice": "",
+                        "Estado": tripulante.Estado
                     })
             else:
                 resultados.append({
@@ -123,6 +131,7 @@ class DataWorker(QObject):
                     "Nights": "",
                     "Cost": "",
                     "Invoice": "",
+                    "Estado": tripulante.Estado
                 })
 
         puerto = tripulantes[0].Puerto if tripulantes else "N/A"
@@ -311,6 +320,11 @@ class HotelesLiquidarScreen(QWidget):
         # Agregar una nueva columna '#' para numerar las filas
         df.insert(0, '#', range(1, len(df) + 1))
 
+        cols = df.columns.tolist()
+        if "Estado" in cols:
+            cols.insert(1, cols.pop(cols.index("Estado")))
+            df = df[cols]
+
         # Configurar encabezados
         self.table_widget.setRowCount(len(df))
         self.table_widget.setColumnCount(len(df.columns))
@@ -490,7 +504,7 @@ class ComboboxWorker(QObject):
         # Consultas para rellenar los comboboxes
         data = {
             "ciudades": [ciudad.ciudad for ciudad in session.query(Hotel.ciudad).distinct().all()],
-            "tipos_tripulante": ["ON", "OFF"],
+            "tipos_tripulante": ["Ambos", "ON", "OFF"],
             "owners": [owner.empresa for owner in session.query(Buque.empresa).distinct().all()],
             #"proveedores": set(),
             "all_vessels": [],  # Lista de todos los buques
