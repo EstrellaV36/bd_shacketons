@@ -113,8 +113,8 @@ class Vuelos:
                         hora_salida = None
                         hora_llegada = datetime.combine(fecha_vuelo.date(), datetime.strptime(hora_llegada_str, "%H:%M").time())
                     else:
-                        if str(hora).strip().upper() not in ["NO", "TBC"]:
-                            print(f"Error en la fila {i+3} | {state} | {tipo} | Hora inválida: {hora}")
+                        #if str(hora).strip().upper() not in ["NO", "TBC"]:
+                            #print(f"Error en la fila {i+3} | {state} | {tipo} | Hora inválida: {hora}")
                         return None  # No es un formato de hora válido
 
             elif isinstance(hora, time):
@@ -439,6 +439,17 @@ def check_and_clean(file_path, vuelos_df, state, tipo):
     errors = []
     errors_message = []
 
+    column_letters_excel = {}
+
+    def preload_column_letters():
+        workbook = load_workbook(file_path)
+        sheet = workbook[state]
+        for col in sheet.iter_cols(1, sheet.max_column, 1, 1):
+            header = col[0].value
+            if header:
+                header_normalized = header.strip().lower()
+                column_letters_excel[header_normalized] = get_column_letter(col[0].column)
+
     def clean_value(value):
         if isinstance(value, str):  # Verificar si es una cadena
             return value.strip().replace('/', '-')  # Eliminar espacios en blanco
@@ -477,30 +488,61 @@ def check_and_clean(file_path, vuelos_df, state, tipo):
             
             raise ValueError(f"Columna con nombre '{column_name}' no encontrada en el archivo.")
     
-    def get_column(df, columna):
-        sheet_name = state
+    def get_column(df, columna, tipo_dato="fecha"):
         indices = {key: idx for idx, key in enumerate(df.keys())}
         x = indices[columna]
+
         if tipo == "INTERNACIONAL":
-            y = get_excel_column_letter(file_path, sheet_name, f"Fecha Vuelo Int {x+1}")
+            if tipo_dato == "fecha":
+                header_name = f"Fecha Vuelo Int {x+1}"
+            elif tipo_dato == "hora":
+                header_name = f"Hora Vuelo Int {x+1}"
+            else:
+                return "?"
         elif tipo == "DOMESTICO":
-            y = get_excel_column_letter(file_path, sheet_name, f"Date Domestic Flight")
+            header_name = "Date Domestic Flight" if tipo_dato == "fecha" else "Hora Domestic Flight"
         elif tipo == "REGIONAL":
-            y = get_excel_column_letter(file_path, sheet_name, f"Date Regional Flight")
-        return y
+            header_name = "Date Regional Flight" if tipo_dato == "fecha" else "Hora Regional Flight"
+        else:
+            return "?"
+
+        return column_letters_excel.get(header_name.strip().lower(), "?")
     
-    def get_cell_value(file_path, sheet_name, row, column):
-        # Cargar el archivo de Excel
-        workbook = load_workbook(file_path, data_only=True)  # `data_only=True` para obtener el valor calculado en celdas con fórmulas
-        sheet = workbook[sheet_name]
+    def is_valid_hour(hora_str):
+        if isinstance(hora_str, str):
+            hora_str = hora_str.strip().replace("–", "-").replace("—", "-")
+            hora_str = re.sub(r'\s+', ' ', hora_str)  # reemplaza múltiples espacios por uno
 
-        # Obtener el valor de la celda
-        cell_value = sheet.cell(row=row, column=column).value
+            # Formato simple "HH:MM"
+            if re.match(r'^\d{1,2}:\d{2}$', hora_str):
+                return True
+            # Formato "HH:MM-HH:MM"
+            if re.match(r'^\d{1,2}:\d{2}-\d{1,2}:\d{2}$', hora_str):
+                return True
+            # Formato "HH:MM HH:MM+1"
+            if re.match(r'^\d{1,2}:\d{2} \d{1,2}:\d{2}\+\d+$', hora_str):
+                return True
+            if re.match(r'^\d{1,2}:\d{2}-\d{1,2}:\d{2}$', hora_str):
+                return True
+            # Formato con +1, como "HH:MM+1"
+            if re.match(r'^\d{1,2}:\d{2}\+\d+$', hora_str):
+                return True
+            # Formato completo: "HH:MM-HH:MM+1"
+            if re.match(r'^\d{1,2}:\d{2}-\d{1,2}:\d{2}\+\d+$', hora_str):
+                return True
+            # Formato "HH:MM HH:MM"
+            if re.match(r'^\d{1,2}:\d{2} \d{1,2}:\d{2}$', hora_str):
+                return True
+            return False
 
-        return cell_value
+        elif isinstance(hora_str, time):
+            return True
+
+        return False
 
     def check_date():        
         df = pd.DataFrame(vuelos_df)
+
         for columna in vuelos_df:
             #print(f"Columna: {columna} | {state} | {tipo}")
             vuelo = df[columna].tolist()  # Convertir la columna en una lista
@@ -518,10 +560,9 @@ def check_and_clean(file_path, vuelos_df, state, tipo):
 
                             if not is_valid_date(value):
                                 print(f"NE 1 {state} | Registro {idx+3} en '{columna}': Vuelo es {value}")
-                                sheet_name = state
                                 column_letter = get_column(df, columna)
                                 column_number = column_index_from_string(column_letter)
-                                cell_value = get_cell_value(file_path, sheet_name, 1, column_number)
+                                cell_value = sheet_loaded.cell(row=1, column=column_number).value
                                 errors_to_check.append([idx+3, columna])
                                 errors.append([idx+3, column_letter])
                                 errors_message.append(f"Fecha inexistente en {cell_value} [{idx+3},{column_letter}]")
@@ -533,10 +574,9 @@ def check_and_clean(file_path, vuelos_df, state, tipo):
                         if registro.get('fecha') == None or pd.isna(registro.get('fecha')):
                             if str(registro.get('vuelo')).lower() != 'no' and not pd.isna(registro.get('vuelo')):
                                 print(f"ER {state} | Registro {idx+3} en '{columna}': Vuelo es {registro.get('vuelo')}")
-                                sheet_name = state
                                 column_letter = get_column(df, columna)
                                 column_number = column_index_from_string(column_letter)
-                                cell_value = get_cell_value(file_path, sheet_name, 1, column_number)
+                                cell_value = sheet_loaded.cell(row=1, column=column_number).value
                                 errors_to_check.append([idx+3, columna])
                                 errors.append([idx+3, column_letter])
                                 errors_message.append(f"Formato incorrecto en {cell_value} [{idx+3},{column_letter}]")
@@ -545,23 +585,37 @@ def check_and_clean(file_path, vuelos_df, state, tipo):
                             #print(f"{type(registro.get('vuelo'))} | {registro.get('vuelo')}")
                             #print(f"ER | Registro {idx+2} en '{columna}': Vuelo es {registro.get('fecha')}")
                             print(f"ER {state} | Registro {idx+3} en '{columna}': Vuelo está vacío")
-                            sheet_name = state
                             column_letter = get_column(df, columna)
                             column_number = column_index_from_string(column_letter)
-                            cell_value = get_cell_value(file_path, sheet_name, 1, column_number)
+                            cell_value = sheet_loaded.cell(row=1, column=column_number).value
                             errors_to_check.append([idx+3, columna])
                             errors.append([idx+3, column_letter])
                             errors_message.append(f"Dato faltante en {cell_value} [{idx+3},{column_letter}]")
                         else:
                             if not is_valid_date(value):
                                 print(f"NE 2 {state} | Registro {idx+3} en '{columna}': Vuelo es {registro.get('fecha')}")
-                                sheet_name = state
                                 column_letter = get_column(df, columna)
                                 column_number = column_index_from_string(column_letter)
-                                cell_value = get_cell_value(file_path, sheet_name, 1, column_number)
+                                cell_value = sheet_loaded.cell(row=1, column=column_number).value
                                 errors_to_check.append([idx+3, columna])
                                 errors.append([idx+3, column_letter])
                                 errors_message.append(f"Fecha inexistente en {cell_value} [{idx+3},{column_letter}]")
+
+                    
+                    if isinstance(registro.get('hora'), str):
+                        hora_valor = registro.get('hora')
+                        if not is_valid_hour(hora_valor) and hora_valor != "TBC":
+                            column_letter = get_column(df, columna, tipo_dato="hora")
+
+                            if column_letter == "?":
+                                print(f"[ERROR] No se encontró el header para columna '{columna}' en tipo '{tipo}'")
+                                continue  # o raise, dependiendo del flujo
+
+                            column_number = column_index_from_string(column_letter)
+                            cell_value = sheet_loaded.cell(row=1, column=column_number).value
+                            errors_to_check.append([idx+3, columna])
+                            errors.append([idx+3, column_letter])
+                            errors_message.append(f"Hora inválida en {cell_value} [{idx+3},{column_letter}]")
                 else:
                     if str(registro.get('vuelo')).lower() != 'tbc' and str(registro.get('vuelo')).lower() != 'no':
                         print(f"{state} | Registro {idx+3} en '{columna}': Vuelo es {registro.get('vuelo')}")
@@ -570,5 +624,10 @@ def check_and_clean(file_path, vuelos_df, state, tipo):
                     # else:
                     #     print(f"Registro {idx+2} en '{columna}': Vuelo está vacío")
 
+    preload_column_letters()
+    workbook = load_workbook(file_path, data_only=True)
+    sheet_loaded = workbook[state]
+
     check_date()
+
     return errors, errors_message

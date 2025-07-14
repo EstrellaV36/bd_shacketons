@@ -1,0 +1,7 @@
+Errores detectados en ON:
+Hora inválida en Hora Vuelo Int 2 [41,AA]
+
+Errores detectados en OFF:
+Hora inválida en Hora Regional Flight [4,X]
+Hora inválida en Hora Regional Flight [11,X]
+

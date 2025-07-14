@@ -9,6 +9,7 @@ from openpyxl.styles import PatternFill, Alignment, Font, Border, Side
 from openpyxl.utils import get_column_letter
 from datetime import datetime, time, timedelta
 from sqlalchemy import func, exists, case, and_, or_
+from sqlalchemy.orm import aliased
 from collections import defaultdict
 from datetime import datetime
 from openpyxl.styles import Alignment, Font
@@ -57,44 +58,54 @@ class DataWorker(QObject):
         else:
             asistencia_enabled = True
 
+        fecha_inicio = datetime.combine(self.fecha_eta, time.min)
+        fecha_fin = datetime.combine(self.fecha_eta, time.max)
+
         print(f"Aeropuerto filtrado = {aeropuertos_filtrados} | Necesita asistencia = {asistencia_field} | asist enable = {asistencia_enabled}")
 
-        query = session.query(
-            Tripulante.tripulante_id.label("ID"),
-            Buque.nombre.label("Vessel"),
-            EtaCiudad.eta.label("ETA"),
-            EtaCiudad.puerto.label("Puerto"), 
-            Tripulante.nombre.label("First_Name"),
-            Tripulante.apellido.label("Last_Name"),
-            func.min(Vuelo.codigo).label("Domestic_flight"),
-            func.min(Vuelo.aeropuerto_salida).label("Aeropuerto_Salida"),
-            func.min(Vuelo.aeropuerto_llegada).label("Aeropuerto_Llegada"),
-            func.min(Vuelo.fecha).label("Date"),
-            func.min(Vuelo.hora_llegada).label("Arrival"),
-            Viaje.estado.label("Estado"),
-        ).select_from(EtaCiudad)\
-            .join(Viaje, Tripulante.tripulante_id == Viaje.tripulante_id)\
-            .join(Buque, EtaCiudad.buque_id == Buque.buque_id)\
-            .join(Tripulante, Tripulante.buque_id == Buque.buque_id)\
-            .outerjoin(TripulanteVuelo, Tripulante.tripulante_id == TripulanteVuelo.tripulante_id)\
-            .outerjoin(
-                Vuelo,
-                and_(
-                    Vuelo.vuelo_id == TripulanteVuelo.vuelo_id,
-                    Vuelo.tipo == "DOMESTICO"
-                )
-            ).group_by(
+        query = (
+            session.query(
+                Tripulante.tripulante_id.label("ID"),
+                Buque.nombre.label("Vessel"),
+                EtaCiudad.eta.label("ETA"),
+                EtaCiudad.puerto.label("Puerto"),
+                Tripulante.nombre.label("First_Name"),
+                Tripulante.apellido.label("Last_Name"),
+                func.min(Vuelo.codigo).label("Domestic_flight"),
+                func.min(Vuelo.aeropuerto_salida).label("Aeropuerto_Salida"),
+                func.min(Vuelo.aeropuerto_llegada).label("Aeropuerto_Llegada"),
+                func.min(Vuelo.fecha).label("Date"),
+                func.min(Vuelo.hora_llegada).label("Arrival"),
+                Viaje.estado.label("Estado"),
+            )
+            .join(EtaCiudad, Tripulante.tripulante_id == EtaCiudad.tripulante_id)
+            .join(Viaje, Tripulante.tripulante_id == Viaje.tripulante_id)
+            .join(Buque, Tripulante.buque_id == Buque.buque_id)
+            .outerjoin(TripulanteVuelo, Tripulante.tripulante_id == TripulanteVuelo.tripulante_id)
+            .outerjoin(Vuelo, and_(
+                Vuelo.vuelo_id == TripulanteVuelo.vuelo_id,
+                Vuelo.tipo == "DOMESTICO"
+            ))
+            .filter(
+                EtaCiudad.eta >= fecha_inicio,
+                EtaCiudad.eta <= fecha_fin
+            )
+            .group_by(
                 Tripulante.tripulante_id,
                 Buque.nombre,
                 EtaCiudad.eta,
-                EtaCiudad.puerto, 
+                EtaCiudad.puerto,
                 Tripulante.nombre,
                 Tripulante.apellido,
                 Viaje.estado
             )
+        )
 
-        # resultados_sin_filtros = query.all()
-        # print(f"Resultados sin filtros: {resultados_sin_filtros}")
+        if self.fecha_eta:
+            query = query.filter(
+                EtaCiudad.eta >= fecha_inicio,
+                EtaCiudad.eta <= fecha_fin
+            )
 
         print(f"El tipo es {self.tipo}")
 
@@ -103,8 +114,6 @@ class DataWorker(QObject):
             query = query.filter(func.trim(func.lower(Buque.empresa)) == self.owner.strip().lower())
         if self.vessel and self.vessel != "Vessel":
             query = query.filter(func.trim(func.lower(Buque.nombre)) == self.vessel.strip().lower())
-        if self.fecha_eta:
-            query = query.filter(func.date(EtaCiudad.eta) == self.fecha_eta)
         if self.tipo == "ON":
             query = query.filter(func.trim(Viaje.estado) == "ON")
         elif self.tipo == "OFF":
@@ -117,7 +126,10 @@ class DataWorker(QObject):
     
         results = query.all()
 
-        print(f"Results = {results}")
+        # resultados_sin_filtros = query.all()
+        # print(f"Resultados sin filtros: {resultados_sin_filtros}")
+
+        #print(f"Results = {results}")
         # Modificar la columna "Domestic flight" para incluir el tramo con códigos de aeropuerto
         results_modificados = []
         for row in results:

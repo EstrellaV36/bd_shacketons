@@ -32,30 +32,38 @@ class DataWorker(QObject):
 
     def run(self):
         print(f"DataWorker started with: ciudad={self.ciudad}, owner={self.owner}, vessel={self.vessel}, fecha_eta={self.fecha_eta}")
-
         session = get_db_session()
 
+        fecha_inicio = datetime.combine(self.fecha_eta, time.min)
+        fecha_fin = datetime.combine(self.fecha_eta, time.max)
+
         # Obtener tripulantes con filtros aplicados
-        tripulantes_query = session.query(
-            Tripulante.tripulante_id.label("ID"),
-            Buque.nombre.label("Vessel"),
-            EtaCiudad.eta.label("ETA"),
-            EtaCiudad.puerto.label("Puerto"), 
-            Tripulante.nombre.label("First_Name"),
-            Tripulante.apellido.label("Last_Name"),
-            Viaje.estado.label("Estado"),
-        ).select_from(EtaCiudad)\
-            .join(Viaje, Tripulante.tripulante_id == Viaje.tripulante_id)\
-            .join(Buque, EtaCiudad.buque_id == Buque.buque_id)\
-            .join(Tripulante, Tripulante.buque_id == Buque.buque_id)\
-            .distinct()
+        tripulantes_query = (
+            session.query(
+                Viaje.estado.label("Estado"),
+                Buque.nombre.label("Vessel"),
+                Tripulante.nombre.label("First_Name"),
+                Tripulante.apellido.label("Last_Name"),
+                Hotel.nombre.label("Hotel_Name"),
+                TripulanteHotel.tipo_habitacion.label("Room"),
+                TripulanteHotel.fecha_entrada.label("Check_In"),
+                TripulanteHotel.fecha_salida.label("Check_Out"),
+                TripulanteHotel.numero_noches.label("Nights"),
+            ).join(TripulanteHotel, Tripulante.tripulante_id == TripulanteHotel.tripulante_id)
+            .join(Buque, Tripulante.buque_id == Buque.buque_id)
+            .join(EtaCiudad, Tripulante.tripulante_id == EtaCiudad.tripulante_id)
+            .join(Hotel, Hotel.hotel_id == TripulanteHotel.hotel_id)
+            .join(Viaje, Tripulante.tripulante_id == Viaje.tripulante_id)
+            .filter(
+                EtaCiudad.eta >= fecha_inicio,
+                EtaCiudad.eta <= fecha_fin
+            )
+        )
 
         if self.owner and self.owner != "Owner":
             tripulantes_query = tripulantes_query.filter(func.trim(func.lower(Buque.empresa)) == self.owner.strip().lower())
         if self.vessel and self.vessel != "Vessel":
             tripulantes_query = tripulantes_query.filter(func.trim(func.lower(Buque.nombre)) == self.vessel.strip().lower())
-        if self.fecha_eta:
-            tripulantes_query = tripulantes_query.filter(func.date(EtaCiudad.eta) == self.fecha_eta)
         if self.tipo == "ON":
             tripulantes_query = tripulantes_query.filter(func.trim(Viaje.estado) == "ON")
         elif self.tipo == "OFF":
@@ -67,6 +75,7 @@ class DataWorker(QObject):
             tripulantes_query = tripulantes_query.filter(False)  # No retorna resultados
 
         tripulantes = tripulantes_query.all()
+        '''
         tripulante_ids = [t.ID for t in tripulantes]
 
         # Obtener hoteles
@@ -133,9 +142,27 @@ class DataWorker(QObject):
                     "Invoice": "",
                     "Estado": tripulante.Estado
                 })
+                '''
+        
+        resultados = []
+        for tripulante in tripulantes:
+            print(tripulante)
+            resultados.append({
+                "Vessel": tripulante.Vessel,
+                "Name": tripulante.First_Name,
+                "Last Name": tripulante.Last_Name,
+                "Hotel": tripulante.Hotel_Name,
+                "Room": tripulante.Room,
+                "Check in": tripulante.Check_In.date() if tripulante.Check_In else None,
+                "Check out": tripulante.Check_Out.date() if tripulante.Check_Out else None,
+                "Nights": tripulante.Nights,
+                "Cost": "",
+                "Invoice": "",
+                "Estado": tripulante.Estado
+            })
 
-        puerto = tripulantes[0].Puerto if tripulantes else "N/A"
-        self.additional_data.emit({"Puerto": puerto})
+
+        tripulantes_query = resultados
 
         resultados = [row for row in resultados if row.get("Hotel") != "NO"]
         df = pd.DataFrame(resultados)
